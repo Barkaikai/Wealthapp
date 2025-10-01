@@ -164,3 +164,23 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+// AI-generated content for Learn pages
+export const aiContent = pgTable("ai_content", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  topic: text("topic").notNull(),
+  content: text("content").notNull(), // Markdown content
+  summary: text("summary"), // Optional short summary
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAIContentSchema = createInsertSchema(aiContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAIContent = z.infer<typeof insertAIContentSchema>;
+export type AIContent = typeof aiContent.$inferSelect;

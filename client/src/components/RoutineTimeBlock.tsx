@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface RoutineTimeBlockProps {
   time: string;
   title: string;
-  description?: string;
+  description?: string | null;
   category: "health" | "wealth" | "productivity" | "personal";
   duration: string;
 }

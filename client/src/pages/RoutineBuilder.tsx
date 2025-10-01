@@ -41,7 +41,7 @@ export default function RoutineBuilder() {
 
   const createRoutine = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest("/api/routines", "POST", data);
+      await apiRequest("POST", "/api/routines", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/routines"] });
@@ -194,7 +194,11 @@ export default function RoutineBuilder() {
             </div>
           ) : (
             routines.map((block) => (
-              <RoutineTimeBlock key={block.id} {...block} />
+              <RoutineTimeBlock 
+                key={block.id} 
+                {...block}
+                category={block.category as "health" | "wealth" | "productivity" | "personal"}
+              />
             ))
           )}
         </div>

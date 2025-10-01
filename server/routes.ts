@@ -5,7 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle } from "./openai";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Learn system routes - AI-generated educational content
-  app.get('/api/learn/:slug', async (req, res) => {
+  app.get('/api/learn/:slug', isAuthenticated, async (req, res) => {
     try {
       const { slug } = req.params;
       const content = await storage.getContentBySlug(slug);
@@ -497,17 +497,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate new content using OpenAI
       const { title, summary, contentMarkdown } = await generateTopicArticle(topic);
       
-      // Store in database
-      const content = await storage.createContent({
+      // Validate before inserting
+      const contentData = insertAIContentSchema.parse({
         slug,
         topic: title || topic,
         content: contentMarkdown,
         summary,
       });
       
+      // Store in database
+      const content = await storage.createContent(contentData);
+      
       res.status(201).json(content);
     } catch (error: any) {
       console.error("Error generating learn content:", error);
+      
+      // Handle different error types
+      if (error.message?.includes('OpenAI')) {
+        return res.status(502).json({ message: "AI service temporarily unavailable. Please try again." });
+      }
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid content data" });
+      }
+      if (error.message?.includes('unique constraint')) {
+        return res.status(409).json({ message: "Content already exists for this topic" });
+      }
+      
       res.status(500).json({ message: error.message || "Failed to generate content" });
     }
   });

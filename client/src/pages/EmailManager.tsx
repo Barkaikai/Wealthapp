@@ -37,8 +37,8 @@ export default function EmailManager() {
 
   const syncEmails = useMutation({
     mutationFn: async () => {
-      const result = await apiRequest("POST", "/api/emails/sync", {});
-      return result;
+      const response = await apiRequest("POST", "/api/emails/sync", {});
+      return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });

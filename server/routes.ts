@@ -11,6 +11,7 @@ import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPositi
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
 import { insertEmailTemplateSchema } from "@shared/schema";
+import { runFullDiagnostics } from "./diagnostics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -573,6 +574,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching market overview:", error);
       res.status(500).json({ message: "Failed to fetch market data" });
+    }
+  });
+
+  // Diagnostics route - comprehensive system health check
+  app.get('/api/diagnostics', isAuthenticated, async (req, res) => {
+    try {
+      console.log('Running full system diagnostics...');
+      const results = await runFullDiagnostics();
+      console.log(`Diagnostics complete: ${results.length} checks performed`);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error running diagnostics:", error);
+      res.status(500).json({ message: error.message || "Failed to run diagnostics" });
     }
   });
 

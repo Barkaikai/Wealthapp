@@ -6,6 +6,7 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { fetchRecentEmails } from "./gmail";
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
+import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -274,22 +275,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/emails/sync', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const gmailEmails = await fetchRecentEmails(20);
+      const maxResults = req.body.maxResults || 20;
       
-      for (const email of gmailEmails) {
-        const category = await categorizeEmail(email.subject, email.preview);
-        await storage.upsertEmail({
-          ...email,
-          userId,
-          category,
-        });
-      }
+      const result = await syncAndCategorizeEmails(userId, maxResults);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing emails:", error);
+      res.status(500).json({ message: error.message || "Failed to sync emails" });
+    }
+  });
+
+  app.get('/api/emails/with-drafts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const category = req.query.category as string | undefined;
+      
+      const emailsWithDrafts = await getEmailsWithDrafts(userId, category);
+      res.json(emailsWithDrafts);
+    } catch (error: any) {
+      console.error("Error fetching emails with drafts:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch emails with drafts" });
+    }
+  });
+
+  app.post('/api/emails/:id/draft', isAuthenticated, async (req: any, res) => {
+    try {
+      const emailId = req.params.id;
+      const userId = req.user.claims.sub;
       
       const emails = await storage.getEmails(userId);
-      res.json(emails);
-    } catch (error) {
-      console.error("Error syncing emails:", error);
-      res.status(500).json({ message: "Failed to sync emails" });
+      const email = emails.find(e => e.id === emailId);
+      
+      if (!email) {
+        return res.status(404).json({ message: "Email not found" });
+      }
+
+      const draftReply = await generateDraftForEmail(email.body || email.preview || '');
+      
+      await storage.upsertEmail({
+        ...email,
+        draftReply,
+      });
+      
+      res.json({ draftReply });
+    } catch (error: any) {
+      console.error("Error generating draft:", error);
+      res.status(500).json({ message: error.message || "Failed to generate draft" });
     }
   });
 

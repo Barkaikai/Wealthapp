@@ -19,6 +19,26 @@ This is an AI-powered life automation platform designed for billionaire-level we
 - 🔄 Waiting for API keys: ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY
 - 📋 Next: Plaid integration for bank account aggregation (requires user credentials)
 
+**Email Automation MVP**
+- ✅ Created automated email sorter with AI categorization
+- ✅ Added `draftReply` field to emails database table
+- ✅ Implemented email sync service that:
+  - Fetches emails from Gmail
+  - Categorizes into Personal/Finance/Investments using GPT-5
+  - **Auto-generates and stores AI drafts for Finance/Investments emails**
+  - Stores in database with metadata including draftReply
+  - Tracks sync statistics (emails synced per category + drafts created)
+- ✅ Email Manager UI:
+  - Category tabs (All/Finance/Investments/Personal)  
+  - **Displays stored AI drafts automatically** (Finance/Investments only)
+  - Regenerate button to update stored drafts
+  - Sync statistics showing drafts created
+- ✅ API endpoints:
+  - POST /api/emails/sync - Syncs and stores drafts
+  - GET /api/emails - Returns emails with draftReply field
+  - POST /api/emails/:id/draft - Regenerates and saves draft
+- ✅ Data flow: Sync → Generate Draft → Store in DB → Display in UI
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

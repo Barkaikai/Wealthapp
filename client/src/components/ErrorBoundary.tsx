@@ -2,10 +2,12 @@ import { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onReset?: () => void;
 }
 
 interface State {
@@ -13,7 +15,7 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundaryBase extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -29,6 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
+    this.props.onReset?.();
   };
 
   render() {
@@ -67,13 +70,15 @@ export class ErrorBoundary extends Component<Props, State> {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.href = '/'}
-                  data-testid="button-error-home"
-                >
-                  Go to Dashboard
-                </Button>
+                <Link href="/">
+                  <Button 
+                    variant="outline" 
+                    onClick={this.handleReset}
+                    data-testid="button-error-home"
+                  >
+                    Go to Dashboard
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -83,4 +88,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
+}
+
+export function ErrorBoundary({ children, fallback, onReset }: Props) {
+  return <ErrorBoundaryBase fallback={fallback} onReset={onReset}>{children}</ErrorBoundaryBase>;
 }

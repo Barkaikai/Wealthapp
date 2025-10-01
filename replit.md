@@ -6,6 +6,25 @@ This is an AI-powered life automation platform designed for billionaire-level we
 
 ## Recent Changes
 
+**October 1, 2025 - AI-Powered Learn System**
+- ✅ Implemented comprehensive Learn system for AI-generated educational content
+- ✅ Added `aiContent` database table with unique slug constraint for storing articles
+- ✅ Created API endpoints (authenticated):
+  - GET /api/learn/:slug - Fetch existing content
+  - POST /api/learn/generate - Generate new AI content
+- ✅ Built LearnPage component with auto-generation flow:
+  - Click highlighted text → Navigate to /learn/:slug
+  - Fetch content (or auto-generate if missing)
+  - Display formatted markdown with title and summary
+- ✅ Integrated LearnLink wrapper in Daily Briefing highlights
+- ✅ Security features:
+  - Authentication guards on all Learn endpoints
+  - Zod validation for request/response data
+  - Error handling (404/400/409/502/500 status codes)
+  - Unique slug constraint prevents duplicates
+- ✅ AI content generation via GPT-5 (500-800 word educational articles)
+- ✅ Content persistence and reuse from database
+
 **October 1, 2025 - Real Financial API Integration**
 - ✅ Added Alpha Vantage integration for real-time stock prices (active with API key)
 - ✅ Added CoinGecko integration with toggle support:
@@ -96,6 +115,7 @@ Preferred communication style: Simple, everyday language.
   - `/api/emails/*` - Email synchronization and AI drafting
   - `/api/routines/*` - Daily routine building and recommendations
   - `/api/events/*` - Financial event logging
+  - `/api/learn/*` - AI-generated educational content (clickable highlights)
 
 **Request/Response Flow:**
 - Middleware for request logging with timing and response capture
@@ -118,6 +138,7 @@ Preferred communication style: Simple, everyday language.
 - `routines` - User's daily schedule with time blocks, categories, duration
 - `emails` - Synced emails with AI categorization (personal/finance/investments)
 - `briefings` - AI-generated daily briefings with highlights, risks, actions
+- `aiContent` - AI-generated educational articles with unique slug, topic, content (markdown), summary
 
 **Data Relationships:**
 - All user data tables reference `users.id` with cascade delete
@@ -132,6 +153,7 @@ Preferred communication style: Simple, everyday language.
   - Email categorization (personal/finance/investments)
   - Email reply drafting
   - Lifestyle recommendations based on billionaire routines
+  - Educational article generation (Learn system, 500-800 word markdown articles)
 - All AI interactions use JSON mode for structured responses
 
 **Email Integration:**

@@ -303,6 +303,8 @@ export const insertFinancialGoalSchema = createInsertSchema(financialGoals).omit
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  targetDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
 });
 
 export type InsertFinancialGoal = z.infer<typeof insertFinancialGoalSchema>;
@@ -327,6 +329,8 @@ export const insertLiabilitySchema = createInsertSchema(liabilities).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  dueDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
 });
 
 export type InsertLiability = z.infer<typeof insertLiabilitySchema>;
@@ -356,6 +360,9 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  startTime: z.string().transform(val => new Date(val)),
+  endTime: z.string().transform(val => new Date(val)),
 });
 
 export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
@@ -383,6 +390,9 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  dueDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+  completedAt: z.string().optional().transform(val => val ? new Date(val) : undefined),
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;

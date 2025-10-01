@@ -67,9 +67,9 @@ export default function Landing() {
               size="lg" 
               onClick={() => window.location.href = '/api/login'}
               className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300"
-              data-testid="button-get-started"
+              data-testid="button-login"
             >
-              Begin Your Journey
+              Sign In
             </Button>
             <Button 
               size="lg" 
@@ -149,7 +149,7 @@ export default function Landing() {
                 className="text-lg px-10 h-14 rounded-lg shadow-2xl hover:shadow-primary/30 transition-all duration-300"
                 data-testid="button-sign-in"
               >
-                Access Your Platform
+                Sign In
               </Button>
               
               {/* Decorative Elements */}

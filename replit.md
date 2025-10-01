@@ -6,6 +6,13 @@ This is an AI-powered life automation platform designed for billionaire-level we
 
 ## Recent Changes
 
+**October 1, 2025 - Login UX Improvement**
+- ✅ Fixed confusing login button labels on landing page
+- ✅ Changed "Begin Your Journey" → "Sign In" for clarity
+- ✅ Changed "Access Your Platform" → "Sign In" for consistency
+- ✅ Both buttons now clearly indicate authentication action
+- ✅ Verified authentication flow works correctly (login/logout tested)
+
 **October 1, 2025 - Mobile Responsiveness & WCAG AA Compliance**
 - ✅ Fixed Learn system topic extraction for long briefing highlights:
   - Extracts first 4 meaningful words from slugs

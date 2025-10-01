@@ -203,28 +203,31 @@ export default function WealthDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Wealth Dashboard</h1>
           <p className="text-muted-foreground">Track and manage your portfolio</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             variant="outline" 
             onClick={() => syncPrices.mutate()} 
             disabled={syncPrices.isPending || isLoading}
             data-testid="button-sync-prices"
+            className="flex-1 sm:flex-none"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${syncPrices.isPending ? 'animate-spin' : ''}`} />
-            {syncPrices.isPending ? 'Syncing...' : 'Sync Prices'}
+            <span className="hidden sm:inline">{syncPrices.isPending ? 'Syncing...' : 'Sync Prices'}</span>
+            <span className="sm:hidden">{syncPrices.isPending ? 'Sync' : 'Sync'}</span>
           </Button>
-          <Button variant="outline" data-testid="button-export-report">
+          <Button variant="outline" data-testid="button-export-report" className="flex-1 sm:flex-none">
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            <span className="hidden sm:inline">Export Report</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-add-asset">
+              <Button data-testid="button-add-asset" className="flex-1 sm:flex-none">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Asset
               </Button>

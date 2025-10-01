@@ -41,7 +41,21 @@ export default function LearnPage() {
         } else if (response.status === 404) {
           // Content doesn't exist, generate it
           setIsGenerating(true);
-          const topic = slug.replace(/-/g, ' '); // Convert slug back to topic
+          
+          // Extract a concise topic from the slug (first 4 meaningful words)
+          const slugWords = slug.replace(/-/g, ' ').split(' ');
+          // Filter out numbers, percentages, monetary amounts, and common filler words
+          const meaningfulWords = slugWords.filter(word => 
+            word.length > 2 && 
+            !/[\d%]/.test(word) && // No numbers or percentages
+            !['the', 'and', 'at', 'to', 'in', 'of', 'for'].includes(word.toLowerCase())
+          ).slice(0, 4); // Take first 4 meaningful words
+          
+          // Fallback: if no meaningful words, use sanitized slug (max 60 chars)
+          const topic = meaningfulWords.length > 0 
+            ? meaningfulWords.join(' ')
+            : slug.replace(/-/g, ' ').substring(0, 60).trim();
+          
           const generatedResponse = await apiRequest("POST", "/api/learn/generate", { topic, slug });
           const generated = await generatedResponse.json();
           setContent(generated);
@@ -63,7 +77,7 @@ export default function LearnPage() {
     return (
       <div className="space-y-6">
         <Link href="/">
-          <Button variant="ghost" size="sm" data-testid="button-back">
+          <Button variant="ghost" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -83,7 +97,7 @@ export default function LearnPage() {
     return (
       <div className="space-y-6">
         <Link href="/">
-          <Button variant="ghost" size="sm" data-testid="button-back">
+          <Button variant="ghost" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -137,7 +151,7 @@ export default function LearnPage() {
   return (
     <div className="space-y-6" data-testid="learn-page">
       <Link href="/">
-        <Button variant="ghost" size="sm" data-testid="button-back">
+        <Button variant="ghost" data-testid="button-back">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>

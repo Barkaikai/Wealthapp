@@ -331,3 +331,128 @@ export const insertLiabilitySchema = createInsertSchema(liabilities).omit({
 
 export type InsertLiability = z.infer<typeof insertLiabilitySchema>;
 export type Liability = typeof liabilities.$inferSelect;
+
+// Calendar events with Google Calendar sync
+export const calendarEvents = pgTable("calendar_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  googleEventId: text("google_event_id"), // Google Calendar event ID for sync
+  title: text("title").notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  location: text("location"),
+  attendees: text("attendees").array(), // Array of email addresses
+  isAllDay: text("is_all_day").notNull().default('false'),
+  recurrence: text("recurrence"), // RRULE format
+  reminder: integer("reminder"), // Minutes before event
+  color: text("color").default('#D4AF37'), // Gold default
+  source: text("source").notNull().default('manual'), // 'manual', 'google', 'ai_suggested'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+
+// Tasks and to-do items with AI assistance
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default('pending'), // 'pending', 'in_progress', 'completed', 'cancelled'
+  priority: text("priority").notNull().default('medium'), // 'low', 'medium', 'high', 'urgent'
+  dueDate: timestamp("due_date"),
+  category: text("category"), // 'personal', 'work', 'finance', 'health', 'other'
+  aiContext: text("ai_context"), // Context for AI assistance
+  aiSuggestions: text("ai_suggestions"), // AI-generated suggestions
+  linkedEventId: integer("linked_event_id").references(() => calendarEvents.id, { onDelete: 'set null' }),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+
+// Health metrics tracking
+export const healthMetrics = pgTable("health_metrics", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  metricType: text("metric_type").notNull(), // 'weight', 'blood_pressure', 'heart_rate', 'sleep', 'steps', 'exercise', 'nutrition', 'mood', 'custom'
+  value: real("value").notNull(),
+  unit: text("unit").notNull(), // 'kg', 'lbs', 'mmHg', 'bpm', 'hours', 'steps', 'minutes', 'calories'
+  notes: text("notes"),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  recordedAt: z.coerce.date().optional(),
+});
+
+export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
+export type HealthMetric = typeof healthMetrics.$inferSelect;
+
+// Wallet connections for Web3 integration
+export const walletConnections = pgTable("wallet_connections", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  walletType: text("wallet_type").notNull(), // 'coinbase', 'hedera', 'metamask', 'walletconnect', 'other'
+  walletAddress: text("wallet_address").notNull(),
+  walletName: text("wallet_name"),
+  chainId: text("chain_id"), // Ethereum chainId, Hedera network ID, etc.
+  network: text("network"), // 'mainnet', 'testnet', 'goerli', etc.
+  balance: real("balance").default(0),
+  currency: text("currency").default('ETH'), // ETH, HBAR, etc.
+  isActive: text("is_active").notNull().default('true'),
+  lastSynced: timestamp("last_synced"),
+  metadata: text("metadata"), // JSON string for additional wallet-specific data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertWalletConnectionSchema = createInsertSchema(walletConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWalletConnection = z.infer<typeof insertWalletConnectionSchema>;
+export type WalletConnection = typeof walletConnections.$inferSelect;
+
+// Voice commands history
+export const voiceCommands = pgTable("voice_commands", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  command: text("command").notNull(),
+  transcript: text("transcript").notNull(),
+  action: text("action"), // Action taken by the system
+  success: text("success").notNull().default('true'),
+  error: text("error"),
+  executedAt: timestamp("executed_at").defaultNow(),
+});
+
+export const insertVoiceCommandSchema = createInsertSchema(voiceCommands).omit({
+  id: true,
+  executedAt: true,
+});
+
+export type InsertVoiceCommand = z.infer<typeof insertVoiceCommandSchema>;
+export type VoiceCommand = typeof voiceCommands.$inferSelect;

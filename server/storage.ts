@@ -10,6 +10,11 @@ import {
   wealthAlerts,
   financialGoals,
   liabilities,
+  calendarEvents,
+  tasks,
+  healthMetrics,
+  walletConnections,
+  voiceCommands,
   type User,
   type UpsertUser,
   type Asset,
@@ -32,6 +37,16 @@ import {
   type InsertFinancialGoal,
   type Liability,
   type InsertLiability,
+  type CalendarEvent,
+  type InsertCalendarEvent,
+  type Task,
+  type InsertTask,
+  type HealthMetric,
+  type InsertHealthMetric,
+  type WalletConnection,
+  type InsertWalletConnection,
+  type VoiceCommand,
+  type InsertVoiceCommand,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -92,6 +107,33 @@ export interface IStorage {
   createLiability(liability: InsertLiability): Promise<Liability>;
   updateLiability(id: number, userId: string, liability: Partial<InsertLiability>): Promise<Liability>;
   deleteLiability(id: number, userId: string): Promise<void>;
+  
+  // Calendar Event operations
+  getCalendarEvents(userId: string): Promise<CalendarEvent[]>;
+  createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  updateCalendarEvent(id: number, userId: string, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent>;
+  deleteCalendarEvent(id: number, userId: string): Promise<void>;
+  
+  // Task operations
+  getTasks(userId: string): Promise<Task[]>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: number, userId: string, task: Partial<InsertTask>): Promise<Task>;
+  deleteTask(id: number, userId: string): Promise<void>;
+  
+  // Health Metric operations
+  getHealthMetrics(userId: string): Promise<HealthMetric[]>;
+  createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric>;
+  deleteHealthMetric(id: number, userId: string): Promise<void>;
+  
+  // Wallet Connection operations
+  getWalletConnections(userId: string): Promise<WalletConnection[]>;
+  createWalletConnection(wallet: InsertWalletConnection): Promise<WalletConnection>;
+  updateWalletConnection(id: number, userId: string, wallet: Partial<InsertWalletConnection>): Promise<WalletConnection>;
+  deleteWalletConnection(id: number, userId: string): Promise<void>;
+  
+  // Voice Command operations
+  getVoiceCommands(userId: string, limit?: number): Promise<VoiceCommand[]>;
+  createVoiceCommand(command: InsertVoiceCommand): Promise<VoiceCommand>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -383,6 +425,111 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLiability(id: number, userId: string): Promise<void> {
     await db.delete(liabilities).where(and(eq(liabilities.id, id), eq(liabilities.userId, userId)));
+  }
+
+  // Calendar Event operations
+  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> {
+    return await db.select().from(calendarEvents).where(eq(calendarEvents.userId, userId)).orderBy(calendarEvents.startTime);
+  }
+
+  async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const [newEvent] = await db.insert(calendarEvents).values(event).returning();
+    return newEvent;
+  }
+
+  async updateCalendarEvent(id: number, userId: string, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {
+    const [updatedEvent] = await db
+      .update(calendarEvents)
+      .set({ ...event, updatedAt: new Date() })
+      .where(and(eq(calendarEvents.id, id), eq(calendarEvents.userId, userId)))
+      .returning();
+    
+    if (!updatedEvent) {
+      throw new Error("Event not found");
+    }
+    return updatedEvent;
+  }
+
+  async deleteCalendarEvent(id: number, userId: string): Promise<void> {
+    await db.delete(calendarEvents).where(and(eq(calendarEvents.id, id), eq(calendarEvents.userId, userId)));
+  }
+
+  // Task operations
+  async getTasks(userId: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const [newTask] = await db.insert(tasks).values(task).returning();
+    return newTask;
+  }
+
+  async updateTask(id: number, userId: string, task: Partial<InsertTask>): Promise<Task> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set({ ...task, updatedAt: new Date() })
+      .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+      .returning();
+    
+    if (!updatedTask) {
+      throw new Error("Task not found");
+    }
+    return updatedTask;
+  }
+
+  async deleteTask(id: number, userId: string): Promise<void> {
+    await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+  }
+
+  // Health Metric operations
+  async getHealthMetrics(userId: string): Promise<HealthMetric[]> {
+    return await db.select().from(healthMetrics).where(eq(healthMetrics.userId, userId)).orderBy(desc(healthMetrics.recordedAt));
+  }
+
+  async createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric> {
+    const [newMetric] = await db.insert(healthMetrics).values(metric).returning();
+    return newMetric;
+  }
+
+  async deleteHealthMetric(id: number, userId: string): Promise<void> {
+    await db.delete(healthMetrics).where(and(eq(healthMetrics.id, id), eq(healthMetrics.userId, userId)));
+  }
+
+  // Wallet Connection operations
+  async getWalletConnections(userId: string): Promise<WalletConnection[]> {
+    return await db.select().from(walletConnections).where(eq(walletConnections.userId, userId)).orderBy(desc(walletConnections.createdAt));
+  }
+
+  async createWalletConnection(wallet: InsertWalletConnection): Promise<WalletConnection> {
+    const [newWallet] = await db.insert(walletConnections).values(wallet).returning();
+    return newWallet;
+  }
+
+  async updateWalletConnection(id: number, userId: string, wallet: Partial<InsertWalletConnection>): Promise<WalletConnection> {
+    const [updatedWallet] = await db
+      .update(walletConnections)
+      .set({ ...wallet, updatedAt: new Date() })
+      .where(and(eq(walletConnections.id, id), eq(walletConnections.userId, userId)))
+      .returning();
+    
+    if (!updatedWallet) {
+      throw new Error("Wallet not found");
+    }
+    return updatedWallet;
+  }
+
+  async deleteWalletConnection(id: number, userId: string): Promise<void> {
+    await db.delete(walletConnections).where(and(eq(walletConnections.id, id), eq(walletConnections.userId, userId)));
+  }
+
+  // Voice Command operations
+  async getVoiceCommands(userId: string, limit: number = 50): Promise<VoiceCommand[]> {
+    return await db.select().from(voiceCommands).where(eq(voiceCommands.userId, userId)).orderBy(desc(voiceCommands.executedAt)).limit(limit);
+  }
+
+  async createVoiceCommand(command: InsertVoiceCommand): Promise<VoiceCommand> {
+    const [newCommand] = await db.insert(voiceCommands).values(command).returning();
+    return newCommand;
   }
 }
 

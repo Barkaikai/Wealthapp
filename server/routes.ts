@@ -43,11 +43,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/briefing/generate', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log(`Starting briefing generation for user ${userId}`);
       
-      const assets = await storage.getAssets(userId);
-      const events = await storage.getEvents(userId);
+      // Gather comprehensive data for accurate briefing
+      const [assets, events, marketContext, previousBriefing] = await Promise.all([
+        storage.getAssets(userId),
+        storage.getEvents(userId),
+        getMarketOverview().catch((err) => {
+          console.warn('Market data unavailable:', err.message);
+          return null;
+        }),
+        storage.getLatestBriefing(userId).catch(() => null),
+      ]);
       
-      const { highlights, risks, actions } = await generateDailyBriefing(assets, events);
+      console.log(`Briefing data gathered: ${assets.length} assets, ${events.length} events, market data: ${marketContext ? 'available' : 'unavailable'}`);
+      
+      const { highlights, risks, actions } = await generateDailyBriefing(
+        assets, 
+        events, 
+        marketContext,
+        previousBriefing
+      );
+      
+      console.log(`AI briefing generated: ${highlights.length} highlights, ${risks.length} risks, ${actions.length} actions`);
       
       const briefing = await storage.createBriefing({
         userId,
@@ -57,10 +75,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actions,
       });
       
+      console.log(`Briefing saved with ID ${briefing.id}`);
       res.json(briefing);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating briefing:", error);
-      res.status(500).json({ message: "Failed to generate briefing" });
+      res.status(500).json({ message: error.message || "Failed to generate briefing" });
     }
   });
 

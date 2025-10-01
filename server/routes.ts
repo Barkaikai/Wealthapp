@@ -581,9 +581,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/diagnostics', isAuthenticated, async (req, res) => {
     try {
       console.log('Running full system diagnostics...');
-      const results = await runFullDiagnostics();
-      console.log(`Diagnostics complete: ${results.length} checks performed`);
-      res.json(results);
+      const report = await runFullDiagnostics();
+      console.log(`Diagnostics complete: ${report.results.length} checks performed in ${report.durationMs}ms`);
+      console.log(`Summary: ${report.summary.success} success, ${report.summary.warning} warnings, ${report.summary.error} errors`);
+      res.json(report);
     } catch (error: any) {
       console.error("Error running diagnostics:", error);
       res.status(500).json({ message: error.message || "Failed to run diagnostics" });

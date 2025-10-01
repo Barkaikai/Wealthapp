@@ -10,29 +10,86 @@ export interface DiagnosticResult {
   details?: string;
 }
 
-export async function runFullDiagnostics(): Promise<DiagnosticResult[]> {
-  const results: DiagnosticResult[] = [];
+export interface DiagnosticReport {
+  results: DiagnosticResult[];
+  timestamp: string;
+  durationMs: number;
+  summary: {
+    total: number;
+    success: number;
+    warning: number;
+    error: number;
+  };
+}
 
-  // Database connectivity
+export async function runFullDiagnostics(): Promise<DiagnosticReport> {
+  const startTime = Date.now();
+  
+  // Run all diagnostics in parallel for better performance
+  const [
+    dbResult,
+    openaiResult,
+    alphaVantageResult,
+    coinGeckoResult,
+    gmailResult,
+    sessionResult,
+    dbUrlResult,
+  ] = await Promise.all([
+    checkDatabase(),
+    checkOpenAI(),
+    checkAlphaVantage(),
+    checkCoinGecko(),
+    checkGmailOAuth(),
+    checkSessionSecret(),
+    checkDatabaseUrl(),
+  ]);
+
+  const results = [
+    dbResult,
+    openaiResult,
+    alphaVantageResult,
+    coinGeckoResult,
+    gmailResult,
+    sessionResult,
+    dbUrlResult,
+  ];
+
+  const summary = {
+    total: results.length,
+    success: results.filter(r => r.status === "success").length,
+    warning: results.filter(r => r.status === "warning").length,
+    error: results.filter(r => r.status === "error").length,
+  };
+
+  return {
+    results,
+    timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
+    summary,
+  };
+}
+
+async function checkDatabase(): Promise<DiagnosticResult> {
   try {
     await db.execute(sql`SELECT 1`);
-    results.push({
+    return {
       category: "Database",
       name: "PostgreSQL Connection",
       status: "success",
       message: "Database connection is healthy",
-    });
+    };
   } catch (error: any) {
-    results.push({
+    return {
       category: "Database",
       name: "PostgreSQL Connection",
       status: "error",
       message: "Database connection failed",
       details: error.message,
-    });
+    };
   }
+}
 
-  // OpenAI API Key
+async function checkOpenAI(): Promise<DiagnosticResult> {
   if (process.env.OPENAI_API_KEY) {
     try {
       const openai = new OpenAI({ 
@@ -47,32 +104,33 @@ export async function runFullDiagnostics(): Promise<DiagnosticResult[]> {
         max_tokens: 5,
       });
       
-      results.push({
+      return {
         category: "API Keys",
         name: "OpenAI API Key",
         status: "success",
         message: "OpenAI API key is valid and working",
-      });
+      };
     } catch (error: any) {
-      results.push({
+      return {
         category: "API Keys",
         name: "OpenAI API Key",
         status: "error",
         message: "OpenAI API key validation failed",
         details: error.message,
-      });
+      };
     }
   } else {
-    results.push({
+    return {
       category: "API Keys",
       name: "OpenAI API Key",
       status: "error",
       message: "OpenAI API key is not configured",
       details: "OPENAI_API_KEY environment variable is missing",
-    });
+    };
   }
+}
 
-  // Alpha Vantage API Key
+async function checkAlphaVantage(): Promise<DiagnosticResult> {
   if (process.env.ALPHA_VANTAGE_API_KEY) {
     try {
       const response = await fetch(
@@ -82,49 +140,50 @@ export async function runFullDiagnostics(): Promise<DiagnosticResult[]> {
       const data = await response.json();
       
       if (data["Global Quote"]) {
-        results.push({
+        return {
           category: "API Keys",
           name: "Alpha Vantage API Key",
           status: "success",
           message: "Alpha Vantage API key is valid (stock data available)",
-        });
+        };
       } else if (data.Note && data.Note.includes("API call frequency")) {
-        results.push({
+        return {
           category: "API Keys",
           name: "Alpha Vantage API Key",
           status: "warning",
           message: "Alpha Vantage rate limit reached (key is valid)",
           details: "API call frequency limit reached. Try again later.",
-        });
+        };
       } else {
-        results.push({
+        return {
           category: "API Keys",
           name: "Alpha Vantage API Key",
           status: "error",
           message: "Alpha Vantage API key validation failed",
           details: JSON.stringify(data),
-        });
+        };
       }
     } catch (error: any) {
-      results.push({
+      return {
         category: "API Keys",
         name: "Alpha Vantage API Key",
         status: "error",
         message: "Alpha Vantage API connection failed",
         details: error.message,
-      });
+      };
     }
   } else {
-    results.push({
+    return {
       category: "API Keys",
       name: "Alpha Vantage API Key",
       status: "warning",
       message: "Alpha Vantage API key not configured",
       details: "Stock price sync will not work. ALPHA_VANTAGE_API_KEY is missing.",
-    });
+    };
   }
+}
 
-  // CoinGecko API (public endpoint)
+async function checkCoinGecko(): Promise<DiagnosticResult> {
   try {
     const response = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
@@ -134,94 +193,95 @@ export async function runFullDiagnostics(): Promise<DiagnosticResult[]> {
     if (response.ok) {
       const data = await response.json();
       if (data.bitcoin) {
-        results.push({
+        return {
           category: "External APIs",
           name: "CoinGecko API",
           status: "success",
           message: "CoinGecko API is accessible (crypto data available)",
-        });
+        };
       } else {
-        results.push({
+        return {
           category: "External APIs",
           name: "CoinGecko API",
           status: "warning",
           message: "CoinGecko API returned unexpected data",
           details: JSON.stringify(data),
-        });
+        };
       }
     } else {
-      results.push({
+      return {
         category: "External APIs",
         name: "CoinGecko API",
         status: "error",
         message: `CoinGecko API returned HTTP ${response.status}`,
         details: await response.text(),
-      });
+      };
     }
   } catch (error: any) {
-    results.push({
+    return {
       category: "External APIs",
       name: "CoinGecko API",
       status: "error",
       message: "CoinGecko API connection failed",
       details: error.message,
-    });
+    };
   }
+}
 
-  // Gmail/Google OAuth Connection
+async function checkGmailOAuth(): Promise<DiagnosticResult> {
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    results.push({
+    return {
       category: "Integrations",
       name: "Gmail OAuth",
       status: "warning",
       message: "Gmail OAuth credentials configured but scope limitations exist",
       details: "Replit Gmail connector only provides add-on scopes, not gmail.readonly scope required for full inbox access.",
-    });
+    };
   } else {
-    results.push({
+    return {
       category: "Integrations",
       name: "Gmail OAuth",
       status: "warning",
       message: "Gmail OAuth not fully configured",
       details: "GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing",
-    });
+    };
   }
+}
 
-  // Session secret
+async function checkSessionSecret(): Promise<DiagnosticResult> {
   if (process.env.SESSION_SECRET) {
-    results.push({
+    return {
       category: "Security",
       name: "Session Secret",
       status: "success",
       message: "Session secret is configured",
-    });
+    };
   } else {
-    results.push({
+    return {
       category: "Security",
       name: "Session Secret",
       status: "error",
       message: "Session secret is not configured",
       details: "SESSION_SECRET environment variable is missing",
-    });
+    };
   }
+}
 
-  // Database URL
+async function checkDatabaseUrl(): Promise<DiagnosticResult> {
   if (process.env.DATABASE_URL) {
-    results.push({
+    return {
       category: "Configuration",
       name: "Database URL",
       status: "success",
       message: "Database URL is configured",
-    });
+    };
   } else {
-    results.push({
+    return {
       category: "Configuration",
       name: "Database URL",
       status: "error",
       message: "Database URL is not configured",
       details: "DATABASE_URL environment variable is missing",
-    });
+    };
   }
-
-  return results;
 }

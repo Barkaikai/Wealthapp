@@ -16,11 +16,25 @@ interface DiagnosticResult {
   details?: string;
 }
 
+interface DiagnosticReport {
+  results: DiagnosticResult[];
+  timestamp: string;
+  durationMs: number;
+  summary: {
+    total: number;
+    success: number;
+    warning: number;
+    error: number;
+  };
+}
+
 export default function Settings() {
-  const { data: diagnostics, isLoading: diagnosticsLoading, refetch: refetchDiagnostics } = useQuery<DiagnosticResult[]>({
+  const { data: diagnosticReport, isLoading: diagnosticsLoading, isError: diagnosticsError, refetch: refetchDiagnostics } = useQuery<DiagnosticReport>({
     queryKey: ['/api/diagnostics'],
     enabled: false, // Only run when explicitly triggered
   });
+
+  const diagnostics = diagnosticReport?.results;
 
   const getStatusIcon = (status: DiagnosticResult["status"]) => {
     switch (status) {
@@ -191,6 +205,17 @@ export default function Settings() {
                 <p className="text-sm text-muted-foreground">
                   Run comprehensive health checks on your automation platform
                 </p>
+                {diagnosticReport && (
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    <span>Last run: {new Date(diagnosticReport.timestamp).toLocaleString()}</span>
+                    <span>Duration: {(diagnosticReport.durationMs / 1000).toFixed(2)}s</span>
+                    <span>
+                      {diagnosticReport.summary.success} OK, 
+                      {diagnosticReport.summary.warning} warnings, 
+                      {diagnosticReport.summary.error} errors
+                    </span>
+                  </div>
+                )}
               </div>
               <Button 
                 onClick={() => refetchDiagnostics()}
@@ -211,7 +236,17 @@ export default function Settings() {
               </Button>
             </div>
 
-            {!diagnostics && !diagnosticsLoading && (
+            {diagnosticsError && (
+              <div className="text-center py-12">
+                <XCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+                <p className="text-muted-foreground mb-4">Failed to run diagnostics</p>
+                <Button onClick={() => refetchDiagnostics()} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            )}
+
+            {!diagnostics && !diagnosticsLoading && !diagnosticsError && (
               <div className="text-center py-12 text-muted-foreground">
                 <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Click "Run Diagnostics" to check system health</p>

@@ -4,7 +4,7 @@ import { google } from 'googleapis';
 let connectionSettings: any;
 
 async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
+  if (connectionSettings?.settings?.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
     return connectionSettings.settings.access_token;
   }
   
@@ -29,7 +29,7 @@ async function getAccessToken() {
     }
   ).then(res => res.json()).then(data => data.items?.[0]);
 
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
+  const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
 
   if (!connectionSettings || !accessToken) {
     throw new Error('Gmail not connected');

@@ -33,6 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const briefing = await storage.getLatestBriefing(userId);
+      if (!briefing) {
+        return res.json(null);
+      }
       res.json(briefing);
     } catch (error) {
       console.error("Error fetching briefing:", error);

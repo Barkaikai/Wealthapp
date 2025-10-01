@@ -15,6 +15,7 @@ import EmailManager from "@/pages/EmailManager";
 import RoutineBuilder from "@/pages/RoutineBuilder";
 import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
+import LearnPage from "@/pages/LearnPage";
 import NotFound from "@/pages/not-found";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -46,6 +47,7 @@ function Router() {
           <Route path="/routine" component={RoutineBuilder} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
+          <Route path="/learn/:slug" component={LearnPage} />
         </>
       )}
       <Route component={NotFound} />

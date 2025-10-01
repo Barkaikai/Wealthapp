@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, Activity } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, Activity, Play, Pause, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface DiagnosticResult {
   category: string;
@@ -28,10 +30,81 @@ interface DiagnosticReport {
   };
 }
 
+interface MonitorStatus {
+  enabled: boolean;
+  running: boolean;
+  lastRunTime: string | null;
+  consecutiveFailures: number;
+  config: {
+    enabled: boolean;
+    autoFixEnabled: boolean;
+    intervalMs: number;
+    maxHistorySize: number;
+  };
+}
+
+interface DiagnosticRunHistory {
+  id: number;
+  runId: string;
+  status: 'success' | 'partial' | 'failure';
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  checksTotal: number;
+  checksSuccess: number;
+  checksWarning: number;
+  checksError: number;
+  fixesAttempted: number;
+  fixesSucceeded: number;
+  results: any;
+  triggeredBy: string;
+}
+
 export default function Settings() {
+  const { toast } = useToast();
+  
   const { data: diagnosticReport, isLoading: diagnosticsLoading, isError: diagnosticsError, refetch: refetchDiagnostics } = useQuery<DiagnosticReport>({
     queryKey: ['/api/diagnostics'],
     enabled: false, // Only run when explicitly triggered
+  });
+
+  const { data: monitorStatus, refetch: refetchStatus } = useQuery<MonitorStatus>({
+    queryKey: ['/api/health-monitor/status'],
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  const { data: monitorHistory } = useQuery<DiagnosticRunHistory[]>({
+    queryKey: ['/api/health-monitor/history'],
+    enabled: !!monitorStatus?.enabled,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const updateConfigMutation = useMutation({
+    mutationFn: async (updates: Partial<MonitorStatus['config']>) => {
+      const response = await fetch('/api/health-monitor/config', {
+        method: 'POST',
+        body: JSON.stringify(updates),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update configuration');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/health-monitor/status'] });
+      toast({
+        title: "Configuration Updated",
+        description: "Health monitor settings have been saved",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Update",
+        description: error.message || "Could not update configuration",
+        variant: "destructive",
+      });
+    },
   });
 
   const diagnostics = diagnosticReport?.results;
@@ -197,13 +270,120 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="diagnostics" className="mt-6">
+        <TabsContent value="diagnostics" className="mt-6 space-y-6">
+          {/* Continuous Monitoring Controls */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="font-semibold mb-1">System Diagnostics</h3>
+                <h3 className="font-semibold mb-1">Continuous Monitoring</h3>
                 <p className="text-sm text-muted-foreground">
-                  Run comprehensive health checks on your automation platform
+                  Automatic health checks running in the background
+                </p>
+                {monitorStatus && (
+                  <div className="flex gap-3 mt-2 items-center">
+                    <Badge className={monitorStatus.running ? "bg-green-500/10 text-green-500" : "bg-gray-500/10 text-gray-500"}>
+                      {monitorStatus.running ? (
+                        <>
+                          <Activity className="h-3 w-3 mr-1" />
+                          Active
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="h-3 w-3 mr-1" />
+                          Paused
+                        </>
+                      )}
+                    </Badge>
+                    {monitorStatus.lastRunTime && (
+                      <span className="text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3 inline mr-1" />
+                        Last: {new Date(monitorStatus.lastRunTime).toLocaleTimeString()}
+                      </span>
+                    )}
+                    {monitorStatus.consecutiveFailures > 0 && (
+                      <Badge className="bg-red-500/10 text-red-500">
+                        {monitorStatus.consecutiveFailures} consecutive failures
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="monitoring-enabled">Enable Continuous Monitoring</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically check system health every {monitorStatus ? Math.round(monitorStatus.config.intervalMs / 60000) : 10} minutes
+                  </p>
+                </div>
+                <Switch
+                  id="monitoring-enabled"
+                  checked={monitorStatus?.config.enabled ?? false}
+                  onCheckedChange={(enabled) => updateConfigMutation.mutate({ enabled })}
+                  data-testid="switch-monitoring-enabled"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="autofix-enabled">Enable Auto-Fix</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically attempt to fix detected issues
+                  </p>
+                </div>
+                <Switch
+                  id="autofix-enabled"
+                  checked={monitorStatus?.config.autoFixEnabled ?? false}
+                  onCheckedChange={(autoFixEnabled) => updateConfigMutation.mutate({ autoFixEnabled })}
+                  data-testid="switch-autofix-enabled"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Monitoring History */}
+          {monitorHistory && monitorHistory.length > 0 && (
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Recent Activity</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {monitorHistory.slice(0, 10).map((run) => (
+                  <div key={run.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {run.status === 'success' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                      {run.status === 'partial' && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
+                      {run.status === 'failure' && <XCircle className="h-4 w-4 text-red-500" />}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {new Date(run.startedAt).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {run.checksSuccess} OK, {run.checksWarning} warnings, {run.checksError} errors
+                          {run.fixesAttempted > 0 && ` · ${run.fixesSucceeded}/${run.fixesAttempted} fixes applied`}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className={
+                      run.status === 'success' ? "bg-green-500/10 text-green-500" :
+                      run.status === 'partial' ? "bg-yellow-500/10 text-yellow-500" :
+                      "bg-red-500/10 text-red-500"
+                    }>
+                      {run.triggeredBy}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Manual Diagnostics */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-semibold mb-1">Manual Diagnostics</h3>
+                <p className="text-sm text-muted-foreground">
+                  Run an immediate health check on demand
                 </p>
                 {diagnosticReport && (
                   <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
@@ -230,7 +410,7 @@ export default function Settings() {
                 ) : (
                   <>
                     <Activity className="h-4 w-4 mr-2" />
-                    Run Diagnostics
+                    Run Now
                   </>
                 )}
               </Button>

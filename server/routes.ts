@@ -12,6 +12,7 @@ import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } f
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
 import { insertEmailTemplateSchema } from "@shared/schema";
 import { runFullDiagnostics } from "./diagnostics";
+import { healthMonitor } from "./healthMonitor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -588,6 +589,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error running diagnostics:", error);
       res.status(500).json({ message: error.message || "Failed to run diagnostics" });
+    }
+  });
+
+  // Health Monitor routes - continuous monitoring control
+  app.get('/api/health-monitor/status', isAuthenticated, async (req, res) => {
+    try {
+      const status = healthMonitor.getStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error getting health monitor status:", error);
+      res.status(500).json({ message: error.message || "Failed to get status" });
+    }
+  });
+
+  app.get('/api/health-monitor/latest', isAuthenticated, async (req, res) => {
+    try {
+      const latest = await healthMonitor.getLatestRun();
+      res.json(latest);
+    } catch (error: any) {
+      console.error("Error getting latest run:", error);
+      res.status(500).json({ message: error.message || "Failed to get latest run" });
+    }
+  });
+
+  app.get('/api/health-monitor/history', isAuthenticated, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const history = await healthMonitor.getHistory(limit);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error getting history:", error);
+      res.status(500).json({ message: error.message || "Failed to get history" });
+    }
+  });
+
+  app.post('/api/health-monitor/run', isAuthenticated, async (req, res) => {
+    try {
+      const report = await healthMonitor.runHealthCheck('manual');
+      res.json(report || { message: 'Check already in progress' });
+    } catch (error: any) {
+      console.error("Error running manual check:", error);
+      res.status(500).json({ message: error.message || "Failed to run check" });
+    }
+  });
+
+  app.get('/api/health-monitor/config', isAuthenticated, async (req, res) => {
+    try {
+      const config = healthMonitor.getConfig();
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error getting config:", error);
+      res.status(500).json({ message: error.message || "Failed to get config" });
+    }
+  });
+
+  app.post('/api/health-monitor/config', isAuthenticated, async (req, res) => {
+    try {
+      const updates = req.body;
+      healthMonitor.updateConfig(updates);
+      const config = healthMonitor.getConfig();
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error updating config:", error);
+      res.status(500).json({ message: error.message || "Failed to update config" });
     }
   });
 

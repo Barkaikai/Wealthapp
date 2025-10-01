@@ -7,19 +7,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Download, RefreshCw } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAssetSchema, type Asset } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { z } from "zod";
+
+const stockFormSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  quantity: z.number().min(0.000001, "Quantity must be greater than 0"),
+  name: z.string().optional(),
+});
+
+const cryptoFormSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  quantity: z.number().min(0.000001, "Quantity must be greater than 0"),
+  name: z.string().optional(),
+});
 
 export default function WealthDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addMode, setAddMode] = useState<"manual" | "stock" | "crypto">("manual");
   const { toast } = useToast();
 
-  const { data: assets = [] } = useQuery<Asset[]>({
+  const { data: assets = [], isLoading } = useQuery<Asset[]>({
     queryKey: ["/api/assets"],
   });
 
@@ -33,6 +48,45 @@ export default function WealthDashboard() {
       allocation: 0,
       change24h: 0,
       changePercent: 0,
+    },
+  });
+
+  const stockForm = useForm({
+    resolver: zodResolver(stockFormSchema),
+    defaultValues: {
+      symbol: "",
+      quantity: 1,
+      name: "",
+    },
+  });
+
+  const cryptoForm = useForm({
+    resolver: zodResolver(cryptoFormSchema),
+    defaultValues: {
+      symbol: "",
+      quantity: 1,
+      name: "",
+    },
+  });
+
+  const syncPrices = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/financial/sync", "POST", {});
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      const totalSynced = (data.stocks?.synced || 0) + (data.crypto?.synced || 0);
+      toast({
+        title: "Sync Complete",
+        description: `Successfully synced ${totalSynced} assets`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync prices",
+        variant: "destructive",
+      });
     },
   });
 
@@ -53,6 +107,50 @@ export default function WealthDashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to add asset",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addStockPosition = useMutation({
+    mutationFn: async (data: z.infer<typeof stockFormSchema>) => {
+      return await apiRequest("/api/financial/stocks/add", "POST", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({
+        title: "Success",
+        description: "Stock position added with live pricing",
+      });
+      stockForm.reset();
+      setDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add stock position",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addCryptoPosition = useMutation({
+    mutationFn: async (data: z.infer<typeof cryptoFormSchema>) => {
+      return await apiRequest("/api/financial/crypto/add", "POST", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({
+        title: "Success",
+        description: "Crypto position added with live pricing",
+      });
+      cryptoForm.reset();
+      setDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add crypto position",
         variant: "destructive",
       });
     },
@@ -110,6 +208,15 @@ export default function WealthDashboard() {
           <p className="text-muted-foreground">Track and manage your portfolio</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => syncPrices.mutate()} 
+            disabled={syncPrices.isPending || isLoading}
+            data-testid="button-sync-prices"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncPrices.isPending ? 'animate-spin' : ''}`} />
+            {syncPrices.isPending ? 'Syncing...' : 'Sync Prices'}
+          </Button>
           <Button variant="outline" data-testid="button-export-report">
             <Download className="h-4 w-4 mr-2" />
             Export Report
@@ -121,86 +228,186 @@ export default function WealthDashboard() {
                 Add Asset
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Add New Asset</DialogTitle>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => createAsset.mutate(data))} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Asset Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="S&P 500 ETF" {...field} data-testid="input-asset-name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="symbol"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Symbol</FormLabel>
-                        <FormControl>
-                          <Input placeholder="SPY" {...field} data-testid="input-asset-symbol" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="assetType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Asset Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-asset-type">
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="stocks">Stocks</SelectItem>
-                            <SelectItem value="crypto">Crypto</SelectItem>
-                            <SelectItem value="bonds">Bonds</SelectItem>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="real_estate">Real Estate</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="value"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Value ($)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="50000" 
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                            data-testid="input-asset-value"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={createAsset.isPending} className="w-full" data-testid="button-submit-asset">
-                    {createAsset.isPending ? "Adding..." : "Add Asset"}
-                  </Button>
-                </form>
-              </Form>
+              
+              <Tabs value={addMode} onValueChange={(v) => setAddMode(v as any)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="stock" data-testid="tab-add-stock">Stock</TabsTrigger>
+                  <TabsTrigger value="crypto" data-testid="tab-add-crypto">Crypto</TabsTrigger>
+                  <TabsTrigger value="manual" data-testid="tab-add-manual">Manual</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="stock" className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Add stocks with automatic price fetching from Alpha Vantage</p>
+                  <Form {...stockForm}>
+                    <form onSubmit={stockForm.handleSubmit((data) => addStockPosition.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={stockForm.control}
+                        name="symbol"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Symbol</FormLabel>
+                            <FormControl>
+                              <Input placeholder="AAPL" {...field} data-testid="input-stock-symbol" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={stockForm.control}
+                        name="quantity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quantity (shares)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.001"
+                                placeholder="50" 
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                data-testid="input-stock-quantity"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={addStockPosition.isPending} className="w-full" data-testid="button-submit-stock">
+                        {addStockPosition.isPending ? "Adding..." : "Add Stock Position"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+
+                <TabsContent value="crypto" className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Add crypto with automatic price fetching from CoinGecko</p>
+                  <Form {...cryptoForm}>
+                    <form onSubmit={cryptoForm.handleSubmit((data) => addCryptoPosition.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={cryptoForm.control}
+                        name="symbol"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Symbol</FormLabel>
+                            <FormControl>
+                              <Input placeholder="BTC" {...field} data-testid="input-crypto-symbol" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={cryptoForm.control}
+                        name="quantity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quantity (coins)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.00000001"
+                                placeholder="0.75" 
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                data-testid="input-crypto-quantity"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={addCryptoPosition.isPending} className="w-full" data-testid="button-submit-crypto">
+                        {addCryptoPosition.isPending ? "Adding..." : "Add Crypto Position"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+
+                <TabsContent value="manual" className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Manually enter asset details</p>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => createAsset.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Asset Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="S&P 500 ETF" {...field} data-testid="input-asset-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="symbol"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Symbol</FormLabel>
+                            <FormControl>
+                              <Input placeholder="SPY" {...field} data-testid="input-asset-symbol" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="assetType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Asset Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-asset-type">
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="stocks">Stocks</SelectItem>
+                                <SelectItem value="crypto">Crypto</SelectItem>
+                                <SelectItem value="bonds">Bonds</SelectItem>
+                                <SelectItem value="cash">Cash</SelectItem>
+                                <SelectItem value="real_estate">Real Estate</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="value"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Value ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="50000" 
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                data-testid="input-asset-value"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={createAsset.isPending} className="w-full" data-testid="button-submit-asset">
+                        {createAsset.isPending ? "Adding..." : "Add Asset"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         </div>

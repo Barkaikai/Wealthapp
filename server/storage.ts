@@ -5,6 +5,7 @@ import {
   routines,
   emails,
   briefings,
+  aiContent,
   type User,
   type UpsertUser,
   type Asset,
@@ -17,6 +18,8 @@ import {
   type InsertEmail,
   type Briefing,
   type InsertBriefing,
+  type AIContent,
+  type InsertAIContent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -50,6 +53,10 @@ export interface IStorage {
   // Briefing operations
   getLatestBriefing(userId: string): Promise<Briefing | undefined>;
   createBriefing(briefing: InsertBriefing): Promise<Briefing>;
+  
+  // AI Content operations
+  getContentBySlug(slug: string): Promise<AIContent | undefined>;
+  createContent(content: InsertAIContent): Promise<AIContent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -199,6 +206,20 @@ export class DatabaseStorage implements IStorage {
   async createBriefing(briefing: InsertBriefing): Promise<Briefing> {
     const [newBriefing] = await db.insert(briefings).values(briefing).returning();
     return newBriefing;
+  }
+
+  // AI Content operations
+  async getContentBySlug(slug: string): Promise<AIContent | undefined> {
+    const [content] = await db
+      .select()
+      .from(aiContent)
+      .where(eq(aiContent.slug, slug));
+    return content;
+  }
+
+  async createContent(contentData: InsertAIContent): Promise<AIContent> {
+    const [newContent] = await db.insert(aiContent).values(contentData).returning();
+    return newContent;
   }
 }
 

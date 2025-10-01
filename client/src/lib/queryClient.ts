@@ -13,13 +13,17 @@ async function throwIfResNotOk(res: Response) {
         throw error;
       } catch (e) {
         if (e instanceof Error && e.message !== res.statusText) {
-          throw e;
+          const err: any = e;
+          err.status = res.status;
+          throw err;
         }
       }
     }
     
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const error: any = new Error(`${res.status}: ${text}`);
+    error.status = res.status;
+    throw error;
   }
 }
 
@@ -73,10 +77,10 @@ export const queryClient = new QueryClient({
         if (error?.status >= 400 && error?.status < 500) {
           return false;
         }
-        // Retry up to 2 times for server errors (500+) and network errors
-        return failureCount < 2;
+        // Retry up to 2 times for server errors (500+) and network errors  
+        return failureCount < 2; // failureCount starts at 0, so < 2 allows retries at count 0 and 1
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff: 1s, 2s, 4s...
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff: 1s, 2s
     },
     mutations: {
       retry: false, // Don't auto-retry mutations to avoid duplicate operations

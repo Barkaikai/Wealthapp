@@ -73,7 +73,8 @@ export default function WealthDashboard() {
 
   const syncPrices = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/financial/sync", {});
+      const response = await apiRequest("POST", "/api/financial/sync", {});
+      return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });

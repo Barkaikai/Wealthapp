@@ -71,7 +71,7 @@ export default function WealthDashboard() {
 
   const syncPrices = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/financial/sync", "POST", {});
+      return await apiRequest("POST", "/api/financial/sync", {});
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
@@ -92,7 +92,7 @@ export default function WealthDashboard() {
 
   const createAsset = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest("/api/assets", "POST", data);
+      await apiRequest("POST", "/api/assets", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
@@ -114,7 +114,7 @@ export default function WealthDashboard() {
 
   const addStockPosition = useMutation({
     mutationFn: async (data: z.infer<typeof stockFormSchema>) => {
-      return await apiRequest("/api/financial/stocks/add", "POST", data);
+      return await apiRequest("POST", "/api/financial/stocks/add", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
@@ -136,7 +136,7 @@ export default function WealthDashboard() {
 
   const addCryptoPosition = useMutation({
     mutationFn: async (data: z.infer<typeof cryptoFormSchema>) => {
-      return await apiRequest("/api/financial/crypto/add", "POST", data);
+      return await apiRequest("POST", "/api/financial/crypto/add", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });

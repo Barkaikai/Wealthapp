@@ -37,7 +37,7 @@ export default function EmailManager() {
 
   const syncEmails = useMutation({
     mutationFn: async () => {
-      const result = await apiRequest("/api/emails/sync", "POST", {});
+      const result = await apiRequest("POST", "/api/emails/sync", {});
       return result;
     },
     onSuccess: (data: any) => {
@@ -59,7 +59,7 @@ export default function EmailManager() {
 
   const regenerateDraft = useMutation({
     mutationFn: async (emailId: string) => {
-      const result = await apiRequest(`/api/emails/${emailId}/draft`, "POST", {});
+      const result = await apiRequest("POST", `/api/emails/${emailId}/draft`, {});
       return result;
     },
     onSuccess: () => {

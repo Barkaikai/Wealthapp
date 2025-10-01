@@ -20,7 +20,7 @@ export default function DailyBriefing() {
 
   const generateBriefing = useMutation({
     mutationFn: async () => {
-      await apiRequest("/api/briefing/generate", "POST", {});
+      await apiRequest("POST", "/api/briefing/generate", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/briefing/latest"] });

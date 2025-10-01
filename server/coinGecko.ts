@@ -1,7 +1,9 @@
 import fetch from 'node-fetch';
+import { getPublicCryptoPrice } from './publicCrypto';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
 const BASE_URL = 'https://api.coingecko.com/api/v3';
+const USE_PUBLIC_API = process.env.CRYPTO_DATA_SOURCE === 'public' || !API_KEY;
 
 export interface CryptoPrice {
   id: string;
@@ -16,6 +18,11 @@ export interface CryptoPrice {
 }
 
 export async function getCryptoPrice(coinId: string): Promise<CryptoPrice | null> {
+  if (USE_PUBLIC_API) {
+    const symbol = Object.keys(CRYPTO_ID_MAP).find(key => CRYPTO_ID_MAP[key] === coinId) || coinId;
+    return await getPublicCryptoPrice(symbol);
+  }
+
   try {
     const headers: any = {
       'Accept': 'application/json',
@@ -52,6 +59,18 @@ export async function getCryptoPrice(coinId: string): Promise<CryptoPrice | null
 }
 
 export async function getMultipleCryptoPrices(coinIds: string[]): Promise<CryptoPrice[]> {
+  if (USE_PUBLIC_API) {
+    const results: CryptoPrice[] = [];
+    for (const coinId of coinIds) {
+      const symbol = Object.keys(CRYPTO_ID_MAP).find(key => CRYPTO_ID_MAP[key] === coinId) || coinId;
+      const price = await getPublicCryptoPrice(symbol);
+      if (price) {
+        results.push(price);
+      }
+    }
+    return results;
+  }
+
   try {
     const headers: any = {
       'Accept': 'application/json',

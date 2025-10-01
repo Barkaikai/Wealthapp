@@ -207,3 +207,28 @@ export const insertMarketDataSchema = createInsertSchema(marketData).omit({
 
 export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
 export type MarketData = typeof marketData.$inferSelect;
+
+// Diagnostic history for health monitoring
+export const diagnosticRuns = pgTable("diagnostic_runs", {
+  id: serial("id").primaryKey(),
+  runId: varchar("run_id").notNull().unique(),
+  status: text("status").notNull(), // 'success', 'partial', 'failure'
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  durationMs: real("duration_ms"),
+  checksTotal: real("checks_total").notNull(),
+  checksSuccess: real("checks_success").notNull(),
+  checksWarning: real("checks_warning").notNull(),
+  checksError: real("checks_error").notNull(),
+  fixesAttempted: real("fixes_attempted").default(0),
+  fixesSucceeded: real("fixes_succeeded").default(0),
+  results: jsonb("results").notNull(), // Full DiagnosticResult[] array
+  triggeredBy: text("triggered_by").notNull(), // 'manual', 'scheduled', 'auto'
+});
+
+export const insertDiagnosticRunSchema = createInsertSchema(diagnosticRuns).omit({
+  id: true,
+});
+
+export type InsertDiagnosticRun = z.infer<typeof insertDiagnosticRunSchema>;
+export type DiagnosticRun = typeof diagnosticRuns.$inferSelect;

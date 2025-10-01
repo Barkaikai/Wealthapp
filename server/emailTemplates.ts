@@ -15,7 +15,9 @@ export function replacePlaceholders(template: string, variables: TemplateVariabl
   for (const [key, value] of Object.entries(variables)) {
     if (value !== undefined) {
       const placeholder = `{${key}}`;
-      result = result.replace(new RegExp(placeholder, 'g'), value);
+      // Escape special regex characters in placeholder
+      const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), value);
     }
   }
   

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3 } from "lucide-react";
+import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown } from "lucide-react";
+import heroImage from "@assets/image (3)_1759298327042.jpeg";
+import luxuryGala from "@assets/Here are two realistic images depicting a diverse group of billionaires of various races enjoying a luxurious gala in an opulent mansion. The scenes capture the elegance and vibrancy of their lifestyle. Enjoy!_1759298327046.jpeg";
 
 export default function Landing() {
   const features = [
@@ -38,47 +40,124 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-12">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold tracking-tight mb-6">
-            Your AI-Powered Life Automation Platform
+      {/* Hero Section with Luxury Background */}
+      <div className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        
+        {/* Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[rgb(10,12,20)]/90 via-[rgb(10,12,20)]/75 to-[rgb(10,12,20)]/85" />
+        
+        {/* Subtle Gold Vignette */}
+        <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-primary/5" />
+
+        {/* Hero Content */}
+        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+            Elite Life Automation
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Automate wealth management, email handling, and daily routines with cutting-edge AI. 
-            Live the billionaire lifestyle with minimal effort.
+          <p className="text-xl md:text-2xl text-foreground/90 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Command your wealth, time, and communications with the sophistication of a private office—powered by cutting-edge AI
           </p>
-          <Button size="lg" onClick={() => window.location.href = '/api/login'} data-testid="button-get-started">
-            Get Started
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {features.map((feature, index) => (
-            <Card key={index} className="p-6" data-testid={`feature-${index}`}>
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="p-12 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Automate Your Life?</h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Join thousands of users who've automated their financial and personal management
-            </p>
-            <Button size="lg" onClick={() => window.location.href = '/api/login'} data-testid="button-sign-in">
-              Sign In with Replit
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              size="lg" 
+              onClick={() => window.location.href = '/api/login'}
+              className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300"
+              data-testid="button-get-started"
+            >
+              Begin Your Journey
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="text-lg px-8 h-14 rounded-lg border-2 border-primary/40 bg-background/10 backdrop-blur-md hover:bg-background/20"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              data-testid="button-learn-more"
+            >
+              Explore Features
             </Button>
           </div>
-        </Card>
+          
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce">
+            <ChevronDown className="h-8 w-8 text-primary/60" />
+          </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div id="features" className="container mx-auto px-6 py-24 relative">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_50%_120%,hsl(var(--primary))_0%,transparent_60%)]" />
+        
+        <div className="relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+              Executive-Level <span className="text-primary">Automation</span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Experience the precision and efficiency reserved for the world's elite
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+            {features.map((feature, index) => (
+              <Card 
+                key={index} 
+                className="p-8 hover-elevate active-elevate-2 transition-all duration-300 backdrop-blur-sm bg-card/80 border-border/50" 
+                data-testid={`feature-${index}`}
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="p-4 rounded-xl bg-primary/10 w-fit border border-primary/20">
+                    <feature.icon className="h-7 w-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Premium CTA Section with Background */}
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${luxuryGala})` }}
+            />
+            
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/95" />
+            
+            {/* Content */}
+            <div className="relative z-10 p-16 text-center">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+                Elevate Your Lifestyle
+              </h2>
+              <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+                Join the elite circle of individuals who've mastered the art of sophisticated automation
+              </p>
+              <Button 
+                size="lg" 
+                onClick={() => window.location.href = '/api/login'}
+                className="text-lg px-10 h-14 rounded-lg shadow-2xl hover:shadow-primary/30 transition-all duration-300"
+                data-testid="button-sign-in"
+              >
+                Access Your Platform
+              </Button>
+              
+              {/* Decorative Elements */}
+              <div className="absolute top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-primary/20 rounded-tl-2xl" />
+              <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-primary/20 rounded-br-2xl" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

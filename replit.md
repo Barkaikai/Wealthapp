@@ -7,8 +7,12 @@ This is an AI-powered life automation platform designed for billionaire-level we
 ## Recent Changes
 
 **October 1, 2025 - Real Financial API Integration**
-- ✅ Added Alpha Vantage integration for real-time stock prices
-- ✅ Added CoinGecko integration for cryptocurrency prices  
+- ✅ Added Alpha Vantage integration for real-time stock prices (active with API key)
+- ✅ Added CoinGecko integration with toggle support:
+  - **Paid API**: Uses COINGECKO_API_KEY when available
+  - **Public API**: Falls back to free public endpoints (no key required)
+  - Toggle via `CRYPTO_DATA_SOURCE` env var: "public" or "paid"
+  - Auto-detects: uses public API if no COINGECKO_API_KEY is set
 - ✅ Updated database schema to track quantity, source, and last_synced for assets
 - ✅ Implemented financial sync services with automatic price updates
 - ✅ Added API endpoints for syncing prices and adding positions with auto-fetch
@@ -16,7 +20,7 @@ This is an AI-powered life automation platform designed for billionaire-level we
   - "Sync Prices" button for one-click portfolio refresh
   - Tabbed "Add Asset" dialog (Stock/Crypto/Manual modes)
   - Auto-price fetching when adding stock/crypto positions
-- 🔄 Waiting for API keys: ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY
+- ✅ Crypto data sources: CoinGecko public API, CryptoCompare fallback
 - 📋 Next: Plaid integration for bank account aggregation (requires user credentials)
 
 **Email Automation MVP**

@@ -1,0 +1,141 @@
+# backend/app/crypto_bindings.py
+"""
+Lightweight crypto data bindings using public data sources.
+- Primary: CoinGecko public API (no auth) as default if available
+- Fallbacks: other public endpoints (Yahoo Finance crypto data, CryptoCompare public API if accessible)
+- Simple in-process cache to reduce requests
+- No paid API keys required
+"""
+
+import time
+import json
+import requests
+from typing import Dict, Any, Optional
+
+# Simple in-memory cache
+_CACHE: Dict[str, Any] = {}
+_CACHE_TTL: Dict[str, float] = {}
+
+def _cache_get(key: str) -> Optional[Any]:
+    if key in _CACHE and _CACHE_TTL.get(key, 0) > time.time():
+        return _CACHE[key]
+    return None
+
+def _cache_set(key: str, value: Any, ttl_seconds: int = 60):
+    _CACHE[key] = value
+    _CACHE_TTL[key] = time.time() + ttl_seconds
+
+def _fetch_json(url: str, timeout: int = 10) -> Optional[Dict[str, Any]]:
+    try:
+        resp = requests.get(url, timeout=timeout)
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            return None
+    except Exception:
+        return None
+
+def fetch_public_crypto_data(use_coingecko_public: bool = True) -> Dict[str, Any]:
+    """
+    Fetches public crypto data without requiring paid keys.
+    Returns a dict with simple metrics: price_usd, market_cap_usd, vol_24h_usd, change_24h
+    Tries CoinGecko first; if unavailable, falls back to other public sources.
+    """
+    cache_key = "public_crypto_data"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    # 1) Try CoinGecko public API
+    if use_coingecko_public:
+        url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h"
+        data = _fetch_json(url)
+        if isinstance(data, list) and len(data) > 0:
+            result = {}
+            for item in data:
+                symbol = item.get("symbol", "").upper()
+                result[symbol] = {
+                    "price_usd": item.get("current_price"),
+                    "market_cap_usd": item.get("market_cap"),
+                    "volume_24h_usd": item.get("total_volume"),
+                    "change_24h_pct": item.get("price_change_percentage_24h_in_currency"),
+                    "name": item.get("name"),
+                    "slug": item.get("id"),
+                }
+            _cache_set(cache_key, result, ttl_seconds=60)
+            return result
+
+    # 2) Fallback: CryptoCompare public price ticker (no auth, limited)
+    # CryptoCompare public API might be intermittently available; handle gracefully
+    # Example endpoint: https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD
+    fallback = {}
+    for sym in ["BTC", "ETH", "LTC"]:
+        url = f"https://min-api.cryptocompare.com/data/price?fsym={sym}&tsyms=USD"
+        resp = _fetch_json(url)
+        if resp and "USD" in resp:
+            fallback[sym] = {"price_usd": resp["USD"]}
+
+    if fallback:
+        _cache_set(cache_key, fallback, ttl_seconds=60)
+        return fallback
+
+    # 3) Minimal Yahoo Finance-esque public data via query endpoints (if accessible)
+    try:
+        # This is a best-effort; sometimes Yahoo blocks scrapers
+        url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=BTC-USD,ETH-USD"
+        resp = _fetch_json(url)
+        if resp and "quoteResponse" in resp and "result" in resp["quoteResponse"]:
+            results = resp["quoteResponse"]["result"]
+            yahoo = {}
+            for r in results:
+                symbol = r.get("symbol")
+                price = r.get("regularMarketPrice")
+                change = r.get("regularMarketChangePercent")
+                if symbol and price is not None:
+                    yahoo[symbol] = {
+                        "price_usd": price,
+                        "change_24h_pct": change
+                    }
+            if yahoo:
+                _cache_set(cache_key, yahoo, ttl_seconds=60)
+                return yahoo
+    except Exception:
+        pass
+
+    # If everything fails, return an empty dict
+    _cache_set(cache_key, {}, ttl_seconds=60)
+    return {}
+
+def get_crypto_portfolio_placeholder() -> Dict[str, Any]:
+    """
+    Simple placeholder to integrate with your existing asset data flow.
+    Returns a dict compatible with your assets structure.
+    """
+    data = fetch_public_crypto_data(use_coingecko_public=True)
+    # Normalize into a simple structure: asset -> value
+    # We'll map to a common "Crypto" bucket with sums
+    total_crypto_usd = 0.0
+    by_asset = {}
+    if isinstance(data, dict):
+        for symbol, info in data.items():
+            price = info.get("price_usd") if isinstance(info, dict) else None
+            if price is None:
+                continue
+            by_asset[symbol] = price
+            total_crypto_usd += price
+
+    return {
+        "total_by_asset": by_asset,
+        "total_value_usd": total_crypto_usd
+    }
+
+def main():
+    # Quick demo
+    print("Public crypto data (no auth):")
+    print(fetch_public_crypto_data())
+
+    print("Portfolio placeholder:")
+    print(get_crypto_portfolio_placeholder())
+
+if __name__ == "__main__":
+    main()

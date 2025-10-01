@@ -6,7 +6,7 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
@@ -889,6 +889,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating portfolio analytics:", error);
       res.status(500).json({ message: "Failed to calculate analytics" });
+    }
+  });
+
+  // Calendar Event routes
+  app.get('/api/calendar/events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const events = await storage.getCalendarEvents(userId);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.post('/api/calendar/events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertCalendarEventSchema.parse({ ...req.body, userId });
+      const event = await storage.createCalendarEvent(validatedData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      res.status(400).json({ message: "Failed to create event" });
+    }
+  });
+
+  app.patch('/api/calendar/events/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const event = await storage.updateCalendarEvent(id, userId, req.body);
+      res.json(event);
+    } catch (error) {
+      console.error("Error updating calendar event:", error);
+      res.status(400).json({ message: "Failed to update event" });
+    }
+  });
+
+  app.delete('/api/calendar/events/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteCalendarEvent(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting calendar event:", error);
+      res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
+  // Task routes
+  app.get('/api/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const tasks = await storage.getTasks(userId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post('/api/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertTaskSchema.parse({ ...req.body, userId });
+      const task = await storage.createTask(validatedData);
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(400).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const task = await storage.updateTask(id, userId, req.body);
+      res.json(task);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(400).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.delete('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteTask(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // Health Metrics routes
+  app.get('/api/health/metrics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const metrics = await storage.getHealthMetrics(userId);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching health metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics" });
+    }
+  });
+
+  app.post('/api/health/metrics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertHealthMetricSchema.parse({ ...req.body, userId });
+      const metric = await storage.createHealthMetric(validatedData);
+      res.status(201).json(metric);
+    } catch (error) {
+      console.error("Error creating health metric:", error);
+      res.status(400).json({ message: "Failed to create metric" });
+    }
+  });
+
+  app.delete('/api/health/metrics/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteHealthMetric(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting health metric:", error);
+      res.status(500).json({ message: "Failed to delete metric" });
+    }
+  });
+
+  // Wallet Connection routes
+  app.get('/api/wallets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const wallets = await storage.getWalletConnections(userId);
+      res.json(wallets);
+    } catch (error) {
+      console.error("Error fetching wallets:", error);
+      res.status(500).json({ message: "Failed to fetch wallets" });
+    }
+  });
+
+  app.post('/api/wallets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertWalletConnectionSchema.parse({ ...req.body, userId });
+      const wallet = await storage.createWalletConnection(validatedData);
+      res.status(201).json(wallet);
+    } catch (error) {
+      console.error("Error creating wallet:", error);
+      res.status(400).json({ message: "Failed to create wallet" });
+    }
+  });
+
+  app.patch('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const wallet = await storage.updateWalletConnection(id, userId, req.body);
+      res.json(wallet);
+    } catch (error) {
+      console.error("Error updating wallet:", error);
+      res.status(400).json({ message: "Failed to update wallet" });
+    }
+  });
+
+  app.delete('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteWalletConnection(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting wallet:", error);
+      res.status(500).json({ message: "Failed to delete wallet" });
+    }
+  });
+
+  // Voice Command routes
+  app.get('/api/voice/commands', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const commands = await storage.getVoiceCommands(userId, limit);
+      res.json(commands);
+    } catch (error) {
+      console.error("Error fetching voice commands:", error);
+      res.status(500).json({ message: "Failed to fetch commands" });
+    }
+  });
+
+  app.post('/api/voice/commands', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertVoiceCommandSchema.parse({ ...req.body, userId });
+      const command = await storage.createVoiceCommand(validatedData);
+      res.status(201).json(command);
+    } catch (error) {
+      console.error("Error creating voice command:", error);
+      res.status(400).json({ message: "Failed to create command" });
     }
   });
 

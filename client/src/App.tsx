@@ -13,6 +13,9 @@ import Landing from "@/pages/Landing";
 import DailyBriefing from "@/pages/DailyBriefing";
 import WealthDashboard from "@/pages/WealthDashboard";
 import WealthMonitor from "@/pages/WealthMonitor";
+import ProductivityHub from "@/pages/ProductivityHub";
+import HealthMonitoring from "@/pages/HealthMonitoring";
+import Web3Wallets from "@/pages/Web3Wallets";
 import EmailManager from "@/pages/EmailManager";
 import RoutineBuilder from "@/pages/RoutineBuilder";
 import Guide from "@/pages/Guide";
@@ -46,6 +49,9 @@ function Router() {
           <Route path="/" component={DailyBriefing} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
+          <Route path="/productivity" component={ProductivityHub} />
+          <Route path="/health" component={HealthMonitoring} />
+          <Route path="/wallets" component={Web3Wallets} />
           <Route path="/email" component={EmailManager} />
           <Route path="/routine" component={RoutineBuilder} />
           <Route path="/guide" component={Guide} />

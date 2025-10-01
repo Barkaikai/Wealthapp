@@ -113,6 +113,7 @@ export const emails = pgTable("emails", {
   preview: text("preview"),
   body: text("body"),
   category: text("category").notNull(), // personal, finance, investments
+  draftReply: text("draft_reply"), // AI-generated draft reply (for finance/investments)
   isStarred: text("is_starred").notNull().default('false'),
   isRead: text("is_read").notNull().default('false'),
   threadId: text("thread_id"),

@@ -13,7 +13,6 @@ import type { Email } from "@shared/schema";
 
 export default function EmailManager() {
   const [selectedEmailId, setSelectedEmailId] = useState<string>();
-  const [aiDraft, setAiDraft] = useState("");
   const { toast } = useToast();
 
   const { data: emails = [], isLoading } = useQuery<Email[]>({
@@ -25,11 +24,12 @@ export default function EmailManager() {
       const result = await apiRequest("/api/emails/sync", "POST", {});
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
+      const { synced, personal, finance, investments } = data;
       toast({
-        title: "Success",
-        description: "Emails synced successfully",
+        title: "Sync Complete",
+        description: `${synced} emails synced: ${personal} Personal, ${finance} Finance, ${investments} Investments`,
       });
     },
     onError: (error: Error) => {
@@ -41,22 +41,22 @@ export default function EmailManager() {
     },
   });
 
-  const draftReply = useMutation({
+  const regenerateDraft = useMutation({
     mutationFn: async (emailId: string) => {
-      const result = await apiRequest(`/api/emails/${emailId}/draft-reply`, "POST", {});
+      const result = await apiRequest(`/api/emails/${emailId}/draft`, "POST", {});
       return result;
     },
-    onSuccess: (data: any) => {
-      setAiDraft(data.draft);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
       toast({
         title: "Success",
-        description: "Draft generated successfully",
+        description: "Draft regenerated successfully",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to generate draft",
+        description: error.message || "Failed to regenerate draft",
         variant: "destructive",
       });
     },
@@ -71,6 +71,10 @@ export default function EmailManager() {
     isStarred: email.isStarred === 'true',
     isRead: email.isRead === 'true',
   }));
+
+  const financeEmails = displayEmails.filter(e => e.category === 'finance');
+  const investmentEmails = displayEmails.filter(e => e.category === 'investments');
+  const personalEmails = displayEmails.filter(e => e.category === 'personal');
 
   return (
     <div className="space-y-6">
@@ -110,65 +114,94 @@ export default function EmailManager() {
             <TabsTrigger value="personal" data-testid="tab-personal">Personal</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2">
-                <EmailList
-                  emails={displayEmails}
-                  onEmailClick={setSelectedEmailId}
-                  selectedEmailId={selectedEmailId}
-                />
-              </div>
+          {['all', 'finance', 'investments', 'personal'].map(tab => {
+            const tabEmails = tab === 'all' ? displayEmails :
+                            tab === 'finance' ? financeEmails :
+                            tab === 'investments' ? investmentEmails :
+                            personalEmails;
 
-              <div className="lg:col-span-3">
-                {selectedEmail && (
-                  <div className="space-y-4">
-                    <Card className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h2 className="text-xl font-semibold mb-2">{selectedEmail.subject}</h2>
-                          <p className="text-sm text-muted-foreground">{selectedEmail.from}</p>
-                        </div>
-                        <Badge variant="secondary">{selectedEmail.category}</Badge>
-                      </div>
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <p className="whitespace-pre-wrap text-sm">{selectedEmail.body || selectedEmail.preview}</p>
-                      </div>
-                    </Card>
-
-                    <Card className="p-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        <h3 className="font-semibold">AI-Generated Reply</h3>
-                      </div>
-                      <Textarea
-                        value={aiDraft}
-                        onChange={(e) => setAiDraft(e.target.value)}
-                        className="min-h-32 mb-4"
-                        placeholder="Click 'Generate Draft' to create an AI-powered reply"
-                        data-testid="textarea-ai-draft"
-                      />
-                      <div className="flex gap-2">
-                        <Button data-testid="button-send-reply">
-                          <Send className="h-4 w-4 mr-2" />
-                          Send Reply
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => draftReply.mutate(selectedEmail.id)}
-                          disabled={draftReply.isPending}
-                          data-testid="button-regenerate"
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          {draftReply.isPending ? 'Generating...' : 'Generate Draft'}
-                        </Button>
-                      </div>
-                    </Card>
+            return (
+              <TabsContent key={tab} value={tab} className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                  <div className="lg:col-span-2">
+                    <EmailList
+                      emails={tabEmails as any}
+                      onEmailClick={setSelectedEmailId}
+                      selectedEmailId={selectedEmailId}
+                    />
                   </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
+
+                  <div className="lg:col-span-3">
+                    {selectedEmail && (
+                      <div className="space-y-4">
+                        <Card className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h2 className="text-xl font-semibold mb-2">{selectedEmail.subject}</h2>
+                              <p className="text-sm text-muted-foreground">{selectedEmail.from}</p>
+                            </div>
+                            <Badge variant="secondary">{selectedEmail.category}</Badge>
+                          </div>
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <p className="whitespace-pre-wrap text-sm">{selectedEmail.body || selectedEmail.preview}</p>
+                          </div>
+                        </Card>
+
+                        {(selectedEmail.category === 'finance' || selectedEmail.category === 'investments') && (
+                          <Card className="p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                              <Sparkles className="h-5 w-5 text-primary" />
+                              <h3 className="font-semibold">AI-Generated Reply</h3>
+                            </div>
+                            {selectedEmail.draftReply ? (
+                              <>
+                                <Textarea
+                                  value={selectedEmail.draftReply}
+                                  readOnly
+                                  className="min-h-32 mb-4 bg-muted/50"
+                                  data-testid="textarea-ai-draft"
+                                />
+                                <div className="flex gap-2">
+                                  <Button data-testid="button-send-reply">
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Send Reply
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => regenerateDraft.mutate(selectedEmail.id)}
+                                    disabled={regenerateDraft.isPending}
+                                    data-testid="button-regenerate"
+                                  >
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    {regenerateDraft.isPending ? 'Regenerating...' : 'Regenerate'}
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center py-8">
+                                <p className="text-sm text-muted-foreground mb-4">
+                                  No draft generated yet. Sync emails to auto-generate drafts.
+                                </p>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => regenerateDraft.mutate(selectedEmail.id)}
+                                  disabled={regenerateDraft.isPending}
+                                  data-testid="button-generate-draft"
+                                >
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  {regenerateDraft.isPending ? 'Generating...' : 'Generate Draft'}
+                                </Button>
+                              </div>
+                            )}
+                          </Card>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       )}
     </div>

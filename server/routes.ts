@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations } from "./openai";
+import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle } from "./openai";
+import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
@@ -457,6 +458,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting calendar:", error);
       res.status(500).json({ message: "Failed to export calendar" });
+    }
+  });
+
+  // Learn system routes - AI-generated educational content
+  app.get('/api/learn/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const content = await storage.getContentBySlug(slug);
+      
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching learn content:", error);
+      res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+
+  app.post('/api/learn/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, slug: customSlug } = req.body;
+      
+      if (!topic) {
+        return res.status(400).json({ message: "Topic is required" });
+      }
+      
+      const slug = customSlug || slugify(topic);
+      
+      // Check if content already exists
+      const existing = await storage.getContentBySlug(slug);
+      if (existing) {
+        return res.json(existing);
+      }
+      
+      // Generate new content using OpenAI
+      const { title, summary, contentMarkdown } = await generateTopicArticle(topic);
+      
+      // Store in database
+      const content = await storage.createContent({
+        slug,
+        topic: title || topic,
+        content: contentMarkdown,
+        summary,
+      });
+      
+      res.status(201).json(content);
+    } catch (error: any) {
+      console.error("Error generating learn content:", error);
+      res.status(500).json({ message: error.message || "Failed to generate content" });
     }
   });
 

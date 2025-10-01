@@ -40,12 +40,18 @@ function setCache(key: string, data: any, ttlSeconds: number = 60) {
   });
 }
 
-async function fetchJson(url: string, timeout: number = 10000): Promise<any> {
+async function fetchJson(url: string, timeout: number = 10000, headers?: Record<string, string>): Promise<any> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ...headers,
+      }
+    });
     clearTimeout(timeoutId);
     
     if (!response.ok) {
@@ -82,7 +88,7 @@ export async function getCryptoMarketData(): Promise<MarketDataPoint[]> {
         volume24h: item.total_volume || 0,
         source: 'coingecko',
       }));
-      setCache(cacheKey, result, 60);
+      setCache(cacheKey, result, 300); // Cache for 5 minutes
       return result;
     }
   } catch (error) {
@@ -173,11 +179,12 @@ export async function getStockMarketData(): Promise<MarketDataPoint[]> {
         volume24h: item.regularMarketVolume || 0,
         source: 'yahoo',
       }));
-      setCache(cacheKey, result, 60);
+      setCache(cacheKey, result, 300); // Cache for 5 minutes
       return result;
     }
   } catch (error) {
-    console.error('Stock market data fetch failed:', error);
+    // Yahoo Finance may rate-limit or block requests, this is expected
+    console.warn('Stock market data temporarily unavailable:', (error as Error).message);
   }
 
   return [];
@@ -214,11 +221,12 @@ export async function getMetalsMarketData(): Promise<MarketDataPoint[]> {
         volume24h: item.regularMarketVolume || 0,
         source: 'yahoo',
       }));
-      setCache(cacheKey, result, 60);
+      setCache(cacheKey, result, 300); // Cache for 5 minutes
       return result;
     }
   } catch (error) {
-    console.error('Metals market data fetch failed:', error);
+    // Yahoo Finance may rate-limit or block requests, this is expected
+    console.warn('Metals market data temporarily unavailable:', (error as Error).message);
   }
 
   return [];

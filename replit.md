@@ -6,6 +6,15 @@ This is an AI-powered life automation platform designed for billionaire-level we
 
 ## Recent Changes
 
+**October 1, 2025 - AI Briefing Generation Fixed**
+- ✅ Fixed GPT-5 timeout issue with automatic fallback to GPT-4o
+- ✅ Added 45-second timeout for AI generation requests
+- ✅ Improved error handling with user-friendly messages
+- ✅ Fixed empty response issue when no briefing exists (returns null instead of undefined)
+- ✅ Enhanced logging: Shows which AI model was used (GPT-5 or GPT-4o fallback)
+- ✅ Fallback strategy: Tries GPT-5 first, automatically falls back to GPT-4o if timeout/error
+- ✅ Test result: Briefing generation working successfully with 2 highlights, 1 risk, 3 actions
+
 **October 1, 2025 - Login UX Improvement**
 - ✅ Fixed confusing login button labels on landing page
 - ✅ Changed "Begin Your Journey" → "Sign In" for clarity

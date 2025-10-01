@@ -90,3 +90,43 @@ Respond with JSON: { "recommendations": ["...", "...", "..."] }`;
   const result = JSON.parse(response.choices[0].message.content!);
   return result.recommendations;
 }
+
+export async function generateTopicArticle(topic: string): Promise<{
+  title: string;
+  summary: string;
+  contentMarkdown: string;
+}> {
+  const prompt = `You are an expert AI assistant for a billionaire-level wealth automation platform. Create comprehensive educational content about: "${topic}"
+
+The content should be:
+- Professional and authoritative
+- Focused on wealth management, financial automation, or lifestyle optimization
+- Practical and actionable for high-net-worth individuals
+- Well-structured with clear sections
+
+Generate:
+1. title: A compelling title (max 80 characters)
+2. summary: A brief 1-2 sentence summary
+3. contentMarkdown: Detailed article content in markdown format (500-800 words)
+
+The markdown should include:
+- Clear sections with ## headings
+- Bullet points for key takeaways
+- Practical examples or strategies
+- Links to related concepts where relevant
+
+Respond with JSON in this exact format:
+{
+  "title": "...",
+  "summary": "...",
+  "contentMarkdown": "..."
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-5",
+    messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
+  });
+
+  return JSON.parse(response.choices[0].message.content!);
+}

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,11 @@ const menuItems = [
     title: "Wealth Dashboard",
     url: "/wealth",
     icon: Wallet,
+  },
+  {
+    title: "Wealth Monitor",
+    url: "/wealth-monitor",
+    icon: TrendingUp,
   },
   {
     title: "Email Manager",

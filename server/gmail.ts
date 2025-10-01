@@ -119,7 +119,7 @@ export async function fetchRecentEmails(maxResults: number = 20) {
   } catch (error: any) {
     // Handle Gmail API errors
     if (error.response?.status === 403 || error.message?.includes('insufficient authentication scopes')) {
-      throw new GmailScopeError('Gmail connection requires additional permissions. Please reconnect your Gmail account with read access.');
+      throw new GmailScopeError('Gmail email sync is currently unavailable. The Gmail integration has limited permissions that don\'t allow reading your full inbox. This feature requires the gmail.readonly scope which is not available in the current Replit Gmail connector.');
     }
     if (error.message?.includes('Gmail not connected')) {
       throw new GmailNotConnectedError('Gmail account not connected. Please connect your Gmail account in the Tools panel.');

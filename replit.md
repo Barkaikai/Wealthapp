@@ -111,6 +111,7 @@ This is an AI-powered life automation platform designed for billionaire-level we
   - GET /api/emails - Returns emails with draftReply field
   - POST /api/emails/:id/draft - Regenerates and saves draft
 - ✅ Data flow: Sync → Generate Draft → Store in DB → Display in UI
+- ⚠️ **Known Limitation**: Gmail sync currently unavailable - Replit Gmail connector provides limited add-on scopes, not the `gmail.readonly` scope required to read full inbox. Error messages updated to clearly explain this platform limitation.
 
 ## User Preferences
 

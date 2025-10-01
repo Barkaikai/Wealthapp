@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle } from "./openai";
+import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema } from "@shared/schema";
@@ -524,6 +525,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(500).json({ message: error.message || "Failed to generate content" });
+    }
+  });
+
+  // Market data routes - comprehensive market overview
+  app.get('/api/market/overview', isAuthenticated, async (req, res) => {
+    try {
+      const overview = await getMarketOverview();
+      res.json(overview);
+    } catch (error) {
+      console.error("Error fetching market overview:", error);
+      res.status(500).json({ message: "Failed to fetch market data" });
     }
   });
 

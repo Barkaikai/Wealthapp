@@ -184,3 +184,26 @@ export const insertAIContentSchema = createInsertSchema(aiContent).omit({
 
 export type InsertAIContent = z.infer<typeof insertAIContentSchema>;
 export type AIContent = typeof aiContent.$inferSelect;
+
+// Market data snapshots for charts and analysis
+export const marketData = pgTable("market_data", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(), // 'crypto', 'stocks', 'metals'
+  symbol: text("symbol").notNull(),
+  name: text("name").notNull(),
+  price: text("price").notNull(), // Store as text to avoid precision issues
+  change24h: text("change_24h"),
+  changePercent: text("change_percent"),
+  marketCap: text("market_cap"),
+  volume24h: text("volume_24h"),
+  source: text("source").notNull(), // API source used
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const insertMarketDataSchema = createInsertSchema(marketData).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
+export type MarketData = typeof marketData.$inferSelect;

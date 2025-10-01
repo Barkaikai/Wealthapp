@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AssetChart } from "@/components/AssetChart";
 import { PortfolioTimeline } from "@/components/PortfolioTimeline";
 import { AssetTable } from "@/components/AssetTable";
+import MarketOverview from "@/components/MarketOverview";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -417,6 +418,8 @@ export default function WealthDashboard() {
         <AssetChart data={assetData} title="Asset Allocation" />
         <PortfolioTimeline data={timelineData} title="Portfolio Growth (YTD)" />
       </div>
+
+      <MarketOverview />
 
       {tableAssets.length > 0 && <AssetTable assets={tableAssets} title="Portfolio Holdings" />}
     </div>

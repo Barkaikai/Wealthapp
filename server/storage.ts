@@ -15,6 +15,9 @@ import {
   healthMetrics,
   walletConnections,
   voiceCommands,
+  notes,
+  documents,
+  documentInsights,
   type User,
   type UpsertUser,
   type Asset,
@@ -47,6 +50,12 @@ import {
   type InsertWalletConnection,
   type VoiceCommand,
   type InsertVoiceCommand,
+  type Note,
+  type InsertNote,
+  type Document,
+  type InsertDocument,
+  type DocumentInsight,
+  type InsertDocumentInsight,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -134,6 +143,24 @@ export interface IStorage {
   // Voice Command operations
   getVoiceCommands(userId: string, limit?: number): Promise<VoiceCommand[]>;
   createVoiceCommand(command: InsertVoiceCommand): Promise<VoiceCommand>;
+  
+  // Note operations
+  getNotes(userId: string, folder?: string): Promise<Note[]>;
+  getNote(id: number, userId: string): Promise<Note | undefined>;
+  createNote(note: InsertNote): Promise<Note>;
+  updateNote(id: number, userId: string, note: Partial<InsertNote>): Promise<Note>;
+  deleteNote(id: number, userId: string): Promise<void>;
+  
+  // Document operations
+  getDocuments(userId: string, folder?: string): Promise<Document[]>;
+  getDocument(id: number, userId: string): Promise<Document | undefined>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, userId: string, document: Partial<InsertDocument>): Promise<Document>;
+  deleteDocument(id: number, userId: string): Promise<void>;
+  
+  // Document Insight operations
+  getDocumentInsight(documentId: number, userId: string): Promise<DocumentInsight | undefined>;
+  createDocumentInsight(insight: InsertDocumentInsight): Promise<DocumentInsight>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -530,6 +557,88 @@ export class DatabaseStorage implements IStorage {
   async createVoiceCommand(command: InsertVoiceCommand): Promise<VoiceCommand> {
     const [newCommand] = await db.insert(voiceCommands).values(command).returning();
     return newCommand;
+  }
+
+  // Note operations
+  async getNotes(userId: string, folder?: string): Promise<Note[]> {
+    const conditions = folder 
+      ? and(eq(notes.userId, userId), eq(notes.folder, folder))
+      : eq(notes.userId, userId);
+    return await db.select().from(notes).where(conditions).orderBy(desc(notes.updatedAt));
+  }
+
+  async getNote(id: number, userId: string): Promise<Note | undefined> {
+    const [note] = await db.select().from(notes).where(and(eq(notes.id, id), eq(notes.userId, userId)));
+    return note;
+  }
+
+  async createNote(note: InsertNote): Promise<Note> {
+    const [newNote] = await db.insert(notes).values(note).returning();
+    return newNote;
+  }
+
+  async updateNote(id: number, userId: string, note: Partial<InsertNote>): Promise<Note> {
+    const [updatedNote] = await db
+      .update(notes)
+      .set({ ...note, updatedAt: new Date() })
+      .where(and(eq(notes.id, id), eq(notes.userId, userId)))
+      .returning();
+    
+    if (!updatedNote) {
+      throw new Error("Note not found");
+    }
+    return updatedNote;
+  }
+
+  async deleteNote(id: number, userId: string): Promise<void> {
+    await db.delete(notes).where(and(eq(notes.id, id), eq(notes.userId, userId)));
+  }
+
+  // Document operations
+  async getDocuments(userId: string, folder?: string): Promise<Document[]> {
+    const conditions = folder 
+      ? and(eq(documents.userId, userId), eq(documents.folder, folder))
+      : eq(documents.userId, userId);
+    return await db.select().from(documents).where(conditions).orderBy(desc(documents.createdAt));
+  }
+
+  async getDocument(id: number, userId: string): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(and(eq(documents.id, id), eq(documents.userId, userId)));
+    return document;
+  }
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    const [newDocument] = await db.insert(documents).values(document).returning();
+    return newDocument;
+  }
+
+  async updateDocument(id: number, userId: string, document: Partial<InsertDocument>): Promise<Document> {
+    const [updatedDocument] = await db
+      .update(documents)
+      .set({ ...document, updatedAt: new Date() })
+      .where(and(eq(documents.id, id), eq(documents.userId, userId)))
+      .returning();
+    
+    if (!updatedDocument) {
+      throw new Error("Document not found");
+    }
+    return updatedDocument;
+  }
+
+  async deleteDocument(id: number, userId: string): Promise<void> {
+    await db.delete(documents).where(and(eq(documents.id, id), eq(documents.userId, userId)));
+  }
+
+  // Document Insight operations
+  async getDocumentInsight(documentId: number, userId: string): Promise<DocumentInsight | undefined> {
+    const [insight] = await db.select().from(documentInsights)
+      .where(and(eq(documentInsights.documentId, documentId), eq(documentInsights.userId, userId)));
+    return insight;
+  }
+
+  async createDocumentInsight(insight: InsertDocumentInsight): Promise<DocumentInsight> {
+    const [newInsight] = await db.insert(documentInsights).values(insight).returning();
+    return newInsight;
   }
 }
 

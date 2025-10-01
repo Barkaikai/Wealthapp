@@ -6,13 +6,17 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema } from "@shared/schema";
+import multer from "multer";
+import { fileStorage } from "./fileStorage";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
 import { insertEmailTemplateSchema } from "@shared/schema";
 import { runFullDiagnostics } from "./diagnostics";
 import { healthMonitor } from "./healthMonitor";
+import { analyzeDocument } from "./documentAnalysis";
+import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -985,6 +989,296 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting task:", error);
       res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // Notes routes
+  app.get('/api/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const folder = req.query.folder as string | undefined;
+      const notes = await storage.getNotes(userId, folder);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  app.get('/api/notes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const note = await storage.getNote(id, userId);
+      
+      if (!note) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error("Error fetching note:", error);
+      res.status(500).json({ message: "Failed to fetch note" });
+    }
+  });
+
+  app.post('/api/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertNoteSchema.parse({ ...req.body, userId });
+      const note = await storage.createNote(validatedData);
+      res.status(201).json(note);
+    } catch (error: any) {
+      console.error("Error creating note:", error);
+      res.status(400).json({ message: error.message || "Failed to create note" });
+    }
+  });
+
+  app.patch('/api/notes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const note = await storage.updateNote(id, userId, req.body);
+      res.json(note);
+    } catch (error: any) {
+      console.error("Error updating note:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update note" });
+    }
+  });
+
+  app.delete('/api/notes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteNote(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting note:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to delete note" });
+    }
+  });
+
+  // Configure multer for document uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimeTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+      ];
+      
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Allowed types: pdf, doc, docx, txt, jpg, jpeg, png, gif'));
+      }
+    },
+  });
+
+  // Documents routes
+  app.get('/api/documents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const folder = req.query.folder as string | undefined;
+      const documents = await storage.getDocuments(userId, folder);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  app.get('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const document = await storage.getDocument(id, userId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching document:", error);
+      res.status(500).json({ message: "Failed to fetch document" });
+    }
+  });
+
+  app.get('/api/documents/:id/download', isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if Object Storage is available
+      if (!isObjectStorageAvailable()) {
+        return res.status(503).json({ message: getStorageUnavailableMessage() });
+      }
+
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const document = await storage.getDocument(id, userId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Download file from storage
+      const fileBuffer = await fileStorage.downloadFile(document.storageKey);
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', document.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+      res.setHeader('Content-Length', document.fileSize.toString());
+      
+      res.send(fileBuffer);
+    } catch (error: any) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ message: error.message || "Failed to download document" });
+    }
+  });
+
+  app.post('/api/documents/upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      // Check if Object Storage is available
+      if (!isObjectStorageAvailable()) {
+        return res.status(503).json({ message: getStorageUnavailableMessage() });
+      }
+
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Upload file to storage
+      const uploadedFile = await fileStorage.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      
+      // Parse additional metadata from request body
+      const { tags, folder, linkedEntityType, linkedEntityId, isPinned } = req.body;
+      
+      // Create document record
+      const documentData = insertDocumentSchema.parse({
+        userId,
+        filename: uploadedFile.filename,
+        originalName: req.file.originalname,
+        mimeType: uploadedFile.mimeType,
+        fileSize: uploadedFile.fileSize,
+        storageKey: uploadedFile.storageKey,
+        checksum: uploadedFile.checksum,
+        tags: tags ? JSON.parse(tags) : undefined,
+        folder: folder || 'default',
+        linkedEntityType: linkedEntityType || undefined,
+        linkedEntityId: linkedEntityId || undefined,
+        isPinned: isPinned || 'false',
+      });
+      
+      const document = await storage.createDocument(documentData);
+      res.status(201).json(document);
+    } catch (error: any) {
+      console.error("Error uploading document:", error);
+      
+      // Clean up uploaded file if document creation failed
+      if (req.file && error.storageKey) {
+        try {
+          await fileStorage.deleteFile(error.storageKey);
+        } catch (cleanupError) {
+          console.error("Error cleaning up file:", cleanupError);
+        }
+      }
+      
+      res.status(400).json({ message: error.message || "Failed to upload document" });
+    }
+  });
+
+  app.patch('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const document = await storage.updateDocument(id, userId, req.body);
+      res.json(document);
+    } catch (error: any) {
+      console.error("Error updating document:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update document" });
+    }
+  });
+
+  app.delete('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if Object Storage is available
+      if (!isObjectStorageAvailable()) {
+        return res.status(503).json({ message: getStorageUnavailableMessage() });
+      }
+
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      
+      // Get document to retrieve storage key
+      const document = await storage.getDocument(id, userId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Delete file from storage first
+      try {
+        await fileStorage.deleteFile(document.storageKey);
+      } catch (storageError) {
+        console.error("Error deleting file from storage:", storageError);
+        // Continue with database deletion even if file deletion fails
+      }
+      
+      // Delete document record from database
+      await storage.deleteDocument(id, userId);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting document:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to delete document" });
+    }
+  });
+
+  app.post('/api/documents/:id/analyze', isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if Object Storage is available
+      if (!isObjectStorageAvailable()) {
+        return res.status(503).json({ message: getStorageUnavailableMessage() });
+      }
+
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      
+      console.log(`Document analysis requested for document ${id} by user ${userId}`);
+      
+      const insight = await analyzeDocument(id, userId);
+      
+      console.log(`Document analysis completed for document ${id}`);
+      res.json(insight);
+    } catch (error: any) {
+      console.error("Error analyzing document:", error);
+      
+      // Return appropriate status codes based on error message
+      if (error.message?.includes("not found") || error.message?.includes("access denied")) {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message?.includes("PDF and Word document analysis coming soon")) {
+        return res.status(400).json({ message: error.message });
+      }
+      if (error.message?.includes("Unsupported file type")) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(500).json({ message: error.message || "Failed to analyze document" });
     }
   });
 

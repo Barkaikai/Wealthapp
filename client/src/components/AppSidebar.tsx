@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -51,6 +51,11 @@ const menuItems = [
     title: "Routine Builder",
     url: "/routine",
     icon: Calendar,
+  },
+  {
+    title: "Notepad",
+    url: "/notepad",
+    icon: FileText,
   },
   {
     title: "Guide",

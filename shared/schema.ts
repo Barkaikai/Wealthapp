@@ -466,3 +466,77 @@ export const insertVoiceCommandSchema = createInsertSchema(voiceCommands).omit({
 
 export type InsertVoiceCommand = z.infer<typeof insertVoiceCommandSchema>;
 export type VoiceCommand = typeof voiceCommands.$inferSelect;
+
+// Notes table for user-created notes
+export const notes = pgTable("notes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  tags: text("tags").array(), // Array of tags for organization
+  folder: text("folder").default('default'), // Folder organization
+  isPinned: text("is_pinned").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNoteSchema = createInsertSchema(notes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertNote = z.infer<typeof insertNoteSchema>;
+export type Note = typeof notes.$inferSelect;
+
+// Documents table for uploaded files metadata
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  filename: text("filename").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(), // in bytes
+  storageKey: text("storage_key").notNull(), // Key for object storage
+  fileUrl: text("file_url"), // Signed URL (temporary)
+  tags: text("tags").array(),
+  folder: text("folder").default('default'),
+  checksum: text("checksum"), // For tamper detection
+  isPinned: text("is_pinned").notNull().default('false'),
+  linkedEntityType: text("linked_entity_type"), // 'asset', 'goal', 'briefing', etc.
+  linkedEntityId: text("linked_entity_id"), // ID of linked entity
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type Document = typeof documents.$inferSelect;
+
+// Document insights from AI analysis
+export const documentInsights = pgTable("document_insights", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  summary: text("summary"),
+  keyPoints: text("key_points").array(),
+  actionItems: text("action_items").array(),
+  sentiment: text("sentiment"), // 'positive', 'negative', 'neutral'
+  categories: text("categories").array(),
+  extractedText: text("extracted_text"), // Full text extracted from document
+  analysisModel: text("analysis_model").default('gpt-4o'), // Model used for analysis
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertDocumentInsightSchema = createInsertSchema(documentInsights).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDocumentInsight = z.infer<typeof insertDocumentInsightSchema>;
+export type DocumentInsight = typeof documentInsights.$inferSelect;

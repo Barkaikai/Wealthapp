@@ -69,7 +69,7 @@ function AuthenticatedApp() {
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
               <div className="flex items-center gap-2">
                 {user?.profileImageUrl && (
                   <img 
@@ -87,9 +87,9 @@ function AuthenticatedApp() {
               <ThemeToggle />
               <Button 
                 variant="ghost" 
-                size="sm" 
                 onClick={() => window.location.href = '/api/logout'}
                 data-testid="button-logout"
+                className="min-h-9"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout

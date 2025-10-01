@@ -6,6 +6,27 @@ This is an AI-powered life automation platform designed for billionaire-level we
 
 ## Recent Changes
 
+**October 1, 2025 - Mobile Responsiveness & WCAG AA Compliance**
+- ✅ Fixed Learn system topic extraction for long briefing highlights:
+  - Extracts first 4 meaningful words from slugs
+  - Filters out digits, percentages, and filler words using `/[\d%]/` regex
+  - Fallback to sanitized slug (max 60 chars) if no meaningful words found
+  - Prevents empty/garbage topics from reaching AI generation
+- ✅ Implemented WCAG AA touch target compliance (all interactive elements ≥36×36px):
+  - Sidebar toggle: 36×36px on all viewports (forced with !important override)
+  - Logout button: 36px height (removed size="sm", uses default)
+  - LearnPage Back buttons: 36px height across all states (loading/error/success)
+  - Tab triggers: 36px minimum height (updated TabsTrigger with py-2.5 + min-h-9)
+- ✅ Fixed mobile responsive layout on Wealth Dashboard:
+  - Header stacks vertically on mobile (`flex-col sm:flex-row`)
+  - Action buttons wrap with `flex-wrap` and shortened text on mobile
+  - Buttons use `flex-1 sm:flex-none` for full-width on mobile, auto on desktop
+  - Eliminated horizontal scrolling on all mobile viewports (390px-412px tested)
+- ✅ Verified cross-platform mobile compatibility:
+  - Tested on iPhone (390×844) and Android (412×915) viewports
+  - All touch targets meet accessibility standards
+  - Sidebar drawer works smoothly on mobile devices
+
 **October 1, 2025 - Luxury Theme Implementation**
 - ✅ Redesigned with exquisite luxury aesthetic for ultra-premium experience
 - ✅ Updated design guidelines with sophisticated luxury principles

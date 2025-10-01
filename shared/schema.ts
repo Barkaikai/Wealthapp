@@ -146,3 +146,21 @@ export const insertBriefingSchema = createInsertSchema(briefings).omit({
 
 export type InsertBriefing = z.infer<typeof insertBriefingSchema>;
 export type Briefing = typeof briefings.$inferSelect;
+
+// Email templates for automated replies
+export const emailTemplates = pgTable("email_templates", {
+  id: text("id").primaryKey(), // e.g., "INVESTMENTS_REPLY"
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(), // Can include {subject}, {name}, {topic} placeholders
+  body: text("body").notNull(), // Can include {subject}, {name}, {topic} placeholders
+  category: text("category"), // Which email category to use this for (finance, investments, personal)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  createdAt: true,
+});
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;

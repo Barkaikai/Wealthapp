@@ -7,6 +7,8 @@ import { fetchRecentEmails } from "./gmail";
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
+import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
+import { insertEmailTemplateSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -353,6 +355,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error drafting reply:", error);
       res.status(500).json({ message: "Failed to draft reply" });
+    }
+  });
+
+  // Email templates routes
+  app.get('/api/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templates = await getAllTemplates(userId);
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch templates" });
+    }
+  });
+
+  app.get('/api/email-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templateId = req.params.id;
+      const template = await getTemplateById(userId, templateId);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error fetching template:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch template" });
+    }
+  });
+
+  app.post('/api/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templateData = insertEmailTemplateSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const template = await createTemplate(templateData);
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error creating template:", error);
+      res.status(500).json({ message: error.message || "Failed to create template" });
+    }
+  });
+
+  app.delete('/api/email-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templateId = req.params.id;
+      
+      await deleteTemplate(userId, templateId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting template:", error);
+      res.status(500).json({ message: error.message || "Failed to delete template" });
     }
   });
 

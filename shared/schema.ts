@@ -45,9 +45,12 @@ export const assets = pgTable("assets", {
   symbol: text("symbol").notNull(),
   assetType: text("asset_type").notNull(), // stocks, crypto, bonds, cash, real_estate
   value: real("value").notNull(),
+  quantity: real("quantity").default(1), // Amount of shares/coins held
   allocation: real("allocation"),
   change24h: real("change_24h"),
   changePercent: real("change_percent"),
+  source: text("source").default('manual'), // manual, alpha_vantage, coingecko, plaid
+  lastSynced: timestamp("last_synced"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

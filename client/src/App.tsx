@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import DailyBriefing from "@/pages/DailyBriefing";
 import WealthDashboard from "@/pages/WealthDashboard";
+import WealthMonitor from "@/pages/WealthMonitor";
 import EmailManager from "@/pages/EmailManager";
 import RoutineBuilder from "@/pages/RoutineBuilder";
 import Guide from "@/pages/Guide";
@@ -44,6 +45,7 @@ function Router() {
         <>
           <Route path="/" component={DailyBriefing} />
           <Route path="/wealth" component={WealthDashboard} />
+          <Route path="/wealth-monitor" component={WealthMonitor} />
           <Route path="/email" component={EmailManager} />
           <Route path="/routine" component={RoutineBuilder} />
           <Route path="/guide" component={Guide} />

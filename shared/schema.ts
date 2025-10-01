@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   timestamp,
@@ -237,7 +238,7 @@ export type DiagnosticRun = typeof diagnosticRuns.$inferSelect;
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  assetId: serial("asset_id").references(() => assets.id, { onDelete: 'set null' }),
+  assetId: integer("asset_id").references(() => assets.id, { onDelete: 'set null' }),
   type: text("type").notNull(), // 'buy', 'sell', 'dividend', 'transfer'
   symbol: text("symbol").notNull(),
   assetType: text("asset_type").notNull(),
@@ -253,6 +254,9 @@ export const transactions = pgTable("transactions", {
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
+}).extend({
+  assetId: z.number().nullable().optional(),
+  transactionDate: z.coerce.date(),
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;

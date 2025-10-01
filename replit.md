@@ -4,6 +4,21 @@
 
 This is an AI-powered life automation platform designed for billionaire-level wealth management and lifestyle optimization. The application automates financial tracking, email management, daily routines, and decision-making with minimal human input. It aggregates assets across multiple platforms (stocks, crypto, bonds, real estate), uses AI to categorize and draft email replies, generates daily briefings with portfolio insights, and helps users build optimized daily routines based on successful lifestyle patterns.
 
+## Recent Changes
+
+**October 1, 2025 - Real Financial API Integration**
+- ✅ Added Alpha Vantage integration for real-time stock prices
+- ✅ Added CoinGecko integration for cryptocurrency prices  
+- ✅ Updated database schema to track quantity, source, and last_synced for assets
+- ✅ Implemented financial sync services with automatic price updates
+- ✅ Added API endpoints for syncing prices and adding positions with auto-fetch
+- ✅ Updated Wealth Dashboard UI with:
+  - "Sync Prices" button for one-click portfolio refresh
+  - Tabbed "Add Asset" dialog (Stock/Crypto/Manual modes)
+  - Auto-price fetching when adding stock/crypto positions
+- 🔄 Waiting for API keys: ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY
+- 📋 Next: Plaid integration for bank account aggregation (requires user credentials)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -74,7 +89,7 @@ Preferred communication style: Simple, everyday language.
 **Schema Design:**
 - `users` - User profiles with email, names, profile image (linked to Replit Auth)
 - `sessions` - Session storage for authentication (indexed on expiry)
-- `assets` - Financial assets with type, value, allocation, 24h change tracking
+- `assets` - Financial assets with type, value, quantity, allocation, 24h change tracking, source (manual/alpha_vantage/coingecko/plaid), last_synced timestamp
 - `events` - Financial events log (dividends, trades, statements)
 - `routines` - User's daily schedule with time blocks, categories, duration
 - `emails` - Synced emails with AI categorization (personal/finance/investments)
@@ -100,6 +115,13 @@ Preferred communication style: Simple, everyday language.
 - Replit Connectors for managed OAuth credentials
 - Access token refresh handling with automatic expiry detection
 - Email fetching with metadata extraction (from, subject, preview)
+
+**Financial Data Integration:**
+- Alpha Vantage API for real-time stock prices (free tier: 500 calls/day)
+- CoinGecko API for cryptocurrency prices (free tier: 30 calls/minute)
+- Plaid for bank account aggregation (requires user credentials)
+- Automatic price syncing with quantity-based position tracking
+- Support for multiple asset sources (manual, API-fetched, bank-synced)
 
 **Third-Party Services:**
 - Replit Auth (OIDC) for user authentication

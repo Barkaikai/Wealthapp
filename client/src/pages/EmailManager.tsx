@@ -6,17 +6,33 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Sparkles, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Send, Sparkles, RefreshCw, FileText, Plus, Trash2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Email } from "@shared/schema";
+import type { Email, EmailTemplate } from "@shared/schema";
 
 export default function EmailManager() {
   const [selectedEmailId, setSelectedEmailId] = useState<string>();
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({
+    id: '',
+    name: '',
+    subject: '',
+    body: '',
+    category: 'investments' as 'finance' | 'investments' | 'personal',
+  });
   const { toast } = useToast();
 
   const { data: emails = [], isLoading } = useQuery<Email[]>({
     queryKey: ["/api/emails"],
+  });
+
+  const { data: templates = [] } = useQuery<EmailTemplate[]>({
+    queryKey: ["/api/email-templates"],
   });
 
   const syncEmails = useMutation({
@@ -62,6 +78,48 @@ export default function EmailManager() {
     },
   });
 
+  const createTemplate = useMutation({
+    mutationFn: async (template: typeof newTemplate) => {
+      return await apiRequest("POST", "/api/email-templates", template);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({
+        title: "Success",
+        description: "Template created successfully",
+      });
+      setTemplateDialogOpen(false);
+      setNewTemplate({ id: '', name: '', subject: '', body: '', category: 'investments' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTemplate = useMutation({
+    mutationFn: async (templateId: string) => {
+      return await apiRequest("DELETE", `/api/email-templates/${templateId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({
+        title: "Success",
+        description: "Template deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete template",
+        variant: "destructive",
+      });
+    },
+  });
+
   const selectedEmail = emails.find(e => e.id === selectedEmailId);
 
   const displayEmails = emails.map(email => ({
@@ -83,14 +141,137 @@ export default function EmailManager() {
           <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Email Manager</h1>
           <p className="text-muted-foreground">AI-powered email categorization and drafting</p>
         </div>
-        <Button 
-          onClick={() => syncEmails.mutate()} 
-          disabled={syncEmails.isPending}
-          data-testid="button-sync-emails"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncEmails.isPending ? 'animate-spin' : ''}`} />
-          {syncEmails.isPending ? 'Syncing...' : 'Sync Gmail'}
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-manage-templates">
+                <FileText className="h-4 w-4 mr-2" />
+                Templates ({templates.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Email Templates</DialogTitle>
+                <DialogDescription>
+                  Create templates with placeholders like {`{subject}`}, {`{name}`}, {`{topic}`}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Create New Template</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="template-id">Template ID</Label>
+                      <Input
+                        id="template-id"
+                        value={newTemplate.id}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, id: e.target.value.toUpperCase().replace(/\s/g, '_') })}
+                        placeholder="INVESTMENTS_REPLY"
+                        data-testid="input-template-id"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="template-name">Template Name</Label>
+                      <Input
+                        id="template-name"
+                        value={newTemplate.name}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                        placeholder="Investments Reply"
+                        data-testid="input-template-name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="template-category">Category</Label>
+                      <Select
+                        value={newTemplate.category}
+                        onValueChange={(value: any) => setNewTemplate({ ...newTemplate, category: value })}
+                      >
+                        <SelectTrigger id="template-category" data-testid="select-template-category">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="investments">Investments</SelectItem>
+                          <SelectItem value="personal">Personal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="template-subject">Subject</Label>
+                      <Input
+                        id="template-subject"
+                        value={newTemplate.subject}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, subject: e.target.value })}
+                        placeholder="Re: {subject}"
+                        data-testid="input-template-subject"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="template-body">Body</Label>
+                      <Textarea
+                        id="template-body"
+                        value={newTemplate.body}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
+                        placeholder="Hello {name},&#10;&#10;I've reviewed your message regarding {topic}..."
+                        className="min-h-32"
+                        data-testid="input-template-body"
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => createTemplate.mutate(newTemplate)}
+                      disabled={!newTemplate.id || !newTemplate.name || createTemplate.isPending}
+                      data-testid="button-create-template"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {createTemplate.isPending ? 'Creating...' : 'Create Template'}
+                    </Button>
+                  </div>
+                </div>
+
+                {templates.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Existing Templates</h3>
+                    <div className="space-y-2">
+                      {templates.map((template) => (
+                        <Card key={template.id} className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold">{template.name}</h4>
+                                <Badge variant="outline">{template.category}</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">ID: {template.id}</p>
+                              <p className="text-sm mb-1"><strong>Subject:</strong> {template.subject}</p>
+                              <p className="text-sm whitespace-pre-wrap text-muted-foreground">{template.body}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteTemplate.mutate(template.id)}
+                              data-testid={`button-delete-template-${template.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          <Button 
+            onClick={() => syncEmails.mutate()} 
+            disabled={syncEmails.isPending}
+            data-testid="button-sync-emails"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncEmails.isPending ? 'animate-spin' : ''}`} />
+            {syncEmails.isPending ? 'Syncing...' : 'Sync Gmail'}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -1,6 +1,7 @@
 import { fetchRecentEmails } from './gmail';
 import { categorizeEmail, draftEmailReply } from './openai';
 import { storage } from './storage';
+import { applyTemplateToEmail } from './emailTemplates';
 
 export interface EmailSortResult {
   synced: number;
@@ -29,7 +30,16 @@ export async function syncAndCategorizeEmails(userId: string, maxResults: number
       
       if (category === 'finance' || category === 'investments') {
         try {
-          draftReply = await draftEmailReply(email.body || email.preview);
+          // Try to use template first
+          const templateDraft = await applyTemplateToEmail(userId, email.subject, email.from, category);
+          
+          if (templateDraft) {
+            draftReply = templateDraft;
+          } else {
+            // Fallback to AI-generated draft
+            draftReply = await draftEmailReply(email.body || email.preview);
+          }
+          
           result.draftsCreated++;
         } catch (error) {
           console.error(`Failed to generate draft for email ${email.id}:`, error);

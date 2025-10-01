@@ -3,7 +3,7 @@
  * Supports: Crypto, Stocks, Precious Metals (Gold, Silver, Platinum)
  */
 
-interface MarketDataPoint {
+export interface MarketDataPoint {
   symbol: string;
   name: string;
   price: number;

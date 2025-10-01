@@ -1,6 +1,7 @@
 import { storage } from './storage';
 import { getStockQuote, getMultipleStockQuotes } from './alphaVantage';
 import { getCryptoPrice, getMultipleCryptoPrices, getCoinGeckoId } from './coinGecko';
+import { getCryptoPriceWithFallback, getStockPriceWithFallback } from './marketData';
 import type { Asset } from '@shared/schema';
 
 export interface SyncResult {
@@ -83,17 +84,34 @@ export async function syncCryptoPrices(userId: string): Promise<SyncResult> {
       return result;
     }
 
-    // Map symbols to CoinGecko IDs
-    const coinIds = cryptoAssets.map(a => getCoinGeckoId(a.symbol));
-    const prices = await getMultipleCryptoPrices(coinIds);
-
-    // Update each asset with new price data
+    // Try CoinGecko first, then fallback to other sources
     for (const asset of cryptoAssets) {
-      const coinId = getCoinGeckoId(asset.symbol);
-      const priceData = prices.find(p => p.id === coinId);
-      
-      if (priceData) {
-        try {
+      try {
+        const coinId = getCoinGeckoId(asset.symbol);
+        let priceData = await getCryptoPrice(coinId);
+        let dataSource = 'coingecko';
+        
+        // If CoinGecko fails, try fallback sources
+        if (!priceData) {
+          console.log(`CoinGecko failed for ${asset.symbol}, trying fallback sources`);
+          const fallbackData = await getCryptoPriceWithFallback(asset.symbol);
+          if (fallbackData) {
+            priceData = {
+              id: coinId,
+              symbol: fallbackData.symbol,
+              name: fallbackData.name,
+              currentPrice: fallbackData.price,
+              priceChange24h: fallbackData.change24h || 0,
+              priceChangePercentage24h: fallbackData.changePercent || 0,
+              marketCap: fallbackData.marketCap || 0,
+              volume24h: fallbackData.volume24h || 0,
+              lastUpdated: new Date(),
+            };
+            dataSource = fallbackData.source; // Use actual source from fallback
+          }
+        }
+        
+        if (priceData) {
           const quantity = asset.quantity || 1;
           const newValue = priceData.currentPrice * quantity;
           
@@ -101,18 +119,18 @@ export async function syncCryptoPrices(userId: string): Promise<SyncResult> {
             value: newValue,
             change24h: priceData.priceChange24h * quantity,
             changePercent: priceData.priceChangePercentage24h,
-            source: 'coingecko',
+            source: dataSource,
             lastSynced: new Date(),
           });
           
           result.synced++;
-        } catch (error) {
+        } else {
           result.failed++;
-          result.errors.push(`Failed to update ${asset.symbol}: ${error}`);
+          result.errors.push(`No price found for ${asset.symbol} from any source`);
         }
-      } else {
+      } catch (error) {
         result.failed++;
-        result.errors.push(`No price found for ${asset.symbol}`);
+        result.errors.push(`Failed to update ${asset.symbol}: ${error}`);
       }
     }
   } catch (error) {

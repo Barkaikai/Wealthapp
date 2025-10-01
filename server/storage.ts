@@ -6,6 +6,10 @@ import {
   emails,
   briefings,
   aiContent,
+  transactions,
+  wealthAlerts,
+  financialGoals,
+  liabilities,
   type User,
   type UpsertUser,
   type Asset,
@@ -20,6 +24,14 @@ import {
   type InsertBriefing,
   type AIContent,
   type InsertAIContent,
+  type Transaction,
+  type InsertTransaction,
+  type WealthAlert,
+  type InsertWealthAlert,
+  type FinancialGoal,
+  type InsertFinancialGoal,
+  type Liability,
+  type InsertLiability,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -57,6 +69,29 @@ export interface IStorage {
   // AI Content operations
   getContentBySlug(slug: string): Promise<AIContent | undefined>;
   createContent(content: InsertAIContent): Promise<AIContent>;
+  
+  // Transaction operations
+  getTransactions(userId: string): Promise<Transaction[]>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  deleteTransaction(id: number, userId: string): Promise<void>;
+  
+  // Wealth Alert operations
+  getWealthAlerts(userId: string): Promise<WealthAlert[]>;
+  createWealthAlert(alert: InsertWealthAlert): Promise<WealthAlert>;
+  updateWealthAlert(id: number, userId: string, alert: Partial<InsertWealthAlert>): Promise<WealthAlert>;
+  deleteWealthAlert(id: number, userId: string): Promise<void>;
+  
+  // Financial Goal operations
+  getFinancialGoals(userId: string): Promise<FinancialGoal[]>;
+  createFinancialGoal(goal: InsertFinancialGoal): Promise<FinancialGoal>;
+  updateFinancialGoal(id: number, userId: string, goal: Partial<InsertFinancialGoal>): Promise<FinancialGoal>;
+  deleteFinancialGoal(id: number, userId: string): Promise<void>;
+  
+  // Liability operations
+  getLiabilities(userId: string): Promise<Liability[]>;
+  createLiability(liability: InsertLiability): Promise<Liability>;
+  updateLiability(id: number, userId: string, liability: Partial<InsertLiability>): Promise<Liability>;
+  deleteLiability(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -253,6 +288,101 @@ export class DatabaseStorage implements IStorage {
   async createContent(contentData: InsertAIContent): Promise<AIContent> {
     const [newContent] = await db.insert(aiContent).values(contentData).returning();
     return newContent;
+  }
+
+  // Transaction operations
+  async getTransactions(userId: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(desc(transactions.transactionDate)).limit(100);
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+    return newTransaction;
+  }
+
+  async deleteTransaction(id: number, userId: string): Promise<void> {
+    await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+  }
+
+  // Wealth Alert operations
+  async getWealthAlerts(userId: string): Promise<WealthAlert[]> {
+    return await db.select().from(wealthAlerts).where(eq(wealthAlerts.userId, userId)).orderBy(desc(wealthAlerts.createdAt));
+  }
+
+  async createWealthAlert(alert: InsertWealthAlert): Promise<WealthAlert> {
+    const [newAlert] = await db.insert(wealthAlerts).values(alert).returning();
+    return newAlert;
+  }
+
+  async updateWealthAlert(id: number, userId: string, alert: Partial<InsertWealthAlert>): Promise<WealthAlert> {
+    const [updatedAlert] = await db
+      .update(wealthAlerts)
+      .set({ ...alert })
+      .where(and(eq(wealthAlerts.id, id), eq(wealthAlerts.userId, userId)))
+      .returning();
+    
+    if (!updatedAlert) {
+      throw new Error("Alert not found");
+    }
+    return updatedAlert;
+  }
+
+  async deleteWealthAlert(id: number, userId: string): Promise<void> {
+    await db.delete(wealthAlerts).where(and(eq(wealthAlerts.id, id), eq(wealthAlerts.userId, userId)));
+  }
+
+  // Financial Goal operations
+  async getFinancialGoals(userId: string): Promise<FinancialGoal[]> {
+    return await db.select().from(financialGoals).where(eq(financialGoals.userId, userId)).orderBy(desc(financialGoals.createdAt));
+  }
+
+  async createFinancialGoal(goal: InsertFinancialGoal): Promise<FinancialGoal> {
+    const [newGoal] = await db.insert(financialGoals).values(goal).returning();
+    return newGoal;
+  }
+
+  async updateFinancialGoal(id: number, userId: string, goal: Partial<InsertFinancialGoal>): Promise<FinancialGoal> {
+    const [updatedGoal] = await db
+      .update(financialGoals)
+      .set({ ...goal, updatedAt: new Date() })
+      .where(and(eq(financialGoals.id, id), eq(financialGoals.userId, userId)))
+      .returning();
+    
+    if (!updatedGoal) {
+      throw new Error("Goal not found");
+    }
+    return updatedGoal;
+  }
+
+  async deleteFinancialGoal(id: number, userId: string): Promise<void> {
+    await db.delete(financialGoals).where(and(eq(financialGoals.id, id), eq(financialGoals.userId, userId)));
+  }
+
+  // Liability operations
+  async getLiabilities(userId: string): Promise<Liability[]> {
+    return await db.select().from(liabilities).where(eq(liabilities.userId, userId)).orderBy(desc(liabilities.createdAt));
+  }
+
+  async createLiability(liability: InsertLiability): Promise<Liability> {
+    const [newLiability] = await db.insert(liabilities).values(liability).returning();
+    return newLiability;
+  }
+
+  async updateLiability(id: number, userId: string, liability: Partial<InsertLiability>): Promise<Liability> {
+    const [updatedLiability] = await db
+      .update(liabilities)
+      .set({ ...liability, updatedAt: new Date() })
+      .where(and(eq(liabilities.id, id), eq(liabilities.userId, userId)))
+      .returning();
+    
+    if (!updatedLiability) {
+      throw new Error("Liability not found");
+    }
+    return updatedLiability;
+  }
+
+  async deleteLiability(id: number, userId: string): Promise<void> {
+    await db.delete(liabilities).where(and(eq(liabilities.id, id), eq(liabilities.userId, userId)));
   }
 }
 

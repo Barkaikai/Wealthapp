@@ -232,3 +232,98 @@ export const insertDiagnosticRunSchema = createInsertSchema(diagnosticRuns).omit
 
 export type InsertDiagnosticRun = z.infer<typeof insertDiagnosticRunSchema>;
 export type DiagnosticRun = typeof diagnosticRuns.$inferSelect;
+
+// Transactions table for buy/sell tracking with cost basis
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  assetId: serial("asset_id").references(() => assets.id, { onDelete: 'set null' }),
+  type: text("type").notNull(), // 'buy', 'sell', 'dividend', 'transfer'
+  symbol: text("symbol").notNull(),
+  assetType: text("asset_type").notNull(),
+  quantity: real("quantity").notNull(),
+  pricePerUnit: real("price_per_unit").notNull(),
+  totalAmount: real("total_amount").notNull(),
+  fees: real("fees").default(0),
+  notes: text("notes"),
+  transactionDate: timestamp("transaction_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+
+// Wealth alerts for price changes and portfolio thresholds
+export const wealthAlerts = pgTable("wealth_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  alertType: text("alert_type").notNull(), // 'price_above', 'price_below', 'portfolio_value', 'percent_change'
+  symbol: text("symbol"), // null for portfolio-wide alerts
+  assetType: text("asset_type"),
+  threshold: real("threshold").notNull(),
+  currentValue: real("current_value"),
+  isActive: text("is_active").notNull().default('true'),
+  lastTriggered: timestamp("last_triggered"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertWealthAlertSchema = createInsertSchema(wealthAlerts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWealthAlert = z.infer<typeof insertWealthAlertSchema>;
+export type WealthAlert = typeof wealthAlerts.$inferSelect;
+
+// Financial goals for tracking wealth objectives
+export const financialGoals = pgTable("financial_goals", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  description: text("description"),
+  targetAmount: real("target_amount").notNull(),
+  currentAmount: real("current_amount").default(0),
+  targetDate: timestamp("target_date"),
+  category: text("category").notNull(), // 'retirement', 'property', 'investment', 'emergency_fund', 'other'
+  status: text("status").notNull().default('active'), // 'active', 'achieved', 'paused', 'cancelled'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFinancialGoalSchema = createInsertSchema(financialGoals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFinancialGoal = z.infer<typeof insertFinancialGoalSchema>;
+export type FinancialGoal = typeof financialGoals.$inferSelect;
+
+// Liabilities for net worth calculation
+export const liabilities = pgTable("liabilities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'mortgage', 'loan', 'credit_card', 'other'
+  amount: real("amount").notNull(),
+  interestRate: real("interest_rate"),
+  minimumPayment: real("minimum_payment"),
+  dueDate: timestamp("due_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLiabilitySchema = createInsertSchema(liabilities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertLiability = z.infer<typeof insertLiabilitySchema>;
+export type Liability = typeof liabilities.$inferSelect;

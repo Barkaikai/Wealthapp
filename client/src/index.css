@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE */
+/* LIGHT LUXURY MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -14,68 +14,72 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 0 0% 98%;
+  /* Luxury Light Palette - warm cream & pearl */
+  --background: 40 20% 98%;
 
-  --foreground: 222 20% 15%;
+  --foreground: 230 25% 12%;
 
-  --border: 220 13% 85%;
+  --border: 40 12% 88%;
 
-  --card: 0 0% 100%;
+  --card: 40 15% 100%;
 
-  --card-foreground: 222 20% 15%;
+  --card-foreground: 230 25% 12%;
 
-  --card-border: 220 13% 91%;
+  --card-border: 40 12% 92%;
 
-  --sidebar: 220 14% 96%;
+  --sidebar: 40 15% 96%;
 
-  --sidebar-foreground: 222 20% 15%;
+  --sidebar-foreground: 230 25% 12%;
 
-  --sidebar-border: 220 13% 88%;
+  --sidebar-border: 40 12% 90%;
 
-  --sidebar-primary: 210 100% 50%;
+  /* Gold primary for luxury feel */
+  --sidebar-primary: 42 88% 62%;
 
-  --sidebar-primary-foreground: 210 100% 98%;
+  --sidebar-primary-foreground: 230 25% 12%;
 
-  --sidebar-accent: 220 14% 92%;
+  --sidebar-accent: 40 15% 93%;
 
-  --sidebar-accent-foreground: 222 20% 20%;
+  --sidebar-accent-foreground: 230 20% 18%;
 
-  --sidebar-ring: 210 100% 50%;
+  --sidebar-ring: 42 88% 62%;
 
-  --popover: 0 0% 100%;
+  --popover: 40 15% 100%;
 
-  --popover-foreground: 222 20% 15%;
+  --popover-foreground: 230 25% 12%;
 
-  --popover-border: 220 13% 90%;
+  --popover-border: 40 12% 90%;
 
-  --primary: 210 100% 50%;
+  /* Gold as primary luxury color */
+  --primary: 42 88% 62%;
 
-  --primary-foreground: 210 100% 98%;
+  --primary-foreground: 230 25% 12%;
 
-  --secondary: 220 14% 93%;
+  --secondary: 40 12% 94%;
 
-  --secondary-foreground: 222 20% 20%;
+  --secondary-foreground: 230 20% 18%;
 
-  --muted: 220 13% 95%;
+  --muted: 40 12% 96%;
 
-  --muted-foreground: 222 15% 45%;
+  --muted-foreground: 230 15% 40%;
 
-  --accent: 220 14% 94%;
+  --accent: 40 15% 95%;
 
-  --accent-foreground: 222 20% 20%;
+  --accent-foreground: 230 20% 18%;
 
-  --destructive: 0 84% 50%;
+  --destructive: 0 72% 55%;
 
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 40 15% 98%;
 
-  --input: 220 13% 75%;
-  --ring: 210 100% 50%;
+  --input: 40 12% 80%;
+  --ring: 42 88% 62%;
 
-  --chart-1: 210 100% 45%;
-  --chart-2: 280 75% 50%;
-  --chart-3: 142 76% 40%;
-  --chart-4: 38 95% 50%;
-  --chart-5: 340 82% 52%;
+  /* Luxury chart colors */
+  --chart-1: 42 88% 62%;
+  --chart-2: 230 60% 55%;
+  --chart-3: 142 50% 48%;
+  --chart-4: 280 45% 60%;
+  --chart-5: 20 70% 50%;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
@@ -124,86 +128,91 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(251,191,36, .15);
+  --badge-outline: rgba(251,191,36, .08);
 
   --opaque-button-border-intensity: 9;  /* In terms of percentages */
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  /* Backgrounds with subtle gold tint when hovered/active */
+  --elevate-1: rgba(251,191,36, .06);
+  --elevate-2: rgba(251,191,36, .12);
 
-  --background: 222 20% 8%;
+  /* Dark Luxury Palette - rich midnight blue-black */
+  --background: 230 25% 6%;
 
-  --foreground: 0 0% 98%;
+  --foreground: 40 15% 98%;
 
-  --border: 222 16% 18%;
+  --border: 230 15% 18%;
 
-  --card: 222 18% 12%;
+  --card: 230 20% 10%;
 
-  --card-foreground: 0 0% 98%;
+  --card-foreground: 40 15% 98%;
 
-  --card-border: 222 16% 16%;
+  --card-border: 230 15% 14%;
 
-  --sidebar: 222 16% 10%;
+  --sidebar: 230 22% 8%;
 
-  --sidebar-foreground: 0 0% 98%;
+  --sidebar-foreground: 40 15% 98%;
 
-  --sidebar-border: 222 14% 14%;
+  --sidebar-border: 230 18% 12%;
 
-  --sidebar-primary: 210 100% 60%;
+  /* Gold primary - luxury accent */
+  --sidebar-primary: 42 88% 62%;
 
-  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-primary-foreground: 230 25% 10%;
 
-  --sidebar-accent: 222 14% 14%;
+  --sidebar-accent: 230 15% 14%;
 
-  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-accent-foreground: 40 10% 85%;
 
-  --sidebar-ring: 210 100% 60%;
+  --sidebar-ring: 42 88% 62%;
 
-  --popover: 222 18% 14%;
+  --popover: 230 20% 12%;
 
-  --popover-foreground: 0 0% 98%;
+  --popover-foreground: 40 15% 98%;
 
-  --popover-border: 222 16% 18%;
+  --popover-border: 230 15% 18%;
 
-  --primary: 210 100% 55%;
+  /* Gold as primary luxury color */
+  --primary: 42 88% 62%;
 
-  --primary-foreground: 0 0% 98%;
+  --primary-foreground: 230 25% 10%;
 
-  --secondary: 222 14% 18%;
+  --secondary: 230 15% 16%;
 
-  --secondary-foreground: 0 0% 95%;
+  --secondary-foreground: 40 10% 90%;
 
-  --muted: 222 14% 16%;
+  --muted: 230 15% 14%;
 
-  --muted-foreground: 0 0% 70%;
+  --muted-foreground: 40 10% 65%;
 
-  --accent: 222 12% 17%;
+  --accent: 230 12% 18%;
 
-  --accent-foreground: 0 0% 95%;
+  --accent-foreground: 40 10% 90%;
 
-  --destructive: 0 84% 55%;
+  --destructive: 0 72% 55%;
 
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 40 15% 98%;
 
-  --input: 222 16% 30%;
-  --ring: 210 100% 60%;
+  --input: 230 15% 22%;
+  --ring: 42 88% 62%;
 
-  --chart-1: 210 100% 65%;
-  --chart-2: 280 75% 65%;
-  --chart-3: 142 76% 55%;
-  --chart-4: 38 95% 58%;
-  --chart-5: 340 82% 60%;
+  /* Luxury chart colors with gold lead */
+  --chart-1: 42 88% 62%;
+  --chart-2: 230 60% 55%;
+  --chart-3: 142 50% 48%;
+  --chart-4: 280 45% 60%;
+  --chart-5: 20 70% 50%;
 
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.30);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.35);
-  --shadow-sm: 0px 2px 4px 0px hsl(0 0% 0% / 0.30), 0px 1px 2px -1px hsl(0 0% 0% / 0.35);
-  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.35);
-  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 6px -3px hsl(0 0% 0% / 0.40);
-  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 4px 8px -4px hsl(0 0% 0% / 0.40);
-  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.50), 0px 8px 12px -6px hsl(0 0% 0% / 0.45);
-  --shadow-2xl: 0px 25px 40px -8px hsl(0 0% 0% / 0.55);
+  /* Luxury shadows with subtle gold glow */
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.30), 0px 0px 12px 0px hsl(42 88% 62% / 0.03);
+  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.35), 0px 0px 16px 0px hsl(42 88% 62% / 0.04);
+  --shadow-sm: 0px 2px 4px 0px hsl(0 0% 0% / 0.30), 0px 1px 2px -1px hsl(0 0% 0% / 0.35), 0px 0px 20px 0px hsl(42 88% 62% / 0.05);
+  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.35), 0px 0px 24px 0px hsl(42 88% 62% / 0.06);
+  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 6px -3px hsl(0 0% 0% / 0.40), 0px 0px 32px 0px hsl(42 88% 62% / 0.07);
+  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 4px 8px -4px hsl(0 0% 0% / 0.40), 0px 0px 40px 0px hsl(42 88% 62% / 0.08);
+  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.50), 0px 8px 12px -6px hsl(0 0% 0% / 0.45), 0px 0px 48px 0px hsl(42 88% 62% / 0.10);
+  --shadow-2xl: 0px 25px 40px -8px hsl(0 0% 0% / 0.55), 0px 0px 60px 0px hsl(42 88% 62% / 0.12);
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);

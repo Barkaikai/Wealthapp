@@ -56,17 +56,18 @@ export default function EmailManager() {
       let description = errorMessage;
       
       if (action === 'reconnect_gmail') {
-        title = "Gmail Permission Required";
-        description = "Your Gmail connection needs additional permissions to read emails. Please reconnect Gmail in the Tools panel and grant read access.";
+        title = "Email Sync Unavailable";
+        description = "Gmail email sync requires full inbox read permissions (gmail.readonly scope) which the current Gmail integration doesn't provide. This is a limitation of the Replit Gmail connector.";
       } else if (action === 'connect_gmail') {
         title = "Gmail Not Connected";
-        description = "Please connect your Gmail account in the Tools panel to sync emails.";
+        description = "Please connect your Gmail account in the Tools panel to enable email features.";
       }
       
       toast({
         title,
         description,
         variant: "destructive",
+        duration: 8000,
       });
     },
   });

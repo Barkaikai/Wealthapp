@@ -128,6 +128,28 @@ export default function Notepad() {
     },
   });
 
+  const analyzeNoteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("POST", `/api/notes/${id}/analyze`, {});
+      return await response.json() as DocumentInsight;
+    },
+    onSuccess: (result) => {
+      setAnalysisResult(result);
+      setAnalysisDialogOpen(true);
+      toast({
+        title: "Analysis Complete",
+        description: "Note has been analyzed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze note",
+        variant: "destructive",
+      });
+    },
+  });
+
   const uploadDocumentMutation = useMutation({
     mutationFn: async (file: File) => {
       if (file.size > MAX_FILE_SIZE) {
@@ -214,8 +236,7 @@ export default function Notepad() {
   const analyzeDocumentMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("POST", `/api/documents/${id}/analyze`, {});
-      const data = await response.json();
-      return data as DocumentInsight;
+      return await response.json() as DocumentInsight;
     },
     onSuccess: (result) => {
       setAnalysisResult(result);
@@ -428,6 +449,19 @@ export default function Notepad() {
                     )}
                   </CardContent>
                   <CardFooter className="pt-3 flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        analyzeNoteMutation.mutate(note.id);
+                      }}
+                      disabled={analyzeNoteMutation.isPending}
+                      data-testid={`button-analyze-note-${note.id}`}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {analyzeNoteMutation.isPending ? "Analyzing..." : "Analyze"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

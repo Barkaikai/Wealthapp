@@ -163,7 +163,21 @@ export async function addStockPosition(
   const quote = await getStockQuote(symbol);
   
   if (!quote) {
-    throw new Error(`Could not fetch price for ${symbol}`);
+    // If price fetch fails, create asset with value 0
+    // User can update manually or sync prices later
+    console.warn(`Could not fetch price for ${symbol}, creating with value 0`);
+    return await storage.createAsset({
+      userId,
+      name: name || symbol,
+      symbol: symbol.toUpperCase(),
+      assetType: 'stocks',
+      value: 0,
+      quantity,
+      change24h: 0,
+      changePercent: 0,
+      source: 'manual',
+      lastSynced: new Date(),
+    });
   }
 
   const value = quote.price * quantity;
@@ -193,7 +207,21 @@ export async function addCryptoPosition(
   const priceData = await getCryptoPrice(coinId);
   
   if (!priceData) {
-    throw new Error(`Could not fetch price for ${symbol}`);
+    // If price fetch fails, create asset with value 0
+    // User can update manually or sync prices later
+    console.warn(`Could not fetch price for ${symbol}, creating with value 0`);
+    return await storage.createAsset({
+      userId,
+      name: name || symbol,
+      symbol: symbol.toUpperCase(),
+      assetType: 'crypto',
+      value: 0,
+      quantity,
+      change24h: 0,
+      changePercent: 0,
+      source: 'manual',
+      lastSynced: new Date(),
+    });
   }
 
   const value = priceData.currentPrice * quantity;

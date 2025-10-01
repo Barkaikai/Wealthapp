@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown } from "lucide-react";
+import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown, Lock, CheckCircle } from "lucide-react";
 import heroImage from "@assets/image (3)_1759298327042.jpeg";
 import luxuryGala from "@assets/Here are two realistic images depicting a diverse group of billionaires of various races enjoying a luxurious gala in an opulent mansion. The scenes capture the elegance and vibrancy of their lifestyle. Enjoy!_1759298327046.jpeg";
 
@@ -33,8 +33,26 @@ export default function Landing() {
     },
     {
       icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-level encryption with multi-factor authentication"
+      title: "Secure Access",
+      description: "Protected authentication with Replit's secure identity platform"
+    },
+  ];
+
+  const securityFeatures = [
+    {
+      icon: Lock,
+      title: "Secure Authentication",
+      description: "Industry-standard OAuth authentication through Replit's trusted platform"
+    },
+    {
+      icon: Shield,
+      title: "Protected Sessions",
+      description: "Your sessions are managed securely with automatic timeout protection"
+    },
+    {
+      icon: CheckCircle,
+      title: "Privacy Focused",
+      description: "Your financial data remains private and accessible only to you"
     },
   ];
 
@@ -59,9 +77,18 @@ export default function Landing() {
           <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
             Elite Life Automation
           </h1>
-          <p className="text-xl md:text-2xl text-foreground/90 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed">
             Command your wealth, time, and communications with the sophistication of a private office—powered by cutting-edge AI
           </p>
+          
+          {/* Security Badge */}
+          <div className="flex items-center justify-center gap-2 mb-10">
+            <Shield className="h-5 w-5 text-primary" />
+            <span className="text-sm text-muted-foreground">
+              Secured with industry-standard authentication
+            </span>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
               size="lg" 
@@ -69,7 +96,8 @@ export default function Landing() {
               className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300"
               data-testid="button-login"
             >
-              Sign In
+              <Lock className="mr-2 h-5 w-5" />
+              Secure Sign In
             </Button>
             <Button 
               size="lg" 
@@ -124,6 +152,38 @@ export default function Landing() {
             ))}
           </div>
 
+          {/* Security Section */}
+          <div className="mb-20">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                <span className="text-primary">Secure</span> & Reliable
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Your data is protected with modern security practices
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {securityFeatures.map((security, index) => (
+                <Card 
+                  key={index} 
+                  className="p-6 hover-elevate transition-all duration-300"
+                  data-testid={`security-${index}`}
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="p-3 rounded-lg bg-primary/10 w-fit">
+                      <security.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold mb-1">{security.title}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{security.description}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
           {/* Premium CTA Section with Background */}
           <div className="relative rounded-2xl overflow-hidden">
             {/* Background Image */}
@@ -149,7 +209,8 @@ export default function Landing() {
                 className="text-lg px-10 h-14 rounded-lg shadow-2xl hover:shadow-primary/30 transition-all duration-300"
                 data-testid="button-sign-in"
               >
-                Sign In
+                <Shield className="mr-2 h-5 w-5" />
+                Secure Sign In
               </Button>
               
               {/* Decorative Elements */}

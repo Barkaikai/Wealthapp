@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Video, FileText, MessageSquare } from "lucide-react";
+import { BookOpen, Video, FileText, MessageSquare, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Guide() {
   const sections = [
@@ -9,10 +10,10 @@ export default function Guide() {
       title: "Getting Started",
       description: "Learn the basics of the platform",
       items: [
-        "Setting up your first daily briefing",
-        "Connecting financial accounts",
-        "Configuring AI email automation",
-        "Building your ideal routine"
+        { text: "Setting up your first daily briefing", link: "/" },
+        { text: "Connecting financial accounts", link: "/wealth" },
+        { text: "Configuring AI email automation", link: "/email" },
+        { text: "Building your ideal routine", link: "/routine" }
       ]
     },
     {
@@ -20,10 +21,10 @@ export default function Guide() {
       title: "Video Tutorials",
       description: "Step-by-step video guides",
       items: [
-        "Platform walkthrough (5 min)",
-        "Asset tracking setup (3 min)",
-        "Email categorization demo (4 min)",
-        "Routine templates overview (6 min)"
+        { text: "Platform walkthrough (5 min)", link: "/" },
+        { text: "Asset tracking setup (3 min)", link: "/wealth" },
+        { text: "Email categorization demo (4 min)", link: "/email" },
+        { text: "Routine templates overview (6 min)", link: "/routine" }
       ]
     },
     {
@@ -31,10 +32,10 @@ export default function Guide() {
       title: "Documentation",
       description: "Detailed feature documentation",
       items: [
-        "API integration guide",
-        "Security & privacy settings",
-        "Advanced automation rules",
-        "Troubleshooting common issues"
+        { text: "API integration guide", link: "/wealth" },
+        { text: "Security & privacy settings", link: "/settings" },
+        { text: "Advanced automation rules", link: "/email" },
+        { text: "Troubleshooting common issues", link: "/" }
       ]
     },
     {
@@ -42,10 +43,10 @@ export default function Guide() {
       title: "Support",
       description: "Get help when you need it",
       items: [
-        "FAQ section",
-        "Contact support team",
-        "Community forum",
-        "Feature requests"
+        { text: "FAQ section", link: "/guide" },
+        { text: "Contact support team", link: "/guide" },
+        { text: "Community forum", link: "/guide" },
+        { text: "Feature requests", link: "/guide" }
       ]
     }
   ];
@@ -69,9 +70,17 @@ export default function Guide() {
                 <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
                 <ul className="space-y-2">
                   {section.items.map((item, itemIndex) => (
-                    <li key={itemIndex} className="text-sm flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span className="flex-1">{item}</span>
+                    <li key={itemIndex} className="text-sm">
+                      <Link href={item.link}>
+                        <button 
+                          className="flex items-center gap-2 w-full text-left hover-elevate active-elevate-2 rounded-md px-2 py-1.5 transition-colors group"
+                          data-testid={`guide-link-${itemIndex}`}
+                        >
+                          <span className="text-primary">•</span>
+                          <span className="flex-1 group-hover:text-primary transition-colors">{item.text}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
+                        </button>
+                      </Link>
                     </li>
                   ))}
                 </ul>

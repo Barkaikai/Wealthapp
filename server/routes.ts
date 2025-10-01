@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations } from "./openai";
 import { fetchRecentEmails } from "./gmail";
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema } from "@shared/schema";
+import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -103,6 +104,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting asset:", error);
       res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to delete asset" });
+    }
+  });
+
+  // Financial sync routes
+  app.post('/api/financial/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await syncAllFinancialData(userId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing financial data:", error);
+      res.status(500).json({ message: error.message || "Failed to sync financial data" });
+    }
+  });
+
+  app.post('/api/financial/sync/stocks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await syncStockPrices(userId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing stock prices:", error);
+      res.status(500).json({ message: error.message || "Failed to sync stock prices" });
+    }
+  });
+
+  app.post('/api/financial/sync/crypto', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await syncCryptoPrices(userId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing crypto prices:", error);
+      res.status(500).json({ message: error.message || "Failed to sync crypto prices" });
+    }
+  });
+
+  app.post('/api/financial/stocks/add', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { symbol, quantity, name } = req.body;
+      
+      if (!symbol || !quantity) {
+        return res.status(400).json({ message: "Symbol and quantity are required" });
+      }
+
+      const asset = await addStockPosition(userId, symbol, quantity, name);
+      res.json(asset);
+    } catch (error: any) {
+      console.error("Error adding stock position:", error);
+      res.status(500).json({ message: error.message || "Failed to add stock position" });
+    }
+  });
+
+  app.post('/api/financial/crypto/add', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { symbol, quantity, name } = req.body;
+      
+      if (!symbol || !quantity) {
+        return res.status(400).json({ message: "Symbol and quantity are required" });
+      }
+
+      const asset = await addCryptoPosition(userId, symbol, quantity, name);
+      res.json(asset);
+    } catch (error: any) {
+      console.error("Error adding crypto position:", error);
+      res.status(500).json({ message: error.message || "Failed to add crypto position" });
     }
   });
 

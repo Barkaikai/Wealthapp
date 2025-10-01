@@ -14,6 +14,7 @@ import { Send, Sparkles, RefreshCw, FileText, Plus, Trash2 } from "lucide-react"
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Email, EmailTemplate } from "@shared/schema";
+import { SkeletonEmailCard } from "@/components/Skeleton";
 
 export default function EmailManager() {
   const [selectedEmailId, setSelectedEmailId] = useState<string>();
@@ -290,8 +291,22 @@ export default function EmailManager() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonEmailCard key={i} />
+            ))}
+          </div>
+          <div className="border rounded-lg p-6">
+            <div className="space-y-4">
+              <SkeletonEmailCard />
+              <div className="space-y-2 mt-6">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-4 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       ) : emails.length === 0 ? (
         <div className="text-center py-12">

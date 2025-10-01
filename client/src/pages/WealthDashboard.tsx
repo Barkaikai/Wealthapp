@@ -17,6 +17,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { z } from "zod";
+import { SkeletonAssetCard, Skeleton } from "@/components/Skeleton";
 
 const stockFormSchema = z.object({
   symbol: z.string().min(1, "Symbol is required"),
@@ -417,14 +418,35 @@ export default function WealthDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AssetChart data={assetData} title="Asset Allocation" />
-        <PortfolioTimeline data={timelineData} title="Portfolio Growth (YTD)" />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="border rounded-lg p-6">
+              <Skeleton className="h-5 w-32 mb-6" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+            <div className="border rounded-lg p-6">
+              <Skeleton className="h-5 w-40 mb-6" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+          <div className="border rounded-lg p-6">
+            <Skeleton className="h-5 w-40 mb-6" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AssetChart data={assetData} title="Asset Allocation" />
+            <PortfolioTimeline data={timelineData} title="Portfolio Growth (YTD)" />
+          </div>
 
-      <MarketOverview />
+          <MarketOverview />
 
-      {tableAssets.length > 0 && <AssetTable assets={tableAssets} title="Portfolio Holdings" />}
+          {tableAssets.length > 0 && <AssetTable assets={tableAssets} title="Portfolio Holdings" />}
+        </>
+      )}
     </div>
   );
 }

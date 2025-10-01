@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Calculator } from "@/components/Calculator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
@@ -93,6 +94,7 @@ function AuthenticatedApp() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Calculator />
               <ThemeToggle />
               <Button 
                 variant="ghost" 

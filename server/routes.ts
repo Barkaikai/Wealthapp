@@ -6,7 +6,7 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema } from "@shared/schema";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
 import { syncAndCategorizeEmails, getEmailsWithDrafts, generateDraftForEmail } from "./emailAutomation";
 import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from "./emailTemplates";
@@ -653,6 +653,242 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating config:", error);
       res.status(500).json({ message: error.message || "Failed to update config" });
+    }
+  });
+
+  // Transaction routes
+  app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactions = await storage.getTransactions(userId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactionData = insertTransactionSchema.parse({ ...req.body, userId });
+      const transaction = await storage.createTransaction(transactionData);
+      res.json(transaction);
+    } catch (error: any) {
+      console.error("Error creating transaction:", error);
+      res.status(400).json({ message: error.message || "Failed to create transaction" });
+    }
+  });
+
+  app.delete('/api/transactions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      await storage.deleteTransaction(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting transaction:", error);
+      res.status(500).json({ message: error.message || "Failed to delete transaction" });
+    }
+  });
+
+  // Wealth Alert routes
+  app.get('/api/wealth-alerts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const alerts = await storage.getWealthAlerts(userId);
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching wealth alerts:", error);
+      res.status(500).json({ message: "Failed to fetch alerts" });
+    }
+  });
+
+  app.post('/api/wealth-alerts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const alertData = insertWealthAlertSchema.parse({ ...req.body, userId });
+      const alert = await storage.createWealthAlert(alertData);
+      res.json(alert);
+    } catch (error: any) {
+      console.error("Error creating wealth alert:", error);
+      res.status(400).json({ message: error.message || "Failed to create alert" });
+    }
+  });
+
+  app.patch('/api/wealth-alerts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const alert = await storage.updateWealthAlert(id, userId, req.body);
+      res.json(alert);
+    } catch (error: any) {
+      console.error("Error updating wealth alert:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update alert" });
+    }
+  });
+
+  app.delete('/api/wealth-alerts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      await storage.deleteWealthAlert(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting wealth alert:", error);
+      res.status(500).json({ message: error.message || "Failed to delete alert" });
+    }
+  });
+
+  // Financial Goal routes
+  app.get('/api/financial-goals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const goals = await storage.getFinancialGoals(userId);
+      res.json(goals);
+    } catch (error) {
+      console.error("Error fetching financial goals:", error);
+      res.status(500).json({ message: "Failed to fetch goals" });
+    }
+  });
+
+  app.post('/api/financial-goals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const goalData = insertFinancialGoalSchema.parse({ ...req.body, userId });
+      const goal = await storage.createFinancialGoal(goalData);
+      res.json(goal);
+    } catch (error: any) {
+      console.error("Error creating financial goal:", error);
+      res.status(400).json({ message: error.message || "Failed to create goal" });
+    }
+  });
+
+  app.patch('/api/financial-goals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const goal = await storage.updateFinancialGoal(id, userId, req.body);
+      res.json(goal);
+    } catch (error: any) {
+      console.error("Error updating financial goal:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update goal" });
+    }
+  });
+
+  app.delete('/api/financial-goals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      await storage.deleteFinancialGoal(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting financial goal:", error);
+      res.status(500).json({ message: error.message || "Failed to delete goal" });
+    }
+  });
+
+  // Liability routes
+  app.get('/api/liabilities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const liabilities = await storage.getLiabilities(userId);
+      res.json(liabilities);
+    } catch (error) {
+      console.error("Error fetching liabilities:", error);
+      res.status(500).json({ message: "Failed to fetch liabilities" });
+    }
+  });
+
+  app.post('/api/liabilities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const liabilityData = insertLiabilitySchema.parse({ ...req.body, userId });
+      const liability = await storage.createLiability(liabilityData);
+      res.json(liability);
+    } catch (error: any) {
+      console.error("Error creating liability:", error);
+      res.status(400).json({ message: error.message || "Failed to create liability" });
+    }
+  });
+
+  app.patch('/api/liabilities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const liability = await storage.updateLiability(id, userId, req.body);
+      res.json(liability);
+    } catch (error: any) {
+      console.error("Error updating liability:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update liability" });
+    }
+  });
+
+  app.delete('/api/liabilities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      await storage.deleteLiability(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting liability:", error);
+      res.status(500).json({ message: error.message || "Failed to delete liability" });
+    }
+  });
+
+  // Portfolio Analytics route
+  app.get('/api/portfolio/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const [assets, liabilities, transactions] = await Promise.all([
+        storage.getAssets(userId),
+        storage.getLiabilities(userId),
+        storage.getTransactions(userId),
+      ]);
+
+      // Calculate portfolio metrics
+      const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
+      const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0);
+      const netWorth = totalAssets - totalLiabilities;
+
+      // Calculate total gains/losses from transactions
+      const buyTransactions = transactions.filter(t => t.type === 'buy');
+      const sellTransactions = transactions.filter(t => t.type === 'sell');
+      
+      const totalInvested = buyTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+      const totalRealized = sellTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+      
+      // Calculate unrealized P&L
+      const assetsBySymbol = new Map();
+      assets.forEach(asset => {
+        assetsBySymbol.set(asset.symbol, asset.value);
+      });
+
+      let unrealizedPL = 0;
+      buyTransactions.forEach(tx => {
+        const currentValue = assetsBySymbol.get(tx.symbol) || 0;
+        const costBasis = tx.totalAmount;
+        unrealizedPL += (currentValue - costBasis);
+      });
+
+      const analytics = {
+        totalAssets,
+        totalLiabilities,
+        netWorth,
+        totalInvested,
+        totalRealized,
+        unrealizedPL,
+        realizedPL: totalRealized - totalInvested,
+        totalPL: unrealizedPL + (totalRealized - totalInvested),
+        assetCount: assets.length,
+        liabilityCount: liabilities.length,
+        transactionCount: transactions.length,
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error calculating portfolio analytics:", error);
+      res.status(500).json({ message: "Failed to calculate analytics" });
     }
   });
 

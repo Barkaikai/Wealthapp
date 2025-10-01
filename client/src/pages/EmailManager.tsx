@@ -48,10 +48,24 @@ export default function EmailManager() {
         description: `${synced} emails synced: ${personal} Personal, ${finance} Finance, ${investments} Investments`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = error.message || "Failed to sync emails";
+      const action = error.action;
+      
+      let title = "Gmail Sync Error";
+      let description = errorMessage;
+      
+      if (action === 'reconnect_gmail') {
+        title = "Gmail Permission Required";
+        description = "Your Gmail connection needs additional permissions to read emails. Please reconnect Gmail in the Tools panel and grant read access.";
+      } else if (action === 'connect_gmail') {
+        title = "Gmail Not Connected";
+        description = "Please connect your Gmail account in the Tools panel to sync emails.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to sync emails",
+        title,
+        description,
         variant: "destructive",
       });
     },

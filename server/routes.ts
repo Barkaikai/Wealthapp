@@ -304,6 +304,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error: any) {
       console.error("Error syncing emails:", error);
+      
+      // Handle specific Gmail errors
+      if (error.name === 'GmailScopeError') {
+        return res.status(403).json({ 
+          message: error.message,
+          action: 'reconnect_gmail'
+        });
+      }
+      if (error.name === 'GmailNotConnectedError') {
+        return res.status(401).json({ 
+          message: error.message,
+          action: 'connect_gmail'
+        });
+      }
+      
       res.status(500).json({ message: error.message || "Failed to sync emails" });
     }
   });

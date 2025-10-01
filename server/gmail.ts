@@ -51,54 +51,79 @@ export async function getUncachableGmailClient() {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
+export class GmailScopeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GmailScopeError';
+  }
+}
+
+export class GmailNotConnectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GmailNotConnectedError';
+  }
+}
+
 export async function fetchRecentEmails(maxResults: number = 20) {
-  const gmail = await getUncachableGmailClient();
-  
-  const response = await gmail.users.messages.list({
-    userId: 'me',
-    maxResults,
-  });
-
-  const messages = response.data.messages || [];
-  const emails = [];
-
-  for (const message of messages) {
-    const detail = await gmail.users.messages.get({
+  try {
+    const gmail = await getUncachableGmailClient();
+    
+    const response = await gmail.users.messages.list({
       userId: 'me',
-      id: message.id!,
-      format: 'full',
+      maxResults,
     });
 
-    const headers = detail.data.payload?.headers || [];
-    const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
-    const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
-    const date = headers.find(h => h.name === 'Date')?.value || new Date().toISOString();
+    const messages = response.data.messages || [];
+    const emails = [];
 
-    // Get email body
-    let body = '';
-    if (detail.data.payload?.parts) {
-      const textPart = detail.data.payload.parts.find(p => p.mimeType === 'text/plain');
-      if (textPart?.body?.data) {
-        body = Buffer.from(textPart.body.data, 'base64').toString();
+    for (const message of messages) {
+      const detail = await gmail.users.messages.get({
+        userId: 'me',
+        id: message.id!,
+        format: 'full',
+      });
+
+      const headers = detail.data.payload?.headers || [];
+      const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+      const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+      const date = headers.find(h => h.name === 'Date')?.value || new Date().toISOString();
+
+      // Get email body
+      let body = '';
+      if (detail.data.payload?.parts) {
+        const textPart = detail.data.payload.parts.find(p => p.mimeType === 'text/plain');
+        if (textPart?.body?.data) {
+          body = Buffer.from(textPart.body.data, 'base64').toString();
+        }
+      } else if (detail.data.payload?.body?.data) {
+        body = Buffer.from(detail.data.payload.body.data, 'base64').toString();
       }
-    } else if (detail.data.payload?.body?.data) {
-      body = Buffer.from(detail.data.payload.body.data, 'base64').toString();
+
+      const preview = body.substring(0, 150).trim();
+
+      emails.push({
+        id: message.id!,
+        threadId: detail.data.threadId!,
+        from,
+        subject,
+        body,
+        preview,
+        receivedAt: new Date(date),
+        isStarred: detail.data.labelIds?.includes('STARRED') ? 'true' : 'false',
+        isRead: !detail.data.labelIds?.includes('UNREAD') ? 'true' : 'false',
+      });
     }
 
-    const preview = body.substring(0, 150).trim();
-
-    emails.push({
-      id: message.id!,
-      threadId: detail.data.threadId!,
-      from,
-      subject,
-      body,
-      preview,
-      receivedAt: new Date(date),
-      isStarred: detail.data.labelIds?.includes('STARRED') ? 'true' : 'false',
-      isRead: !detail.data.labelIds?.includes('UNREAD') ? 'true' : 'false',
-    });
+    return emails;
+  } catch (error: any) {
+    // Handle Gmail API errors
+    if (error.response?.status === 403 || error.message?.includes('insufficient authentication scopes')) {
+      throw new GmailScopeError('Gmail connection requires additional permissions. Please reconnect your Gmail account with read access.');
+    }
+    if (error.message?.includes('Gmail not connected')) {
+      throw new GmailNotConnectedError('Gmail account not connected. Please connect your Gmail account in the Tools panel.');
+    }
+    throw error;
   }
-
-  return emails;
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { StatCard } from "@/components/StatCard";
 import { HighlightCard } from "@/components/HighlightCard";
+import MarketOverview from "@/components/MarketOverview";
 import { Sparkles, AlertTriangle, Target, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -112,25 +113,29 @@ export default function DailyBriefing() {
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       ) : briefing ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <HighlightCard
-            icon={Sparkles}
-            title="Highlights"
-            items={briefing.highlights || []}
-            variant="success"
-          />
-          <HighlightCard
-            icon={AlertTriangle}
-            title="Risks"
-            items={briefing.risks || []}
-            variant="warning"
-          />
-          <HighlightCard
-            icon={Target}
-            title="Recommended Actions"
-            items={briefing.actions || []}
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <HighlightCard
+              icon={Sparkles}
+              title="Highlights"
+              items={briefing.highlights || []}
+              variant="success"
+            />
+            <HighlightCard
+              icon={AlertTriangle}
+              title="Risks"
+              items={briefing.risks || []}
+              variant="warning"
+            />
+            <HighlightCard
+              icon={Target}
+              title="Recommended Actions"
+              items={briefing.actions || []}
+            />
+          </div>
+          
+          <MarketOverview compact={true} />
+        </>
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No briefing available yet</p>

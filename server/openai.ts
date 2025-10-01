@@ -1,8 +1,12 @@
 // From javascript_openai integration
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// the newest OpenAI model is "gpt-5" which was released August 7, 2025
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 45000, // 45 second timeout (reasonable for complex briefing generation)
+  maxRetries: 0, // No automatic retries to avoid long waits
+});
 
 interface PortfolioAnalytics {
   totalWealth: number;
@@ -178,13 +182,62 @@ Respond with JSON in this exact format:
   "actions": ["...", "...", "..."]
 }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" },
-  });
+  try {
+    console.log('Calling OpenAI API for briefing generation...');
+    console.log('OpenAI API Key configured:', !!process.env.OPENAI_API_KEY);
+    
+    // Try GPT-5 first, fall back to GPT-4o if it fails
+    let model = "gpt-5";
+    let response: any;
+    
+    try {
+      console.log('Attempting with GPT-5...');
+      response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      });
+    } catch (gpt5Error: any) {
+      console.warn('GPT-5 failed, falling back to GPT-4o:', gpt5Error.message);
+      model = "gpt-4o";
+      response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      });
+    }
 
-  return JSON.parse(response.choices[0].message.content!);
+    console.log(`OpenAI API response received successfully (using ${model})`);
+    
+    if (!response.choices || !response.choices[0] || !response.choices[0].message.content) {
+      throw new Error('OpenAI API returned invalid response structure');
+    }
+    
+    const result = JSON.parse(response.choices[0].message.content);
+    console.log(`Parsed briefing: ${result.highlights?.length || 0} highlights, ${result.risks?.length || 0} risks, ${result.actions?.length || 0} actions`);
+    return result;
+  } catch (error: any) {
+    console.error('OpenAI API error in generateDailyBriefing:');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Full error:', JSON.stringify(error, null, 2));
+    
+    // Provide user-friendly error messages
+    if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      throw new Error('Network error connecting to OpenAI API. Please check your internet connection.');
+    } else if (error.status === 401 || error.message?.includes('authentication')) {
+      throw new Error('OpenAI API authentication failed. Please check your API key.');
+    } else if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+    } else if (error.message?.includes('timeout') || error.constructor.name === 'APIConnectionTimeoutError') {
+      throw new Error('AI service is taking longer than expected. Please try again in a moment.');
+    } else if (error.message?.includes('model') || error.status === 404) {
+      throw new Error('AI model temporarily unavailable. Our team has been notified.');
+    } else {
+      throw new Error(`Unable to generate briefing at this time. Please try again later.`);
+    }
+  }
 }
 
 export async function categorizeEmail(subject: string, preview: string): Promise<"personal" | "finance" | "investments"> {

@@ -67,18 +67,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
+    // First try to find existing user by ID
+    if (userData.id) {
+      const existingUserById = await this.getUser(userData.id);
+      
+      if (existingUserById) {
+        // Update existing user by ID
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            ...userData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userData.id))
+          .returning();
+        return updatedUser;
+      }
+    }
+    
+    // Check if email already exists
+    if (userData.email) {
+      const [existingUserByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userData.email));
+      
+      if (existingUserByEmail) {
+        // Update existing user with new ID (Replit Auth sub changed)
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            ...userData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.email, userData.email))
+          .returning();
+        return updatedUser;
+      }
+    }
+    
+    // No existing user, create new one
+    const [newUser] = await db
       .insert(users)
       .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
       .returning();
-    return user;
+    return newUser;
   }
 
   // Asset operations

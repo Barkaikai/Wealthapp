@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LearnLink } from "@/components/LearnLink";
 
 interface HighlightCardProps {
   icon: LucideIcon;
@@ -26,7 +27,9 @@ export function HighlightCard({ icon: Icon, title, items, variant = "default" }:
             {items.map((item, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                 <span className="text-primary mt-1">•</span>
-                <span className="flex-1">{item}</span>
+                <span className="flex-1">
+                  <LearnLink text={item} className="hover:underline" />
+                </span>
               </li>
             ))}
           </ul>

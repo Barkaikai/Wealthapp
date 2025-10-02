@@ -1418,6 +1418,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Web Search route
+  app.post('/api/web-search', isAuthenticated, async (req, res) => {
+    try {
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const { searchWeb } = await import('./webSearch');
+      const results = await searchWeb(query);
+      res.json({ results });
+    } catch (error: any) {
+      console.error("Web search error:", error);
+      res.status(500).json({ message: error.message || "Failed to perform web search" });
+    }
+  });
+
+  // ChatGPT route
+  app.post('/api/chat', isAuthenticated, async (req, res) => {
+    try {
+      const { messages } = req.body;
+      
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ message: "Messages array is required" });
+      }
+
+      const { getChatCompletion } = await import('./chatgpt');
+      const response = await getChatCompletion(messages);
+      res.json({ message: response });
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      res.status(500).json({ message: error.message || "Failed to get chat response" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -1,3 +1,9 @@
+// Configuration exports
+export const config = {
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  tavilyApiKey: process.env.TAVILY_API_KEY || '',
+};
+
 // Object Storage availability check
 // Note: We don't actually create a Client here to avoid crashes when no bucket is configured
 // The Client will only be created when actually needed in fileStorage.ts

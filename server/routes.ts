@@ -19,6 +19,33 @@ import { analyzeDocument } from "./documentAnalysis";
 import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoints (no auth required - used by deployment platforms)
+  app.get('/healthz', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/livez', (_req, res) => {
+    res.status(200).json({ status: 'alive', uptime: process.uptime() });
+  });
+
+  app.get('/readyz', async (_req, res) => {
+    try {
+      const { db } = await import('./db');
+      await db.execute('SELECT 1');
+      res.status(200).json({ 
+        status: 'ready', 
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(503).json({ 
+        status: 'not ready', 
+        database: 'disconnected',
+        error: (error as Error).message 
+      });
+    }
+  });
+
   // Auth middleware
   await setupAuth(app);
 

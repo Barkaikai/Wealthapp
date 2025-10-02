@@ -18,6 +18,11 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Notepad",
+    url: "/notepad",
+    icon: FileText,
+  },
+  {
     title: "Wealth Dashboard",
     url: "/wealth",
     icon: Wallet,
@@ -51,11 +56,6 @@ const menuItems = [
     title: "Routine Builder",
     url: "/routine",
     icon: Calendar,
-  },
-  {
-    title: "Notepad",
-    url: "/notepad",
-    icon: FileText,
   },
   {
     title: "Guide",

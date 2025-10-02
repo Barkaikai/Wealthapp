@@ -1,0 +1,53 @@
+Wealth Automation Platform - Setup Scripts
+==========================================
+
+After cloning this repository, use these commands to set up your environment:
+
+1. GENERATE SECRETS
+   Run: bash scripts/generate-secrets.sh
+   
+   Copy the generated secrets to your .env file or Replit Secrets.
+
+2. VALIDATE SETUP
+   Run: npx tsx scripts/setup-check.ts
+   
+   This checks that all required environment variables are set and validates
+   database connectivity. Fix any errors before proceeding.
+
+3. INITIALIZE DATABASE
+   Run: npx tsx scripts/db-setup.ts
+   
+   Validates database connection and provides next steps for schema migration.
+
+4. APPLY DATABASE SCHEMA
+   Run: npm run db:push
+   
+   Applies the Drizzle schema to your database.
+
+5. START THE APPLICATION
+   Run: npm run dev
+   
+   Starts the development server on port 5000.
+
+QUICK START (on Replit):
+- Environment variables are auto-configured via Replit Secrets
+- Just run: npm run dev
+
+QUICK START (external deployment):
+1. Copy .env.example to .env
+2. bash scripts/generate-secrets.sh  (copy output to .env)
+3. Add your API keys to .env (OPENAI_API_KEY, DATABASE_URL, etc.)
+4. npx tsx scripts/setup-check.ts  (verify setup)
+5. npm run db:push  (apply schema)
+6. npm run dev  (start server)
+
+REQUIRED ENVIRONMENT VARIABLES:
+- DATABASE_URL (PostgreSQL connection string)
+- SESSION_SECRET (generate with: openssl rand -hex 32)
+- OPENAI_API_KEY (from OpenAI dashboard)
+- ALPHA_VANTAGE_API_KEY (from Alpha Vantage)
+
+OPTIONAL VARIABLES:
+- CSRF_SECRET (recommended for production)
+- COINGECKO_API_KEY (for premium crypto data)
+- PLAID_CLIENT_ID, PLAID_SECRET (for bank integration)

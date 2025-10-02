@@ -1,5 +1,3 @@
-#!/usr/bin/env tsx
-
 import { config } from 'dotenv';
 import { Client } from 'pg';
 

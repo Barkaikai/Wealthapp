@@ -12,20 +12,25 @@ export interface UploadedFile {
 export class FileStorage {
   private client: Client | null = null;
   private initAttempted: boolean = false;
+  private initError: Error | null = null;
 
-  private ensureClient(): Client {
+  private async ensureClient(): Promise<Client> {
     if (!this.initAttempted) {
       this.initAttempted = true;
       try {
         this.client = new Client();
+        // Give the client a moment to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
+        this.initError = error as Error;
         console.warn('Object Storage not initialized. Create a bucket in Tools > Object Storage to enable file uploads.');
         this.client = null;
       }
     }
     
     if (!this.client) {
-      throw new Error('Object Storage is not configured. Please create a bucket in Replit: Tools > Object Storage > Create a Bucket.');
+      const message = 'Object Storage is not configured. Please create a bucket in Replit: Tools > Object Storage > Create a Bucket.';
+      throw new Error(message);
     }
     return this.client;
   }
@@ -35,7 +40,7 @@ export class FileStorage {
     originalFilename: string,
     mimeType: string
   ): Promise<UploadedFile> {
-    const client = this.ensureClient();
+    const client = await this.ensureClient();
     const fileExtension = originalFilename.split('.').pop() || '';
     const uniqueId = crypto.randomUUID();
     const storageKey = `${uniqueId}.${fileExtension}`;
@@ -63,7 +68,7 @@ export class FileStorage {
   }
 
   async downloadFile(storageKey: string): Promise<Buffer> {
-    const client = this.ensureClient();
+    const client = await this.ensureClient();
     const result = await client.downloadAsBytes(storageKey);
     
     if (!result.ok) {
@@ -74,7 +79,7 @@ export class FileStorage {
   }
 
   async deleteFile(storageKey: string): Promise<void> {
-    const client = this.ensureClient();
+    const client = await this.ensureClient();
     const result = await client.delete(storageKey);
     
     if (!result.ok) {
@@ -84,13 +89,13 @@ export class FileStorage {
   }
 
   async fileExists(storageKey: string): Promise<boolean> {
-    const client = this.ensureClient();
+    const client = await this.ensureClient();
     const result = await client.exists(storageKey);
     return result.ok ? result.value : false;
   }
 
   async listFiles(prefix?: string): Promise<string[]> {
-    const client = this.ensureClient();
+    const client = await this.ensureClient();
     const result = await client.list({
       prefix: prefix || '',
       maxResults: 1000,

@@ -1,21 +1,18 @@
-import { Client } from '@replit/object-storage';
-
-let storageClient: Client | null = null;
-let initAttempted = false;
+// Object Storage availability check
+// Note: We don't actually create a Client here to avoid crashes when no bucket is configured
+// The Client will only be created when actually needed in fileStorage.ts
+let checkedAvailability = false;
+let storageAvailable = false;
 
 export function isObjectStorageAvailable(): boolean {
-  if (!initAttempted) {
-    initAttempted = true;
-    try {
-      storageClient = new Client();
-      return true;
-    } catch (error) {
-      console.warn('Object Storage not initialized. Create a bucket in Tools > Object Storage to enable file uploads.');
-      storageClient = null;
-      return false;
-    }
+  if (!checkedAvailability) {
+    checkedAvailability = true;
+    // For now, we assume Object Storage is NOT available unless explicitly configured
+    // This prevents crashes when no bucket exists
+    // The actual Client will handle the check when operations are attempted
+    storageAvailable = false;
   }
-  return storageClient !== null;
+  return storageAvailable;
 }
 
 export function getStorageUnavailableMessage(): string {

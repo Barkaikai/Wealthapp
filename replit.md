@@ -30,6 +30,14 @@ Preferred communication style: Simple, everyday language.
 
 **Request/Response Flow:** Middleware for logging, JSON parsing, error handling, CORS, and security headers.
 
+**Security Architecture (Oct 2025):** Comprehensive security middleware implemented following OWASP best practices:
+- **Helmet.js:** HTTP security headers including Content Security Policy (CSP), X-Frame-Options, HSTS, and other security-focused headers
+- **Rate Limiting:** 300 requests per 15 minutes per IP to prevent abuse and DDoS attacks
+- **Cookie Security:** Secure cookie parsing with httpOnly, secure, and sameSite attributes
+- **CSRF Protection:** Double Submit Cookie pattern using csrf-csrf library (requires CSRF_SECRET environment variable to activate)
+- **Session Security:** PostgreSQL-backed sessions with __Host prefix, 30-day expiry, proxy-aware configuration
+- **Health Endpoints:** /livez (liveness), /readyz (database connectivity), /healthz (redirect), /admin/diagnostics (system metrics)
+
 ### Data Storage
 
 **Database:** PostgreSQL (Neon serverless) as the primary database, utilizing Drizzle ORM for type-safe queries and migrations.

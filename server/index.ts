@@ -2,8 +2,76 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { healthMonitor } from "./healthMonitor";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
+import cookieParser from "cookie-parser";
+import { doubleCsrf } from "csrf-csrf";
 
 const app = express();
+
+// Security: Helmet for secure HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Needed for Vite in dev
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https:", "wss:"],
+    },
+  },
+}));
+
+// Security: Cookie parser
+app.use(cookieParser());
+
+// Security: Rate limiting (300 requests per 15 minutes per IP)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." }
+});
+app.use(limiter);
+
+// Security: CSRF protection (conditional on CSRF_SECRET being set)
+if (process.env.CSRF_SECRET) {
+  const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET!,
+    getSessionIdentifier: (req) => {
+      // Use session ID if available, otherwise use a combination of IP and user agent
+      return (req.session as any)?.id || `${req.ip}-${req.get('user-agent')}`;
+    },
+    cookieName: "__Host.x-csrf-token",
+    cookieOptions: {
+      sameSite: "strict",
+      path: "/",
+      secure: true,
+      httpOnly: true,
+    },
+  });
+
+  // Generate token and make it available to all routes
+  app.use((req, res, next) => {
+    res.locals.csrfToken = generateCsrfToken(req, res);
+    next();
+  });
+
+  // Protect all state-changing API routes
+  app.use("/api/*", (req, res, next) => {
+    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {
+      return doubleCsrfProtection(req, res, next);
+    }
+    next();
+  });
+
+  log("CSRF protection enabled");
+} else {
+  log("⚠️  CSRF protection disabled - set CSRF_SECRET environment variable to enable");
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

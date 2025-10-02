@@ -25,12 +25,12 @@ async function extractTextFromFile(
 ): Promise<string> {
   // Explicitly reject PDF and Word documents
   if (mimeType === 'application/pdf') {
-    throw new Error('PDF and Word document analysis coming soon. Currently supported: text files and images.');
+    throw new Error('PDF analysis is currently in development. You can upload and store PDFs, but AI analysis is only available for text files (.txt, .md) and images (.jpg, .png). This feature will be available in a future update.');
   }
 
   if (mimeType === 'application/msword' || 
       mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    throw new Error('PDF and Word document analysis coming soon. Currently supported: text files and images.');
+    throw new Error('Word document analysis is currently in development. You can upload and store Word files, but AI analysis is only available for text files (.txt, .md) and images (.jpg, .png). This feature will be available in a future update.');
   }
 
   // Text files - read directly

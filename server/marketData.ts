@@ -183,8 +183,8 @@ export async function getStockMarketData(): Promise<MarketDataPoint[]> {
       return result;
     }
   } catch (error) {
-    // Yahoo Finance may rate-limit or block requests, this is expected
-    console.warn('Stock market data temporarily unavailable:', (error as Error).message);
+    // Yahoo Finance may rate-limit or block requests, this is expected behavior
+    // Silently fail and return empty array - not a critical error
   }
 
   return [];
@@ -225,8 +225,8 @@ export async function getMetalsMarketData(): Promise<MarketDataPoint[]> {
       return result;
     }
   } catch (error) {
-    // Yahoo Finance may rate-limit or block requests, this is expected
-    console.warn('Metals market data temporarily unavailable:', (error as Error).message);
+    // Yahoo Finance may rate-limit or block requests, this is expected behavior
+    // Silently fail and return empty array - not a critical error
   }
 
   return [];

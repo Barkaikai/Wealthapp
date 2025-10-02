@@ -1427,6 +1427,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
 
+      const { config } = await import('./config');
+      if (!config.tavilyApiKey) {
+        console.error('Tavily API key not configured');
+        return res.status(503).json({ message: "Web search service not configured" });
+      }
+
       const { searchWeb } = await import('./webSearch');
       const results = await searchWeb(query);
       res.json({ results });
@@ -1443,6 +1449,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ message: "Messages array is required" });
+      }
+
+      if (messages.length === 0) {
+        return res.status(400).json({ message: "Messages array cannot be empty" });
+      }
+
+      const { config } = await import('./config');
+      if (!config.openaiApiKey) {
+        console.error('OpenAI API key not configured');
+        return res.status(503).json({ message: "Chat service not configured" });
       }
 
       const { getChatCompletion } = await import('./chatgpt');

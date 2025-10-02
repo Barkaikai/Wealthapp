@@ -6,6 +6,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import pg from "pg";
 import { storage } from "./storage";
 
 if (!process.env.REPLIT_DOMAINS) {
@@ -23,25 +24,33 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
+  const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
+    pool: pgPool,
     tableName: "sessions",
+    createTableIfMissing: true,
+    pruneSessionInterval: 60,
   });
-  return session({
-    secret: process.env.SESSION_SECRET!,
+  
+  const sessionConfig = {
     store: sessionStore,
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
+    name: "__Host.sid",
     cookie: {
+      path: '/',
       httpOnly: true,
+      sameSite: "lax" as const,
       secure: true,
-      maxAge: sessionTtl,
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     },
-  });
+  };
+  
+  return session(sessionConfig);
 }
 
 function updateUserSession(

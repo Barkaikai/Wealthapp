@@ -8,6 +8,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Calculator } from "@/components/Calculator";
+import { WebSearchBar } from "@/components/WebSearchBar";
+import { ChatGPT } from "@/components/ChatGPT";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
@@ -79,8 +81,8 @@ function AuthenticatedApp() {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center gap-3">
+          <header className="flex items-center justify-between gap-4 p-4 border-b border-border">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
               <div className="flex items-center gap-2">
                 {user?.profileImageUrl && (
@@ -90,12 +92,16 @@ function AuthenticatedApp() {
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 )}
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium hidden md:block">
                   {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex-1 max-w-2xl mx-auto">
+              <WebSearchBar compact />
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <ChatGPT />
               <Calculator />
               <ThemeToggle />
               <Button 
@@ -104,8 +110,8 @@ function AuthenticatedApp() {
                 data-testid="button-logout"
                 className="min-h-9"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                <LogOut className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Logout</span>
               </Button>
             </div>
           </header>

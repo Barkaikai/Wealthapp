@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Trophy, ShoppingCart, History, Flame, Star, Zap, TrendingUp, Gift, Target } from "lucide-react";
+import { Coins, Trophy, ShoppingCart, History, Flame, Star, Zap, TrendingUp, Gift, Target, Pickaxe, Loader2, Clock } from "lucide-react";
 import Confetti from "react-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -23,6 +23,7 @@ export default function WealthForge() {
   const [dragScore, setDragScore] = useState(0);
   const [nickname, setNickname] = useState("");
   const [solanaWallet, setSolanaWallet] = useState("");
+  const [cooldownTime, setCooldownTime] = useState(0);
 
   const { data: progress, isLoading: progressLoading } = useQuery({
     queryKey: ['/api/wealth-forge/progress'],
@@ -54,6 +55,7 @@ export default function WealthForge() {
       queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/transactions'] });
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
+      setCooldownTime(5);
       toast({
         title: "Tokens Mined Successfully",
         description: `You earned ${data.tokensEarned} WFG and ${data.xpGained} XP`,
@@ -158,6 +160,15 @@ export default function WealthForge() {
       setSolanaWallet(progress.solanaWallet || '');
     }
   }, [progress]);
+
+  useEffect(() => {
+    if (cooldownTime > 0) {
+      const timer = setTimeout(() => {
+        setCooldownTime(cooldownTime - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownTime]);
 
   if (progressLoading) {
     return (
@@ -279,6 +290,42 @@ export default function WealthForge() {
           </TabsList>
 
           <TabsContent value="mine" className="space-y-6">
+            <Card className="hover-elevate" data-testid="card-mine">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Pickaxe className="w-5 h-5 text-primary" />
+                  Mine Tokens
+                </CardTitle>
+                <CardDescription>Click to mine WFG tokens and earn XP</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => mineMutation.mutate({ type: 'mine' })}
+                  disabled={mineMutation.isPending || cooldownTime > 0}
+                  data-testid="button-mine"
+                >
+                  {mineMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Mining...
+                    </>
+                  ) : cooldownTime > 0 ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Cooldown ({cooldownTime}s)
+                    </>
+                  ) : (
+                    <>
+                      <Coins className="w-4 h-4 mr-2" />
+                      Mine Tokens
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="hover-elevate" data-testid="card-daily-bonus">
                 <CardHeader>

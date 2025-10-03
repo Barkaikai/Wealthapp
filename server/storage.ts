@@ -24,6 +24,9 @@ import {
   rebalancingRecommendations,
   anomalyDetections,
   receipts,
+  wallets,
+  walletTransactions,
+  paymentMethods,
   type User,
   type UpsertUser,
   type Asset,
@@ -74,6 +77,12 @@ import {
   type InsertAnomalyDetection,
   type Receipt,
   type InsertReceipt,
+  type Wallet,
+  type InsertWallet,
+  type WalletTransaction,
+  type InsertWalletTransaction,
+  type PaymentMethod,
+  type InsertPaymentMethod,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -211,6 +220,22 @@ export interface IStorage {
   createReceipt(receipt: InsertReceipt): Promise<Receipt>;
   updateReceipt(id: number, userId: string, receipt: Partial<InsertReceipt>): Promise<Receipt>;
   deleteReceipt(id: number, userId: string): Promise<void>;
+
+  // Wallet operations
+  getWallet(userId: string): Promise<Wallet | undefined>;
+  createWallet(wallet: InsertWallet): Promise<Wallet>;
+  updateWallet(id: number, wallet: Partial<InsertWallet>): Promise<Wallet>;
+
+  // Wallet Transaction operations
+  getWalletTransactions(userId: string, status?: string): Promise<WalletTransaction[]>;
+  createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+  updateWalletTransaction(id: number, transaction: Partial<InsertWalletTransaction>): Promise<WalletTransaction>;
+
+  // Payment Method operations
+  getPaymentMethods(userId: string): Promise<PaymentMethod[]>;
+  createPaymentMethod(method: InsertPaymentMethod): Promise<PaymentMethod>;
+  updatePaymentMethod(id: number, userId: string, method: Partial<InsertPaymentMethod>): Promise<PaymentMethod>;
+  deletePaymentMethod(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -844,6 +869,77 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReceipt(id: number, userId: string): Promise<void> {
     await db.delete(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
+  }
+
+  // Wallet operations
+  async getWallet(userId: string): Promise<Wallet | undefined> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    return wallet;
+  }
+
+  async createWallet(walletData: InsertWallet): Promise<Wallet> {
+    const [wallet] = await db.insert(wallets).values(walletData).returning();
+    return wallet;
+  }
+
+  async updateWallet(id: number, walletData: Partial<InsertWallet>): Promise<Wallet> {
+    const [updatedWallet] = await db.update(wallets)
+      .set({ ...walletData, updatedAt: new Date() })
+      .where(eq(wallets.id, id))
+      .returning();
+    if (!updatedWallet) {
+      throw new Error("Wallet not found");
+    }
+    return updatedWallet;
+  }
+
+  // Wallet Transaction operations
+  async getWalletTransactions(userId: string, status?: string): Promise<WalletTransaction[]> {
+    const conditions = status 
+      ? and(eq(walletTransactions.userId, userId), eq(walletTransactions.status, status))
+      : eq(walletTransactions.userId, userId);
+    return await db.select().from(walletTransactions).where(conditions).orderBy(desc(walletTransactions.createdAt));
+  }
+
+  async createWalletTransaction(transactionData: InsertWalletTransaction): Promise<WalletTransaction> {
+    const [transaction] = await db.insert(walletTransactions).values(transactionData).returning();
+    return transaction;
+  }
+
+  async updateWalletTransaction(id: number, transactionData: Partial<InsertWalletTransaction>): Promise<WalletTransaction> {
+    const [updatedTransaction] = await db.update(walletTransactions)
+      .set({ ...transactionData, updatedAt: new Date() })
+      .where(eq(walletTransactions.id, id))
+      .returning();
+    if (!updatedTransaction) {
+      throw new Error("Transaction not found");
+    }
+    return updatedTransaction;
+  }
+
+  // Payment Method operations
+  async getPaymentMethods(userId: string): Promise<PaymentMethod[]> {
+    return await db.select().from(paymentMethods).where(eq(paymentMethods.userId, userId)).orderBy(desc(paymentMethods.createdAt));
+  }
+
+  async createPaymentMethod(methodData: InsertPaymentMethod): Promise<PaymentMethod> {
+    const [method] = await db.insert(paymentMethods).values(methodData).returning();
+    return method;
+  }
+
+  async updatePaymentMethod(id: number, userId: string, methodData: Partial<InsertPaymentMethod>): Promise<PaymentMethod> {
+    const [updatedMethod] = await db.update(paymentMethods)
+      .set({ ...methodData, updatedAt: new Date() })
+      .where(and(eq(paymentMethods.id, id), eq(paymentMethods.userId, userId)))
+      .returning();
+    if (!updatedMethod) {
+      throw new Error("Payment method not found");
+    }
+    return updatedMethod;
+  }
+
+  async deletePaymentMethod(id: number, userId: string): Promise<void> {
+    await db.delete(paymentMethods).where(and(eq(paymentMethods.id, id), eq(paymentMethods.userId, userId)));
   }
 }
 

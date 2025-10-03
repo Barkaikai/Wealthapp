@@ -20,7 +20,7 @@ The backend is an Express.js with TypeScript REST API. Authentication uses Repli
 
 ### Data Storage
 
-PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The schema includes tables for users, sessions, assets, events, routines, emails, briefings, transactions, wealth alerts, financial goals, liabilities, calendar events, tasks, health metrics, wallet connections, voice commands, notes, documents, and AI Intelligence tables for portfolio reports, trading recommendations, tax events, rebalancing, and anomaly detections. All user-centric tables link to `users.id` with cascade delete and include `createdAt`/`updatedAt` timestamps. Indices are added to all `userId` columns for performance.
+PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The schema includes tables for users, sessions, assets, events, routines, emails, briefings, transactions (asset trades), wallet_transactions (deposits/withdrawals), wallets, payment_methods, wealth alerts, financial goals, liabilities, calendar events, tasks, health metrics, wallet connections, voice commands, notes, documents, receipts, and AI Intelligence tables for portfolio reports, trading recommendations, tax events, rebalancing, and anomaly detections. All user-centric tables link to `users.id` with cascade delete and include `createdAt`/`updatedAt` timestamps. Indices are added to all `userId` columns for performance.
 
 ### System Design Choices
 
@@ -40,7 +40,13 @@ The platform features continuous background health monitoring with diagnostic hi
 
 **Calculator Features:** Three operational modes (Basic, Scientific, Expression) with mathjs BigNumber providing 64-digit precision. Scientific mode includes trigonometric functions, logarithms, constants (π, e), and advanced operations. Expression mode supports complex mathematical expressions with safe evaluation.
 
+**Personal Wallet:** Integrated funding and withdrawal system with transaction history. Database schema includes wallets table (balance, available balance, pending balance, total deposited/withdrawn, Stripe integration fields), wallet_transactions table (deposits, withdrawals, transfers with status tracking), and payment_methods table (cards, bank accounts, Google Pay, Apple Pay with verification status). Backend provides automated transaction processing with simulated Stripe integration for deposits and withdrawals.
+
+**Terminal Interface:** Command-line interface for advanced users providing system information and direct data access. Supports commands including help, status, wallet (balance display), portfolio (asset summary), health (system status), whoami (user info), and date. Features command history navigation, error handling, and real-time output display with terminal aesthetics.
+
 Production optimizations include database indexing, boot-time environment variable validation (critical and optional services), enhanced API security hardening for search/ChatGPT endpoints, and React Query optimizations (staleTime: Infinity, smart retries, disabled window refetching). API resilience ensures graceful handling of external API failures for stock/crypto additions, allowing manual input and subsequent synchronization.
+
+**Design Theme:** Coinbase-inspired blue theme (hsl 221 83% 53%) throughout the platform with clean, modern UI components. Wealth-themed background images on landing and login pages providing luxury aesthetic. Settings page includes comprehensive configuration across 6 tabs (Account, Security, Notifications, Appearance, Diagnostics, About).
 
 ## External Dependencies
 
@@ -63,6 +69,7 @@ Production optimizations include database indexing, boot-time environment variab
 
 - **Alpha Vantage API:** Real-time stock prices.
 - **CoinGecko API:** Cryptocurrency prices.
+- **Stripe:** (Integration ready) Payment processing for wallet deposits and withdrawals.
 - **Plaid:** (Planned) Bank account aggregation.
 
 ### Third-Party Services

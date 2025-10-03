@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,11 @@ const menuItems = [
     title: "AI Videos",
     url: "/videos",
     icon: Video,
+  },
+  {
+    title: "Personal Wallet",
+    url: "/wallet",
+    icon: CreditCard,
   },
   {
     title: "Wealth Dashboard",
@@ -74,6 +79,11 @@ const menuItems = [
     title: "Routine Builder",
     url: "/routine",
     icon: Calendar,
+  },
+  {
+    title: "Terminal",
+    url: "/terminal",
+    icon: Terminal,
   },
   {
     title: "Guide",

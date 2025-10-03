@@ -31,6 +31,8 @@ import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
 import Videos from "@/pages/Videos";
+import Wallet from "@/pages/Wallet";
+import Terminal from "@/pages/Terminal";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -59,6 +61,7 @@ function Router() {
         <>
           <Route path="/" component={DailyBriefing} />
           <Route path="/login" component={Login} />
+          <Route path="/wallet" component={Wallet} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
           <Route path="/productivity" component={ProductivityHub} />
@@ -70,6 +73,7 @@ function Router() {
           <Route path="/ai-intelligence" component={AIIntelligence} />
           <Route path="/receipts" component={ReceiptManager} />
           <Route path="/videos" component={Videos} />
+          <Route path="/terminal" component={Terminal} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />

@@ -2874,6 +2874,150 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
       res.status(500).json({ message: error.message || "Failed to organize document" });
     }
   });
+
+  // Microsoft OAuth Routes
+  app.get('/auth/microsoft', (req, res) => {
+    const { msAuthClient } = require('./msAuthClient');
+    if (!msAuthClient.isConfigured()) {
+      return res.status(503).json({ 
+        message: 'Microsoft authentication not configured. Please set MS_CLIENT_ID, MS_TENANT_ID, MS_CLIENT_SECRET in Replit Secrets.' 
+      });
+    }
+    msAuthClient.getAuthCodeUrl(req.query.state as string)
+      .then((url: string) => res.redirect(url))
+      .catch((err: Error) => {
+        console.error('[MS Auth] Error getting auth URL:', err);
+        res.status(500).json({ message: 'Failed to initiate Microsoft login', error: err.message });
+      });
+  });
+
+  app.get('/auth/microsoft/callback', async (req, res) => {
+    const { msAuthClient } = require('./msAuthClient');
+    const code = req.query.code as string;
+    
+    if (!code) {
+      return res.status(400).json({ message: 'Authorization code missing' });
+    }
+
+    try {
+      const tokenResponse = await msAuthClient.acquireTokenByCode(code);
+      
+      // Store tokens securely (encrypted in DB in production)
+      // For now, set in session
+      if (req.session) {
+        req.session.msTokens = {
+          accessToken: tokenResponse.accessToken,
+          refreshToken: tokenResponse.refreshToken,
+          expiresOn: tokenResponse.expiresOn,
+        };
+        req.session.msAccount = tokenResponse.account;
+      }
+
+      // Redirect to frontend with success
+      const frontendUrl = process.env.APP_BASE_URL || 'http://localhost:5000';
+      res.redirect(`${frontendUrl}/settings?ms_auth=success`);
+    } catch (err: any) {
+      console.error('[MS Auth] Callback error:', err);
+      const frontendUrl = process.env.APP_BASE_URL || 'http://localhost:5000';
+      res.redirect(`${frontendUrl}/settings?ms_auth=error&message=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+  // Get Microsoft account info
+  app.get('/api/microsoft/profile', isAuthenticated, async (req: any, res) => {
+    if (!req.session?.msTokens) {
+      return res.status(401).json({ message: 'Microsoft account not connected' });
+    }
+
+    try {
+      const { Client } = require('@microsoft/microsoft-graph-client');
+      const client = Client.init({
+        authProvider: (done: any) => done(null, req.session.msTokens.accessToken),
+      });
+
+      const profile = await client.api('/me').get();
+      res.json({ profile, connected: true });
+    } catch (err: any) {
+      console.error('[MS Graph] Profile fetch error:', err);
+      res.status(500).json({ message: 'Failed to fetch Microsoft profile', error: err.message });
+    }
+  });
+
+  // Disconnect Microsoft account
+  app.post('/api/microsoft/disconnect', isAuthenticated, async (req: any, res) => {
+    if (req.session?.msTokens) {
+      delete req.session.msTokens;
+      delete req.session.msAccount;
+    }
+    res.json({ message: 'Microsoft account disconnected successfully' });
+  });
+
+  // Multi-Agent AI Query
+  app.post('/api/ai/multi-agent', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { prompt, context, enableCritique } = req.body;
+
+      // Validate inputs
+      if (!prompt || typeof prompt !== 'string' || prompt.length === 0) {
+        return res.status(400).json({ message: 'Prompt is required and must be a non-empty string' });
+      }
+      if (prompt.length > 10000) {
+        return res.status(400).json({ message: 'Prompt too long (max 10000 characters)' });
+      }
+      if (context && typeof context !== 'string') {
+        return res.status(400).json({ message: 'Context must be a string' });
+      }
+      if (enableCritique !== undefined && typeof enableCritique !== 'boolean') {
+        return res.status(400).json({ message: 'enableCritique must be a boolean' });
+      }
+
+      const { multiAgentQuery } = await import('./multiAgent');
+      const { OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      // Configure providers (add more as secrets are configured)
+      const providers = [
+        { name: 'openai', type: 'openai' as const, opts: { model: 'gpt-4o-mini' }, weight: 1.0 },
+      ];
+
+      // Add Anthropic if configured
+      if (process.env.ANTHROPIC_KEY && process.env.ANTHROPIC_ENDPOINT) {
+        providers.push({
+          name: 'anthropic',
+          type: 'anthropic' as const,
+          endpoint: process.env.ANTHROPIC_ENDPOINT,
+          key: process.env.ANTHROPIC_KEY,
+          model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+          opts: {},
+          weight: 0.95,
+        } as any);
+      }
+
+      const result = await multiAgentQuery({
+        userId,
+        prompt,
+        context: context || 'Wealth management and lifestyle optimization',
+        providers,
+        tools: [
+          { name: 'getPortfolioSnapshot' },
+          { name: 'simpleCalc' },
+        ],
+        options: {
+          enableCritique: enableCritique ?? false,
+          memoryTTL: 60 * 60 * 6,
+          timeout: 8000,
+        },
+        openai,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Multi-Agent] Query error:', error);
+      res.status(500).json({ message: error.message || 'Multi-agent query failed' });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

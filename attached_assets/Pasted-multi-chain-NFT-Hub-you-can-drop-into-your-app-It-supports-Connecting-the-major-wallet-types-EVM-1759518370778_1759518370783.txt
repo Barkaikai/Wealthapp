@@ -1,0 +1,352 @@
+multi-chain NFT Hub you can drop into your app. It supports:
+
+Connecting the major wallet types (EVM wallets via MetaMask + WalletConnect + Coinbase + WalletLink, Solana wallets via Phantom/solana-wallet-adapter, Hedera account support via a simple manual connect flow)
+
+Viewing a user’s NFTs (EVM chains + Solana + Hedera)
+
+Transferring NFTs wallet→wallet on EVM (ERC‑721/ERC‑1155), Solana (SPL NFTs), and Hedera (HTS NFTs)
+
+A UI section (“NFT Vault”) where NFTs live, show metadata, and have Transfer / View Details / Sync buttons
+
+Clear instructions, env variables, and caveats (API keys, marketplaces, custody/security)
+
+This is a practical starter implementation — production will require API keys (Alchemy / Moralis / Solana RPC / Hedera mirror), better error handling, rate-limits, and security hardening (never keep private keys on server; use client-side signing or HSM/MPC for custodial flows).
+
+High-level architecture & files (suggested)
+/frontend
+  /src
+    /pages/NFTVault.jsx         # UI: connect wallets, view NFTs, transfer
+    /src/services/nftApi.js     # helper calls to backend APIs
+    /src/components/NFTCard.jsx
+/backend
+  /api
+    /routes/evm.js              # EVM: list NFTs, broadcast signed txs (optionally)
+    /routes/solana.js           # Solana: list NFTs, broadcast signed txs
+    /routes/hedera.js           # Hedera: list tokens (mirror node), transfer via signed txs
+  /lib
+    /providers/evmProvider.js
+    /providers/solanaProvider.js
+    /providers/hederaProvider.js
+  server.js
+.env.example
+README.md
+
+Required environment variables (put these in Replit Secrets)
+# EVM
+ALCHEMY_API_KEY=...
+MORALIS_API_KEY=...         # optional alternative to Alchemy
+ETH_RPC_URL=https://eth-mainnet.alchemyapi.io/v2/...
+POLYGON_RPC_URL=...
+
+# Solana
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+METAPLEX_RPC_URL=...       # optional, for metadata indexing
+
+# Hedera
+HEDERA_MIRROR_NODE=https://testnet.mirrornode.hedera.com/api/v1   # or mainnet mirror node
+HEDERA_OPERATOR_ID=
+HEDERA_OPERATOR_KEY=       # only if custodial server-side actions (not recommended)
+
+# App
+APP_BASE_URL=...
+
+Frontend: NFT Vault (React) — key points
+
+Uses wagmi/web3modal/walletconnect or web3modal v2 for EVM wallets
+
+Uses @solana/wallet-adapter-react for Solana wallets (Phantom)
+
+Client-side signs transfer transactions (recommended). Backend only broadcasts signed txs if you want custodial flow.
+
+Install frontend deps
+# for EVM + web3modal/wagmi
+npm install wagmi ethers web3modal @web3modal/react
+# for Solana
+npm install @solana/web3.js @solana/wallet-adapter-react @solana/wallet-adapter-wallets @solana/wallet-adapter-react-ui
+# misc
+npm install axios dayjs
+
+NFTVault.jsx (abridged — paste into /frontend/src/pages/NFTVault.jsx)
+import React, { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import Web3Modal from "web3modal";
+import WalletConnectProvider from "@walletconnect/web3-provider";
+import axios from "axios";
+
+// Solana wallet adapter imports (wrap app root with providers in real app)
+import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+
+const ALCHEMY_API = process.env.REACT_APP_ALCHEMY_API; // e.g. https://eth-mainnet.g.alchemy.com/v2/KEY
+
+export default function NFTVault() {
+  const [provider, setProvider] = useState(null); // Ethers provider
+  const [address, setAddress] = useState(null);
+  const [chain, setChain] = useState("ethereum"); // keep track of selected chain (eth/polygon/solana/hedera)
+  const [nfts, setNfts] = useState([]);
+  const [solanaPublicKey, setSolanaPublicKey] = useState(null);
+
+  useEffect(() => {
+    // optionally auto-connect if cached provider
+  }, []);
+
+  async function connectEvm() {
+    const web3Modal = new Web3Modal({
+      cacheProvider: true,
+      providerOptions: {
+        walletconnect: { package: WalletConnectProvider, options: { infuraId: process.env.REACT_APP_INFURA_ID } }
+      }
+    });
+    const instance = await web3Modal.connect();
+    const web3Provider = new ethers.providers.Web3Provider(instance);
+    setProvider(web3Provider);
+    const signer = web3Provider.getSigner();
+    const addr = await signer.getAddress();
+    setAddress(addr);
+  }
+
+  // Fetch NFTs for EVM (Alchemy NFT API example)
+  async function fetchEvmNfts() {
+    if (!address) return;
+    // Alchemy NFTs for owner endpoint
+    const base = process.env.REACT_APP_ALCHEMY_API || ALCHEMY_API;
+    const chainPath = chain === "polygon" ? "polygon-mainnet" : "eth-mainnet";
+    const url = `${base}/getNFTs/?owner=${address}&contractAddresses=[]`;
+    // If using Alchemy REST directly, adjust endpoint accordingly
+    const resp = await axios.get(`/api/evm/nfts?owner=${address}&chain=${chain}`);
+    setNfts(resp.data.nfts || []);
+  }
+
+  // Transfer EVM NFT (client-side sign recommended)
+  async function transferEvmNft(contractAddress, tokenId, to) {
+    if (!provider) {
+      alert("Connect wallet first");
+      return;
+    }
+    const signer = provider.getSigner();
+    // ERC721 ABI fragment
+    const abi = ["function safeTransferFrom(address from, address to, uint256 tokenId)"];
+    const nft = new ethers.Contract(contractAddress, abi, signer);
+    const from = await signer.getAddress();
+    const tx = await nft.safeTransferFrom(from, to, tokenId);
+    await tx.wait();
+    alert("Transfer submitted: " + tx.hash);
+  }
+
+  // Solana: fetch NFTs using Metaplex or simple metadata lookup via on-chain metadata
+  async function fetchSolanaNfts() {
+    if (!solanaPublicKey) return;
+    const connection = new Connection(process.env.REACT_APP_SOLANA_RPC || "https://api.mainnet-beta.solana.com");
+    // Use a 3rd-party indexer or Metaplex JS — simplified: call backend endpoint
+    const resp = await axios.get(`/api/solana/nfts?owner=${solanaPublicKey}`);
+    setNfts(resp.data.nfts || []);
+  }
+
+  // Solana transfer (client signs in wallet adapter — example only)
+  async function transferSolanaNft(mintAddress, toAddress, walletAdapter) {
+    // Build transfer instruction using token program + associated token accounts
+    // It's best to use @solana/spl-token or Metaplex library to handle NFT token transfers
+    alert("Use spl-token/Metaplex libs to transfer — see docs");
+  }
+
+  // Hedera: fetch NFTs via mirror node
+  async function fetchHederaNfts() {
+    const resp = await axios.get(`/api/hedera/nfts?owner=${address}`);
+    setNfts(resp.data.nfts || []);
+  }
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>NFT Vault</h2>
+
+      <div style={{ marginBottom: 12 }}>
+        <button onClick={() => { setChain("ethereum"); connectEvm(); }}>Connect EVM Wallet</button>
+        <button onClick={() => { setChain("solana"); /* open solana wallet connect flow */ }}>Connect Solana Wallet</button>
+        <button onClick={() => { setChain("hedera"); /* show hedera connect modal */ }}>Connect Hedera</button>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <button onClick={() => chain === "solana" ? fetchSolanaNfts() : fetchEvmNfts()}>Sync NFTs</button>
+      </div>
+
+      <div>
+        {nfts.length === 0 && <div>No NFTs found — click Sync</div>}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          {nfts.map((nft, i) => (
+            <div key={i} style={{ border: "1px solid #ddd", padding: 12, width: 240 }}>
+              <img src={nft.image || nft.thumbnail} alt="" style={{ width: "100%", height: 160, objectFit: "cover" }} />
+              <h4>{nft.name || `${nft.contract}:${nft.tokenId}`}</h4>
+              <div style={{ fontSize: 12 }}>{nft.description}</div>
+              <div style={{ marginTop: 8 }}>
+                <button onClick={() => transferEvmNft(nft.contract, nft.tokenId, prompt("Recipient address"))}>Transfer</button>
+                <button onClick={() => window.open(nft.external_url || nft.permalink, "_blank")}>View</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+This component is a simple UI. For Solana, you must integrate the wallet adapter and use Metaplex libraries to fetch metadata and perform transfers.
+
+Backend: EVM NFT endpoints (Node.js/Express)
+
+Uses Alchemy / Moralis to fetch NFTs. If you prefer self-hosted indexing, run TheGraph or Covalent.
+
+Install backend deps
+npm install express axios ethers body-parser
+
+/backend/api/routes/evm.js
+const express = require("express");
+const axios = require("axios");
+const router = express.Router();
+
+router.get("/nfts", async (req, res) => {
+  const { owner, chain = "ethereum" } = req.query;
+  try {
+    // Example using Alchemy NFT API (owner NFTs)
+    // You must set ALCHEMY_API_KEY in env
+    const apiKey = process.env.ALCHEMY_API_KEY;
+    const base = chain === "polygon" ? `https://polygon-mainnet.g.alchemy.com/v2/${apiKey}` : `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
+    const url = `${base}/getNFTs/?owner=${owner}`;
+    const resp = await axios.get(url);
+    // map to a simple normalized schema
+    const nfts = (resp.data.ownedNfts || []).map(n => ({
+      contract: n.contract.address,
+      tokenId: n.id.tokenId,
+      name: n.metadata?.name || n.title,
+      description: n.metadata?.description || n.description,
+      image: n.metadata?.image || n.media?.[0]?.gateway,
+      raw: n
+    }));
+    res.json({ nfts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
+
+
+Add to server.js:
+
+const express = require("express");
+const app = express();
+app.use("/api/evm", require("./api/routes/evm"));
+// other routes...
+app.listen(process.env.PORT || 3000);
+
+Backend: Solana endpoints (simplified)
+
+Fetching Solana NFTs reliably requires Metaplex or an indexer like QuickNode NFT API or a custom scraper of metadata accounts. Easiest: use a 3rd-party indexer or run Metaplex JS on a backend.
+
+/backend/api/routes/solana.js (example using a 3rd-party indexer API)
+const express = require("express");
+const axios = require("axios");
+const router = express.Router();
+
+router.get("/nfts", async (req, res) => {
+  const { owner } = req.query;
+  try {
+    // Example: call your indexer or QuickNode NFT API
+    // const resp = await axios.get(`https://api.quicknode.com/solana/nfts/${owner}?apiKey=${process.env.QUICKNODE_KEY}`);
+    // map results...
+    res.json({ nfts: [] }); // placeholder - implement with chosen indexer
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+module.exports = router;
+
+Backend: Hedera endpoints (mirror node)
+
+Hedera mirror nodes expose /accounts/{accountId}/tokens and /tokens.
+
+/backend/api/routes/hedera.js
+const express = require("express");
+const axios = require("axios");
+const router = express.Router();
+
+const MIRROR = process.env.HEDERA_MIRROR_NODE || "https://mainnet-public.mirrornode.hedera.com/api/v1";
+
+router.get("/nfts", async (req, res) => {
+  const { owner } = req.query;
+  try {
+    // Mirror node: get token relationships for account
+    const resp = await axios.get(`${MIRROR}/accounts/${owner}/tokens`);
+    // resp.data.tokens gives token relationships — filter NFT (type)
+    // To get metadata, call /tokens/{tokenId}
+    const tokens = resp.data.tokens || [];
+    const nftTokens = []; // map to normalized schema
+    for (const t of tokens) {
+      // get token info
+      const info = await axios.get(`${MIRROR}/tokens/${t.token_id}`);
+      nftTokens.push({
+        tokenId: t.token_id,
+        metadata: t.metadata || [],
+        name: info.data.name,
+        symbol: info.data.symbol,
+        decimals: info.data.decimals
+      });
+    }
+    res.json({ nfts: nftTokens });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
+
+Transfer flows — important notes
+
+EVM: Use client-side signing (MetaMask/WalletConnect). The frontend safeTransferFrom code above shows how.
+
+Solana: Use wallet adapter to sign; use @solana/spl-token or Metaplex SDK to perform token transfers.
+
+Hedera: Transfers must be signed by the owner account; server-side signing requires operator key (custodial) — not recommended. Provide client-side signing options (use a Hedera wallet or link with HashPack/WalletConnect-like solutions for Hedera).
+
+If you need server-side broadcasting of already-signed tx hex, expose endpoints like /api/evm/broadcast to accept signedTxHex and call the RPC to broadcast.
+
+UI / UX suggestions (for the NFT Vault)
+
+Left column: Connect Wallet (EVM / Solana / Hedera) + chain selector + Sync button
+
+Middle: NFT grid (image, name, collection, attributes)
+
+Each NFT card: View Metadata, Transfer, List for Sale (opens marketplace flow)
+
+Right: Selected NFT details + activity log + raw on-chain links
+
+Allow bulk actions: bulk transfer, bulk list (requires marketplace integration)
+
+Allow local caching & offline viewing: cache metadata & images in IndexedDB, refresh on reconnect
+
+Marketplace / trading integration
+
+To list for sale and handle trades you must integrate with marketplaces:
+
+OpenSea (EVM) — has APIs & SDK, but requires API key and supports only certain chains.
+
+LooksRare / Seaport — implement Seaport protocol for listing & offers (requires client signing).
+
+Magic Eden (Solana) — use Magic Eden API / SDK for listings on Solana.
+
+Implementing a full marketplace is a large scope; recommend redirecting users to marketplace listing flows or integrating Seaport/MagicEden SDKs after initial MVP.
+
+Security & production checklist (must do)
+
+NEVER keep raw private keys in your backend unless using an HSM or MPC.
+
+Always use HTTPS and secure cookies for sessions.
+
+Rate-limit NFT metadata fetching; use Redis cache to avoid blowing through API quotas.
+
+Validate token contract addresses & token IDs before transferring.
+
+Add confirmations (2FA / email) for transfers above thresholds.
+
+Log all on-chain actions for audit; do not leak PII in logs.
+
+Test thoroughly on testnets: Goerli/Polygon Mumbai for EVM, Devnet for Solana, Hedera testnet for HBAR.

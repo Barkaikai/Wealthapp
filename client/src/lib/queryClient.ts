@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { queueMutation } from "./offlineQueue";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -32,15 +33,73 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Check if online
+  if (!navigator.onLine && method !== 'GET') {
+    // Queue mutation for later
+    await queueMutation(url, method, data, {
+      priority: getPriority(url),
+      maxRetries: 3,
+    });
+    
+    // Return synthetic response indicating queued
+    const queuedResponse = new Response(
+      JSON.stringify({ 
+        queued: true,
+        message: 'Request queued for when connection is restored'
+      }),
+      { 
+        status: 202,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+    return queuedResponse;
+  }
 
-  await throwIfResNotOk(res);
-  return res;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error: any) {
+    // If fetch fails and it's a mutation, queue it
+    if (!navigator.onLine && method !== 'GET') {
+      await queueMutation(url, method, data, {
+        priority: getPriority(url),
+        maxRetries: 3,
+      });
+      
+      const queuedResponse = new Response(
+        JSON.stringify({ 
+          queued: true,
+          message: 'Request queued for when connection is restored'
+        }),
+        { 
+          status: 202,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      return queuedResponse;
+    }
+    
+    throw error;
+  }
+}
+
+// Helper to determine priority based on URL
+function getPriority(url: string): number {
+  // Critical operations get higher priority
+  if (url.includes('/health/')) return 10;
+  if (url.includes('/accounting/')) return 9;
+  if (url.includes('/crm/')) return 8;
+  if (url.includes('/tasks/')) return 7;
+  if (url.includes('/calendar/')) return 6;
+  if (url.includes('/notes/')) return 5;
+  return 0; // Default priority
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

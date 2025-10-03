@@ -18,6 +18,7 @@ import { ViewModeProvider } from "@/components/ViewModeProvider";
 import { ViewModeSwitcher } from "@/components/ViewModeSwitcher";
 import { DigitalCalendar } from "@/components/DigitalCalendar";
 import { useAuth } from "@/hooks/useAuth";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { CalendarDays } from "lucide-react";
@@ -99,6 +100,9 @@ function MobileSidebarHandler() {
 function AuthenticatedApp() {
   const { user } = useAuth() as { user: User };
   const [calendarOpen, setCalendarOpen] = useState(false);
+  
+  // Initialize offline sync
+  useOfflineSync();
   
   const style = {
     "--sidebar-width": "16rem",

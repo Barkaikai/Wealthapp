@@ -3071,10 +3071,16 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     try {
       const userId = req.user.claims.sub;
       const wallets = await storage.getWalletConnectionsByUserId(userId);
-      res.json({ wallets });
+      // Return 200 with data (or empty array if null)
+      res.json({ wallets: wallets || [], error: false });
     } catch (error: any) {
       console.error('[NFT] Get wallets error:', error);
-      res.status(500).json({ message: error.message || 'Failed to fetch wallets' });
+      // Return 503 with empty array for gentle UX while preserving observability
+      res.status(503).json({ 
+        wallets: [], 
+        error: true,
+        message: 'Unable to fetch wallet data. Please try again later.' 
+      });
     }
   });
 
@@ -3168,10 +3174,16 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     try {
       const userId = req.user.claims.sub;
       const nfts = await storage.getNftAssets(userId);
-      res.json({ nfts });
+      // Return 200 with data (or empty array if null)
+      res.json({ nfts: nfts || [], error: false });
     } catch (error: any) {
       console.error('[NFT] Get assets error:', error);
-      res.status(500).json({ message: error.message || 'Failed to fetch NFTs' });
+      // Return 503 with empty array for gentle UX while preserving observability
+      res.status(503).json({ 
+        nfts: [], 
+        error: true,
+        message: 'Unable to fetch NFT data. Please try again later.' 
+      });
     }
   });
 

@@ -23,6 +23,7 @@ import {
   taxEvents,
   rebalancingRecommendations,
   anomalyDetections,
+  receipts,
   type User,
   type UpsertUser,
   type Asset,
@@ -71,6 +72,8 @@ import {
   type InsertRebalancingRecommendation,
   type AnomalyDetection,
   type InsertAnomalyDetection,
+  type Receipt,
+  type InsertReceipt,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -201,6 +204,13 @@ export interface IStorage {
   getAnomalyDetections(userId: string, status?: string): Promise<AnomalyDetection[]>;
   createAnomalyDetection(anomaly: InsertAnomalyDetection): Promise<AnomalyDetection>;
   updateAnomalyDetection(id: number, userId: string, anomaly: Partial<InsertAnomalyDetection>): Promise<AnomalyDetection>;
+
+  // Receipt operations
+  getReceipts(userId: string, status?: string): Promise<Receipt[]>;
+  getReceipt(id: number, userId: string): Promise<Receipt | undefined>;
+  createReceipt(receipt: InsertReceipt): Promise<Receipt>;
+  updateReceipt(id: number, userId: string, receipt: Partial<InsertReceipt>): Promise<Receipt>;
+  deleteReceipt(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -799,6 +809,41 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Anomaly detection not found");
     }
     return updatedAnomaly;
+  }
+
+  // Receipt operations
+  async getReceipts(userId: string, status?: string): Promise<Receipt[]> {
+    const conditions = status 
+      ? and(eq(receipts.userId, userId), eq(receipts.status, status))
+      : eq(receipts.userId, userId);
+    return await db.select().from(receipts).where(conditions).orderBy(desc(receipts.createdAt));
+  }
+
+  async getReceipt(id: number, userId: string): Promise<Receipt | undefined> {
+    const [receipt] = await db.select().from(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
+    return receipt;
+  }
+
+  async createReceipt(receipt: InsertReceipt): Promise<Receipt> {
+    const [newReceipt] = await db.insert(receipts).values(receipt).returning();
+    return newReceipt;
+  }
+
+  async updateReceipt(id: number, userId: string, receipt: Partial<InsertReceipt>): Promise<Receipt> {
+    const [updatedReceipt] = await db
+      .update(receipts)
+      .set(receipt)
+      .where(and(eq(receipts.id, id), eq(receipts.userId, userId)))
+      .returning();
+    
+    if (!updatedReceipt) {
+      throw new Error("Receipt not found");
+    }
+    return updatedReceipt;
+  }
+
+  async deleteReceipt(id: number, userId: string): Promise<void> {
+    await db.delete(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
   }
 }
 

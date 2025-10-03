@@ -27,6 +27,14 @@ export function getSession() {
   const pgStore = connectPg(session);
   const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   
+  pgPool.on('error', (err) => {
+    console.error('[Session] Unexpected session database pool error:', err);
+  });
+  
+  pgPool.on('connect', () => {
+    console.log('[Session] Session database connection established');
+  });
+  
   const sessionStore = new pgStore({
     pool: pgPool,
     tableName: "sessions",

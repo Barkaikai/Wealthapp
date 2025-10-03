@@ -27,6 +27,13 @@ import {
   wallets,
   walletTransactions,
   paymentMethods,
+  stepRecords,
+  exerciseRecords,
+  vitalRecords,
+  mindfulnessSessions,
+  sleepLogs,
+  foodLogs,
+  aiSyncLogs,
   type User,
   type UpsertUser,
   type Asset,
@@ -83,9 +90,23 @@ import {
   type InsertWalletTransaction,
   type PaymentMethod,
   type InsertPaymentMethod,
+  type StepRecord,
+  type InsertStepRecord,
+  type ExerciseRecord,
+  type InsertExerciseRecord,
+  type VitalRecord,
+  type InsertVitalRecord,
+  type MindfulnessSession,
+  type InsertMindfulnessSession,
+  type SleepLog,
+  type InsertSleepLog,
+  type FoodLog,
+  type InsertFoodLog,
+  type AISyncLog,
+  type InsertAISyncLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -940,6 +961,163 @@ export class DatabaseStorage implements IStorage {
 
   async deletePaymentMethod(id: number, userId: string): Promise<void> {
     await db.delete(paymentMethods).where(and(eq(paymentMethods.id, id), eq(paymentMethods.userId, userId)));
+  }
+
+  // Step Records operations
+  async getStepRecords(userId: string, limit?: number): Promise<StepRecord[]> {
+    const query = db.select().from(stepRecords).where(eq(stepRecords.userId, userId)).orderBy(desc(stepRecords.startTime));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createStepRecord(recordData: InsertStepRecord): Promise<StepRecord> {
+    const [record] = await db.insert(stepRecords).values(recordData).returning();
+    return record;
+  }
+
+  async getUnsyncedStepRecords(userId: string): Promise<StepRecord[]> {
+    return await db.select().from(stepRecords).where(and(eq(stepRecords.userId, userId), eq(stepRecords.syncedToAI, 'false'))).orderBy(desc(stepRecords.startTime));
+  }
+
+  async markStepRecordsSynced(recordIds: number[]): Promise<void> {
+    await db.update(stepRecords).set({ syncedToAI: 'true' }).where(sql`${stepRecords.id} = ANY(ARRAY[${recordIds.join(',')}]::int[])`);
+  }
+
+  // Exercise Records operations
+  async getExerciseRecords(userId: string, limit?: number): Promise<ExerciseRecord[]> {
+    const query = db.select().from(exerciseRecords).where(eq(exerciseRecords.userId, userId)).orderBy(desc(exerciseRecords.startTime));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createExerciseRecord(recordData: InsertExerciseRecord): Promise<ExerciseRecord> {
+    const [record] = await db.insert(exerciseRecords).values(recordData).returning();
+    return record;
+  }
+
+  async getUnsyncedExerciseRecords(userId: string): Promise<ExerciseRecord[]> {
+    return await db.select().from(exerciseRecords).where(and(eq(exerciseRecords.userId, userId), eq(exerciseRecords.syncedToAI, 'false'))).orderBy(desc(exerciseRecords.startTime));
+  }
+
+  async markExerciseRecordsSynced(recordIds: number[]): Promise<void> {
+    await db.update(exerciseRecords).set({ syncedToAI: 'true' }).where(sql`${exerciseRecords.id} = ANY(ARRAY[${recordIds.join(',')}]::int[])`);
+  }
+
+  // Vital Records operations
+  async getVitalRecords(userId: string, limit?: number): Promise<VitalRecord[]> {
+    const query = db.select().from(vitalRecords).where(eq(vitalRecords.userId, userId)).orderBy(desc(vitalRecords.recordedAt));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createVitalRecord(recordData: InsertVitalRecord): Promise<VitalRecord> {
+    const [record] = await db.insert(vitalRecords).values(recordData).returning();
+    return record;
+  }
+
+  async getUnsyncedVitalRecords(userId: string): Promise<VitalRecord[]> {
+    return await db.select().from(vitalRecords).where(and(eq(vitalRecords.userId, userId), eq(vitalRecords.syncedToAI, 'false'))).orderBy(desc(vitalRecords.recordedAt));
+  }
+
+  async markVitalRecordsSynced(recordIds: number[]): Promise<void> {
+    await db.update(vitalRecords).set({ syncedToAI: 'true' }).where(sql`${vitalRecords.id} = ANY(ARRAY[${recordIds.join(',')}]::int[])`);
+  }
+
+  // Mindfulness Sessions operations
+  async getMindfulnessSessions(userId: string, limit?: number): Promise<MindfulnessSession[]> {
+    const query = db.select().from(mindfulnessSessions).where(eq(mindfulnessSessions.userId, userId)).orderBy(desc(mindfulnessSessions.startedAt));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createMindfulnessSession(sessionData: InsertMindfulnessSession): Promise<MindfulnessSession> {
+    const [session] = await db.insert(mindfulnessSessions).values(sessionData).returning();
+    return session;
+  }
+
+  async getUnsyncedMindfulnessSessions(userId: string): Promise<MindfulnessSession[]> {
+    return await db.select().from(mindfulnessSessions).where(and(eq(mindfulnessSessions.userId, userId), eq(mindfulnessSessions.syncedToAI, 'false'))).orderBy(desc(mindfulnessSessions.startedAt));
+  }
+
+  async markMindfulnessSessionsSynced(sessionIds: number[]): Promise<void> {
+    await db.update(mindfulnessSessions).set({ syncedToAI: 'true' }).where(sql`${mindfulnessSessions.id} = ANY(ARRAY[${sessionIds.join(',')}]::int[])`);
+  }
+
+  // Sleep Logs operations
+  async getSleepLogs(userId: string, limit?: number): Promise<SleepLog[]> {
+    const query = db.select().from(sleepLogs).where(eq(sleepLogs.userId, userId)).orderBy(desc(sleepLogs.bedtime));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createSleepLog(logData: InsertSleepLog): Promise<SleepLog> {
+    const [log] = await db.insert(sleepLogs).values(logData).returning();
+    return log;
+  }
+
+  async getUnsyncedSleepLogs(userId: string): Promise<SleepLog[]> {
+    return await db.select().from(sleepLogs).where(and(eq(sleepLogs.userId, userId), eq(sleepLogs.syncedToAI, 'false'))).orderBy(desc(sleepLogs.bedtime));
+  }
+
+  async markSleepLogsSynced(logIds: number[]): Promise<void> {
+    await db.update(sleepLogs).set({ syncedToAI: 'true' }).where(sql`${sleepLogs.id} = ANY(ARRAY[${logIds.join(',')}]::int[])`);
+  }
+
+  // Food Logs operations
+  async getFoodLogs(userId: string, limit?: number): Promise<FoodLog[]> {
+    const query = db.select().from(foodLogs).where(eq(foodLogs.userId, userId)).orderBy(desc(foodLogs.loggedAt));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createFoodLog(logData: InsertFoodLog): Promise<FoodLog> {
+    const [log] = await db.insert(foodLogs).values(logData).returning();
+    return log;
+  }
+
+  async getUnsyncedFoodLogs(userId: string): Promise<FoodLog[]> {
+    return await db.select().from(foodLogs).where(and(eq(foodLogs.userId, userId), eq(foodLogs.syncedToAI, 'false'))).orderBy(desc(foodLogs.loggedAt));
+  }
+
+  async markFoodLogsSynced(logIds: number[]): Promise<void> {
+    await db.update(foodLogs).set({ syncedToAI: 'true' }).where(sql`${foodLogs.id} = ANY(ARRAY[${logIds.join(',')}]::int[])`);
+  }
+
+  // AI Sync Logs operations
+  async getAISyncLogs(userId: string, limit?: number): Promise<AISyncLog[]> {
+    const query = db.select().from(aiSyncLogs).where(eq(aiSyncLogs.userId, userId)).orderBy(desc(aiSyncLogs.startedAt));
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async createAISyncLog(logData: InsertAISyncLog): Promise<AISyncLog> {
+    const [log] = await db.insert(aiSyncLogs).values(logData).returning();
+    return log;
+  }
+
+  async updateAISyncLog(id: number, logData: Partial<InsertAISyncLog>): Promise<AISyncLog> {
+    const [updatedLog] = await db.update(aiSyncLogs)
+      .set(logData)
+      .where(eq(aiSyncLogs.id, id))
+      .returning();
+    if (!updatedLog) {
+      throw new Error("AI Sync Log not found");
+    }
+    return updatedLog;
   }
 }
 

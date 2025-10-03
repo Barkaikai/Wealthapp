@@ -12,13 +12,18 @@ const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined
 
 export function ViewModeProvider({ children }: { children: React.ReactNode }) {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem("viewMode");
-    return (saved as ViewMode) || "desktop";
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("viewMode");
+      return (saved as ViewMode) || "desktop";
+    }
+    return "desktop";
   });
 
   useEffect(() => {
-    localStorage.setItem("viewMode", viewMode);
-    document.documentElement.setAttribute("data-view-mode", viewMode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("viewMode", viewMode);
+      document.documentElement.setAttribute("data-view-mode", viewMode);
+    }
   }, [viewMode]);
 
   const toggleViewMode = () => {

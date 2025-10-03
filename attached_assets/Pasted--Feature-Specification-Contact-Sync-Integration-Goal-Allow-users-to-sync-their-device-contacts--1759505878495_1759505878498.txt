@@ -1,0 +1,137 @@
+🔹 Feature Specification: Contact Sync Integration
+Goal
+
+Allow users to sync their device contacts (phone numbers, emails, names, etc.) with the app. Once the user opts in, contacts should automatically upload, update, and remain in sync with their phone’s contact list.
+
+1. Permissions & Privacy
+
+Android: Requires READ_CONTACTS (and optionally WRITE_CONTACTS if editing).
+
+iOS: Requires NSContactsUsageDescription in Info.plist.
+
+Security: Contacts should only be synced after explicit user consent (via a toggle or permission request).
+
+Data Handling: Decide whether contacts are:
+
+Stored locally only (private on device, AI processes them locally), or
+
+Uploaded to your secure backend (encrypted in transit & storage).
+
+2. Implementation (React Native Example)
+
+Install a contacts library:
+
+npm install react-native-contacts
+
+Example Code
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList, PermissionsAndroid, Platform } from "react-native";
+import Contacts from "react-native-contacts";
+
+export default function ContactSync() {
+  const [contacts, setContacts] = useState([]);
+
+  const requestPermission = async () => {
+    if (Platform.OS === "android") {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+        {
+          title: "Contacts Permission",
+          message: "This app needs access to your contacts to sync them.",
+          buttonPositive: "OK",
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true; // iOS handled by Info.plist
+  };
+
+  const loadContacts = async () => {
+    const permission = await requestPermission();
+    if (!permission) return;
+
+    Contacts.getAll()
+      .then((contacts) => {
+        setContacts(contacts);
+        // Here you can also upload contacts to your backend API
+        // fetch("https://your-backend.com/api/syncContacts", { method: "POST", body: JSON.stringify(contacts) });
+      })
+      .catch((err) => console.warn("Error loading contacts:", err));
+  };
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <Text style={{ fontSize: 18, marginBottom: 12 }}>Contact Sync</Text>
+      <Button title="Sync My Contacts" onPress={loadContacts} />
+
+      <FlatList
+        data={contacts}
+        keyExtractor={(item) => item.recordID}
+        renderItem={({ item }) => (
+          <View style={{ padding: 6, borderBottomWidth: 1 }}>
+            <Text>{item.givenName} {item.familyName}</Text>
+            {item.phoneNumbers.map((p, i) => (
+              <Text key={i}>{p.label}: {p.number}</Text>
+            ))}
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+3. Features to Add
+
+Auto-sync toggle in settings → when enabled, app auto-checks for new/updated contacts every 24 hours (or when app opens).
+
+Backend API integration → securely send contacts to your server if needed. Example JSON format:
+
+{
+  "userId": "12345",
+  "contacts": [
+    { "name": "John Doe", "phone": "+123456789", "email": "john@example.com" }
+  ]
+}
+
+
+AI Integration → AI can analyze synced contacts to:
+
+Suggest follow-ups (e.g., “You haven’t called Sarah in 2 months.”)
+
+Organize contacts into categories (business, family, finance, etc.)
+
+Sync with email/calendar for reminders
+
+4. User Experience
+
+In Settings Tab:
+
+“Sync My Contacts” button
+
+Toggle: “Auto-Sync Contacts”
+
+Message: “Your contacts are private. We never share them without your permission.”
+
+After sync, display:
+
+Total contacts synced
+
+Last sync date/time
+
+Option to delete synced data
+
+5. Testing Checklist
+
+Android: Test on latest versions (with new permission model).
+
+iOS: Test permission flow (Info.plist message appears).
+
+Test with contacts that have:
+
+Multiple numbers
+
+Emails
+
+No phone number
+
+Non-Latin characters (Chinese, Arabic, etc.)

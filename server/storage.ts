@@ -125,6 +125,24 @@ import {
   type InsertBankTransaction,
   type AccountingAuditLog,
   type InsertAccountingAuditLog,
+  crmOrganizations,
+  crmContacts,
+  crmLeads,
+  crmDeals,
+  crmActivities,
+  crmAuditLogs,
+  type CrmOrganization,
+  type InsertCrmOrganization,
+  type CrmContact,
+  type InsertCrmContact,
+  type CrmLead,
+  type InsertCrmLead,
+  type CrmDeal,
+  type InsertCrmDeal,
+  type CrmActivity,
+  type InsertCrmActivity,
+  type CrmAuditLog,
+  type InsertCrmAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -297,6 +315,24 @@ export interface IStorage {
   generateBalanceSheet(userId: string): Promise<{ assets: { accountCode: string; accountName: string; amount: number }[]; liabilities: { accountCode: string; accountName: string; amount: number }[]; equity: { accountCode: string; accountName: string; amount: number }[]; totalAssets: number; totalLiabilities: number; totalEquity: number }>;
   getAccountLedger(userId: string, accountCode: string): Promise<{ account: Account; entries: (JournalLine & { entry: JournalEntry })[] }>;
   createAuditLog(log: InsertAccountingAuditLog): Promise<AccountingAuditLog>;
+
+  // CRM operations
+  getCrmOrganizations(userId: string): Promise<CrmOrganization[]>;
+  createCrmOrganization(data: InsertCrmOrganization): Promise<CrmOrganization>;
+  getCrmContacts(userId: string, query?: string): Promise<CrmContact[]>;
+  getCrmContact(id: number, userId: string): Promise<CrmContact | undefined>;
+  createCrmContact(data: InsertCrmContact): Promise<CrmContact>;
+  updateCrmContact(id: number, userId: string, data: Partial<InsertCrmContact>): Promise<CrmContact>;
+  getCrmLeads(userId: string): Promise<CrmLead[]>;
+  createCrmLead(data: InsertCrmLead): Promise<CrmLead>;
+  updateCrmLead(id: number, userId: string, data: Partial<InsertCrmLead>): Promise<CrmLead>;
+  getCrmDeals(userId: string): Promise<CrmDeal[]>;
+  createCrmDeal(data: InsertCrmDeal): Promise<CrmDeal>;
+  updateCrmDeal(id: number, userId: string, data: Partial<InsertCrmDeal>): Promise<CrmDeal>;
+  getCrmActivities(userId: string, contactId?: number, dealId?: number): Promise<CrmActivity[]>;
+  createCrmActivity(data: InsertCrmActivity): Promise<CrmActivity>;
+  updateCrmActivity(id: number, userId: string, data: Partial<InsertCrmActivity>): Promise<CrmActivity>;
+  createCrmAuditLog(log: InsertCrmAuditLog): Promise<CrmAuditLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1545,6 +1581,209 @@ export class DatabaseStorage implements IStorage {
 
   async createAuditLog(log: InsertAccountingAuditLog): Promise<AccountingAuditLog> {
     const [auditLog] = await db.insert(accountingAuditLogs).values(log).returning();
+    return auditLog;
+  }
+
+  // CRM Operations
+  async getCrmOrganizations(userId: string): Promise<CrmOrganization[]> {
+    return await db.select().from(crmOrganizations)
+      .where(eq(crmOrganizations.userId, userId))
+      .orderBy(desc(crmOrganizations.createdAt));
+  }
+
+  async createCrmOrganization(data: InsertCrmOrganization): Promise<CrmOrganization> {
+    const [org] = await db.insert(crmOrganizations).values(data).returning();
+    await this.createCrmAuditLog({
+      userId: data.userId,
+      action: 'create_organization',
+      entityType: 'organization',
+      entityId: org.id,
+      details: { name: org.name }
+    });
+    return org;
+  }
+
+  async getCrmContacts(userId: string, query?: string): Promise<CrmContact[]> {
+    let queryBuilder = db.select().from(crmContacts)
+      .where(eq(crmContacts.userId, userId));
+    
+    if (query) {
+      const like = `%${query}%`;
+      queryBuilder = queryBuilder.where(
+        sql`${crmContacts.firstName} ILIKE ${like} OR ${crmContacts.lastName} ILIKE ${like} OR ${crmContacts.email} ILIKE ${like}`
+      );
+    }
+    
+    return await queryBuilder.orderBy(desc(crmContacts.createdAt));
+  }
+
+  async getCrmContact(id: number, userId: string): Promise<CrmContact | undefined> {
+    const [contact] = await db.select().from(crmContacts)
+      .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)));
+    return contact;
+  }
+
+  async createCrmContact(data: InsertCrmContact): Promise<CrmContact> {
+    const [contact] = await db.insert(crmContacts).values(data).returning();
+    await this.createCrmAuditLog({
+      userId: data.userId,
+      action: 'create_contact',
+      entityType: 'contact',
+      entityId: contact.id,
+      details: { email: contact.email }
+    });
+    return contact;
+  }
+
+  async updateCrmContact(id: number, userId: string, data: Partial<InsertCrmContact>): Promise<CrmContact> {
+    const [contact] = await db.update(crmContacts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)))
+      .returning();
+    
+    if (!contact) {
+      throw new Error('Contact not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'update_contact',
+      entityType: 'contact',
+      entityId: id,
+      details: data
+    });
+    
+    return contact;
+  }
+
+  async getCrmLeads(userId: string): Promise<CrmLead[]> {
+    return await db.select().from(crmLeads)
+      .where(eq(crmLeads.userId, userId))
+      .orderBy(desc(crmLeads.createdAt));
+  }
+
+  async createCrmLead(data: InsertCrmLead): Promise<CrmLead> {
+    const [lead] = await db.insert(crmLeads).values(data).returning();
+    await this.createCrmAuditLog({
+      userId: data.userId,
+      action: 'create_lead',
+      entityType: 'lead',
+      entityId: lead.id,
+      details: { source: lead.source, status: lead.status }
+    });
+    return lead;
+  }
+
+  async updateCrmLead(id: number, userId: string, data: Partial<InsertCrmLead>): Promise<CrmLead> {
+    const [lead] = await db.update(crmLeads)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(crmLeads.id, id), eq(crmLeads.userId, userId)))
+      .returning();
+    
+    if (!lead) {
+      throw new Error('Lead not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'update_lead',
+      entityType: 'lead',
+      entityId: id,
+      details: data
+    });
+    
+    return lead;
+  }
+
+  async getCrmDeals(userId: string): Promise<CrmDeal[]> {
+    return await db.select().from(crmDeals)
+      .where(eq(crmDeals.userId, userId))
+      .orderBy(desc(crmDeals.createdAt));
+  }
+
+  async createCrmDeal(data: InsertCrmDeal): Promise<CrmDeal> {
+    const [deal] = await db.insert(crmDeals).values(data).returning();
+    await this.createCrmAuditLog({
+      userId: data.userId,
+      action: 'create_deal',
+      entityType: 'deal',
+      entityId: deal.id,
+      details: { title: deal.title, amount: deal.amount, stage: deal.stage }
+    });
+    return deal;
+  }
+
+  async updateCrmDeal(id: number, userId: string, data: Partial<InsertCrmDeal>): Promise<CrmDeal> {
+    const [deal] = await db.update(crmDeals)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(crmDeals.id, id), eq(crmDeals.userId, userId)))
+      .returning();
+    
+    if (!deal) {
+      throw new Error('Deal not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'update_deal',
+      entityType: 'deal',
+      entityId: id,
+      details: data
+    });
+    
+    return deal;
+  }
+
+  async getCrmActivities(userId: string, contactId?: number, dealId?: number): Promise<CrmActivity[]> {
+    let query = db.select().from(crmActivities)
+      .where(eq(crmActivities.userId, userId));
+    
+    if (contactId) {
+      query = query.where(eq(crmActivities.contactId, contactId));
+    }
+    
+    if (dealId) {
+      query = query.where(eq(crmActivities.dealId, dealId));
+    }
+    
+    return await query.orderBy(desc(crmActivities.createdAt));
+  }
+
+  async createCrmActivity(data: InsertCrmActivity): Promise<CrmActivity> {
+    const [activity] = await db.insert(crmActivities).values(data).returning();
+    await this.createCrmAuditLog({
+      userId: data.userId,
+      action: 'create_activity',
+      entityType: 'activity',
+      entityId: activity.id,
+      details: { type: activity.type, subject: activity.subject }
+    });
+    return activity;
+  }
+
+  async updateCrmActivity(id: number, userId: string, data: Partial<InsertCrmActivity>): Promise<CrmActivity> {
+    const [activity] = await db.update(crmActivities)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(crmActivities.id, id), eq(crmActivities.userId, userId)))
+      .returning();
+    
+    if (!activity) {
+      throw new Error('Activity not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'update_activity',
+      entityType: 'activity',
+      entityId: id,
+      details: data
+    });
+    
+    return activity;
+  }
+
+  async createCrmAuditLog(log: InsertCrmAuditLog): Promise<CrmAuditLog> {
+    const [auditLog] = await db.insert(crmAuditLogs).values(log).returning();
     return auditLog;
   }
 }

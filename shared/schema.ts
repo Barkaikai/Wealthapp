@@ -1691,3 +1691,146 @@ export const insertWealthForgeMiningHistorySchema = createInsertSchema(wealthFor
 
 export type InsertWealthForgeMiningHistory = z.infer<typeof insertWealthForgeMiningHistorySchema>;
 export type WealthForgeMiningHistory = typeof wealthForgeMiningHistory.$inferSelect;
+
+// Subscription Plans - Define available subscription tiers
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(), // Free, Premium, Enterprise
+  description: text("description"),
+  tier: varchar("tier", { length: 50 }).notNull(), // free, premium, enterprise
+  monthlyPrice: real("monthly_price").notNull(), // Price in USD
+  annualPrice: real("annual_price"), // Annual price in USD (with discount)
+  currency: varchar("currency", { length: 10 }).default('USD'),
+  stripePriceIdMonthly: varchar("stripe_price_id_monthly"), // Stripe Price ID for monthly
+  stripePriceIdAnnual: varchar("stripe_price_id_annual"), // Stripe Price ID for annual
+  stripeProductId: varchar("stripe_product_id"), // Stripe Product ID
+  features: jsonb("features").default('[]'), // Array of feature codes
+  maxAssets: integer("max_assets"), // Asset limit
+  maxEmails: integer("max_emails"), // Email storage limit
+  aiCredits: integer("ai_credits"), // Monthly AI generation credits
+  isActive: varchar("is_active", { length: 5 }).default('true'),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_subscription_plans_tier").on(table.tier),
+  index("idx_subscription_plans_active").on(table.isActive)
+]);
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+
+// User Subscriptions - Track user's active subscription
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  planId: integer("plan_id").references(() => subscriptionPlans.id, { onDelete: 'set null' }),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id").unique(),
+  status: varchar("status", { length: 50 }).notNull(), // active, trialing, past_due, canceled, incomplete
+  billingInterval: varchar("billing_interval", { length: 20 }), // monthly, annual
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAt: timestamp("cancel_at"),
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  latestInvoiceId: varchar("latest_invoice_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_user_subscriptions_user_id").on(table.userId),
+  index("idx_user_subscriptions_status").on(table.status),
+  index("idx_user_subscriptions_stripe_customer").on(table.stripeCustomerId)
+]);
+
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+
+// Subscription Events - Webhook audit trail
+export const subscriptionEvents = pgTable("subscription_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }),
+  subscriptionId: integer("subscription_id").references(() => userSubscriptions.id, { onDelete: 'set null' }),
+  eventType: varchar("event_type", { length: 100 }).notNull(), // customer.subscription.created, etc.
+  stripeEventId: varchar("stripe_event_id").unique(),
+  eventData: jsonb("event_data").default('{}'),
+  processed: varchar("processed", { length: 5 }).default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_subscription_events_user_id").on(table.userId),
+  index("idx_subscription_events_type").on(table.eventType),
+  index("idx_subscription_events_processed").on(table.processed)
+]);
+
+export const insertSubscriptionEventSchema = createInsertSchema(subscriptionEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSubscriptionEvent = z.infer<typeof insertSubscriptionEventSchema>;
+export type SubscriptionEvent = typeof subscriptionEvents.$inferSelect;
+
+// Revenue Entries - Multi-currency revenue logging
+export const revenueEntries = pgTable("revenue_entries", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'set null' }),
+  source: varchar("source", { length: 50 }).notNull(), // subscription, donation, affiliate, ads
+  amount: real("amount").notNull(), // Original amount in source currency
+  currency: varchar("currency", { length: 10 }).notNull(), // Original currency code
+  usdValue: real("usd_value").notNull(), // Converted amount in USD
+  exchangeRate: real("exchange_rate"), // Exchange rate used for conversion
+  referenceId: varchar("reference_id"), // Stripe invoice ID, transaction ID, etc.
+  description: text("description"),
+  metadata: jsonb("metadata").default('{}'), // Additional data
+  occurredAt: timestamp("occurred_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_revenue_entries_user_id").on(table.userId),
+  index("idx_revenue_entries_source").on(table.source),
+  index("idx_revenue_entries_occurred").on(table.occurredAt)
+]);
+
+export const insertRevenueEntrySchema = createInsertSchema(revenueEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRevenueEntry = z.infer<typeof insertRevenueEntrySchema>;
+export type RevenueEntry = typeof revenueEntries.$inferSelect;
+
+// Revenue Reports - Email report delivery log
+export const revenueReports = pgTable("revenue_reports", {
+  id: serial("id").primaryKey(),
+  reportType: varchar("report_type", { length: 50 }).notNull(), // daily, midday, weekly, monthly
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  totalUsd: real("total_usd").notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+  reportData: jsonb("report_data").default('{}'), // Summary stats, charts data, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_revenue_reports_type").on(table.reportType),
+  index("idx_revenue_reports_period").on(table.periodStart, table.periodEnd)
+]);
+
+export const insertRevenueReportSchema = createInsertSchema(revenueReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRevenueReport = z.infer<typeof insertRevenueReportSchema>;
+export type RevenueReport = typeof revenueReports.$inferSelect;

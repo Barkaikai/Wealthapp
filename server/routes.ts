@@ -18,6 +18,7 @@ import { runFullDiagnostics } from "./diagnostics";
 import { healthMonitor } from "./healthMonitor";
 import { analyzeDocument } from "./documentAnalysis";
 import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
+import healthRoutes from "./healthRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoints (no auth required - used by deployment platforms)
@@ -49,6 +50,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+
+  // Mount health tracking routes
+  app.use('/api', healthRoutes);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

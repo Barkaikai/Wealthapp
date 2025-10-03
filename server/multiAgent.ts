@@ -5,14 +5,36 @@ import axios from 'axios';
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
   lazyConnect: true,
+  enableReadyCheck: true,
+  enableOfflineQueue: true,
+  connectTimeout: 10000,
+  retryStrategy(times) {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  },
 });
 
 let redisAvailable = false;
 redis.connect().then(() => {
   redisAvailable = true;
-  console.log('[MultiAgent] Redis connected successfully');
+  console.log('[MultiAgent] Redis connected successfully for caching and memory');
 }).catch((err) => {
   console.warn('[MultiAgent] Redis connection failed, memory features disabled:', err.message);
+  redisAvailable = false;
+});
+
+redis.on('error', (err) => {
+  console.error('[MultiAgent] Redis error:', err);
+  redisAvailable = false;
+});
+
+redis.on('reconnecting', () => {
+  console.log('[MultiAgent] Redis reconnecting...');
+});
+
+redis.on('ready', () => {
+  redisAvailable = true;
+  console.log('[MultiAgent] Redis ready');
 });
 
 interface ProviderConfig {

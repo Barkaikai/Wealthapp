@@ -222,7 +222,6 @@ export default function NFTVault() {
           <Button
             key={chain}
             variant={selectedChain === chain ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setSelectedChain(chain as any)}
             data-testid={`button-filter-${chain}`}
           >

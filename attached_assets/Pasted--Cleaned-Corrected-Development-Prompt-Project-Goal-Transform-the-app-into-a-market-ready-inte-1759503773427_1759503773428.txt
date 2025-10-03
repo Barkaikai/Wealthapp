@@ -1,0 +1,77 @@
+🔹 Cleaned & Corrected Development Prompt
+
+Project Goal:
+Transform the app into a market-ready, intelligent personal assistant platform that integrates AI, finance, productivity, health, and communication features. The app must be optimized for usability, performance, reliability, and offline-first functionality.
+
+1. AI Integration
+
+AI should analyze user notes, categorize them automatically, and allocate them to the correct sections/folders.
+
+AI should be able to trigger and control any function in the app via natural language commands.
+
+AI should generate daily tasks and routines that optimize health, wealth, productivity, and well-being.
+
+AI should sync with the calendar tab to provide recommendations, reminders, and insights based on user goals.
+
+AI should analyze uploaded files (documents, spreadsheets, PDFs, images, etc.), extract key insights, and allocate them to proper destinations (folders, tasks, finances, etc.).
+
+AI should be able to streamline dashboard insights with personalized summaries.
+
+2. User Interface & Experience
+
+Font: Update font style, size, and color for maximum readability (clean, modern, and accessible).
+
+Dashboard: Simplify and streamline navigation; reduce clutter, improve clarity.
+
+Calendar Tab: Replace with a digital calendar view, synced with AI. Support daily/weekly/monthly views.
+
+Folders & Files: Allow creation of multiple folders for document and file storage, with tagging & search.
+
+Email Tab: Add a multi-file uploader (supporting all file types: PDF, DOCX, XLSX, TXT, images, etc.) with AI-powered sorting & analysis.
+
+3. Core Features
+
+Daily Optimization: AI auto-generates a personalized daily schedule for health, wealth, happiness, and productivity.
+
+Cross-Platform: Ensure the app works online and offline with local storage + cloud sync when reconnected.
+
+Error Handling: Audit all pre-existing errors in the codebase, fix them, and run a full quality assurance (QA) test to confirm every feature works correctly.
+
+Performance: Optimize all functions for speed, scalability, and responsiveness. Add caching/memory optimization so the app runs smoothly with large data.
+
+Scalability: Design with modular architecture so new AI features, integrations, and blockchains can be added easily in the future.
+
+4. System Requirements
+
+AI Sync: Real-time AI integration across notes, files, calendar, and tasks.
+
+File Handling: Multi-upload, all file types, auto-categorization.
+
+Calendar: Digital calendar with AI recommendations.
+
+Navigation: Intuitive, user-friendly dashboard.
+
+Offline Support: Full app functionality without internet, sync on reconnect.
+
+Testing: Fix all errors, stress test the app, and validate all functions are production-ready.
+
+Design: Modern, clean, readable UI with consistent typography and color scheme.
+
+✅ Final Deliverable
+
+A market-ready app with:
+
+AI-driven personal assistant features
+
+Automated financial and organizational intelligence
+
+Enhanced file and email management
+
+Digital calendar synced with AI recommendations
+
+Optimized design, UX, and offline support
+
+Fully tested and debugged, free of errors
+
+👉 Prompt to give your developer:
+"Please update the app to be market-ready by implementing AI-driven analysis, task generation, and file allocation. Improve UI readability (fonts, colors, sizes), add a digital calendar synced with AI for recommendations, and allow multiple folders for document storage. Enhance the email tab with a multi-file uploader that supports all file types and connects to AI for organization. Streamline dashboard navigation for ease of use. Ensure the app functions both online and offline, with smooth performance and optimized memory usage. Audit all existing code, fix errors, run full testing, and confirm every feature works perfectly. Deliver a polished, scalable, modern, and user-friendly app."

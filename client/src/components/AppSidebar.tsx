@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,56 +14,86 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 
-const menuItems = [
+const menuGroups = [
   {
-    title: "Daily Briefing",
-    url: "/",
+    label: "Overview",
     icon: LayoutDashboard,
+    items: [
+      {
+        title: "Daily Briefing",
+        url: "/",
+        icon: LayoutDashboard,
+      },
+    ],
   },
   {
-    title: "Wealth Dashboard",
-    url: "/wealth",
-    icon: Wallet,
+    label: "Financial",
+    icon: DollarSign,
+    items: [
+      {
+        title: "Wealth Dashboard",
+        url: "/wealth",
+        icon: TrendingUp,
+      },
+      {
+        title: "Personal Wallet",
+        url: "/wallet",
+        icon: CreditCard,
+      },
+      {
+        title: "Digital Accountant",
+        url: "/accountant",
+        icon: Calculator,
+      },
+      {
+        title: "CRM",
+        url: "/crm",
+        icon: Users,
+      },
+    ],
   },
   {
-    title: "Personal Wallet",
-    url: "/wallet",
-    icon: CreditCard,
+    label: "Productivity",
+    icon: Zap,
+    items: [
+      {
+        title: "Productivity Hub",
+        url: "/notepad",
+        icon: FileText,
+      },
+    ],
   },
   {
-    title: "Productivity Hub",
-    url: "/notepad",
-    icon: FileText,
+    label: "Intelligence",
+    icon: Cpu,
+    items: [
+      {
+        title: "AI Intelligence",
+        url: "/ai-intelligence",
+        icon: Brain,
+      },
+      {
+        title: "Health Monitoring",
+        url: "/health",
+        icon: Activity,
+      },
+    ],
   },
   {
-    title: "AI Intelligence",
-    url: "/ai-intelligence",
-    icon: Brain,
-  },
-  {
-    title: "Digital Accountant",
-    url: "/accountant",
-    icon: Calculator,
-  },
-  {
-    title: "CRM",
-    url: "/crm",
-    icon: Users,
-  },
-  {
-    title: "Health Monitoring",
-    url: "/health",
-    icon: Activity,
-  },
-  {
-    title: "Guide",
-    url: "/guide",
-    icon: BookOpen,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
+    label: "System",
+    icon: LifeBuoy,
+    items: [
+      {
+        title: "Guide",
+        url: "/guide",
+        icon: BookOpen,
+      },
+      {
+        title: "Settings",
+        url: "/settings",
+        icon: Settings,
+      },
+    ],
   },
 ];
 
@@ -74,25 +104,28 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-2">
-            Automation Hub
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location === item.url}>
-                    <Link href={item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-2">
+              <group.icon className="h-3 w-3 mr-2 inline-block group-data-[collapsible=icon]:hidden" />
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={location === item.url}>
+                      <Link href={item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-border space-y-2">
         {updateAvailable && (

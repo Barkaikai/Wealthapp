@@ -143,6 +143,15 @@ import {
   type InsertCrmActivity,
   type CrmAuditLog,
   type InsertCrmAuditLog,
+  nftCollections,
+  nftAssets,
+  nftActivities,
+  type NftCollection,
+  type InsertNftCollection,
+  type NftAsset,
+  type InsertNftAsset,
+  type NftActivity,
+  type InsertNftActivity,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -226,6 +235,14 @@ export interface IStorage {
   createWalletConnection(wallet: InsertWalletConnection): Promise<WalletConnection>;
   updateWalletConnection(id: number, userId: string, wallet: Partial<InsertWalletConnection>): Promise<WalletConnection>;
   deleteWalletConnection(id: number, userId: string): Promise<void>;
+  
+  // NFT operations
+  getNftCollections(userId: string): Promise<NftCollection[]>;
+  createNftCollection(collection: InsertNftCollection): Promise<NftCollection>;
+  getNftAssets(userId: string): Promise<NftAsset[]>;
+  createNftAsset(asset: InsertNftAsset): Promise<NftAsset>;
+  getNftActivities(userId: string): Promise<NftActivity[]>;
+  createNftActivity(activity: InsertNftActivity): Promise<NftActivity>;
   
   // Voice Command operations
   getVoiceCommands(userId: string, limit?: number): Promise<VoiceCommand[]>;
@@ -719,6 +736,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWalletConnection(id: number, userId: string): Promise<void> {
     await db.delete(walletConnections).where(and(eq(walletConnections.id, id), eq(walletConnections.userId, userId)));
+  }
+
+  // NFT operations
+  async getNftCollections(userId: string): Promise<NftCollection[]> {
+    return await db.select().from(nftCollections).where(eq(nftCollections.userId, userId)).orderBy(desc(nftCollections.createdAt));
+  }
+
+  async createNftCollection(collection: InsertNftCollection): Promise<NftCollection> {
+    const [newCollection] = await db.insert(nftCollections).values(collection).returning();
+    return newCollection;
+  }
+
+  async getNftAssets(userId: string): Promise<NftAsset[]> {
+    return await db.select().from(nftAssets).where(eq(nftAssets.userId, userId)).orderBy(desc(nftAssets.createdAt));
+  }
+
+  async createNftAsset(asset: InsertNftAsset): Promise<NftAsset> {
+    const [newAsset] = await db.insert(nftAssets).values(asset).returning();
+    return newAsset;
+  }
+
+  async getNftActivities(userId: string): Promise<NftActivity[]> {
+    return await db.select().from(nftActivities).where(eq(nftActivities.userId, userId)).orderBy(desc(nftActivities.createdAt));
+  }
+
+  async createNftActivity(activity: InsertNftActivity): Promise<NftActivity> {
+    const [newActivity] = await db.insert(nftActivities).values(activity).returning();
+    return newActivity;
   }
 
   // Voice Command operations

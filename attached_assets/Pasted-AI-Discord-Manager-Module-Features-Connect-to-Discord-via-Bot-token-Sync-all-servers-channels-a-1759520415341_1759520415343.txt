@@ -1,0 +1,233 @@
+AI Discord Manager Module
+Features
+
+Connect to Discord via Bot token.
+
+Sync all servers, channels, and members.
+
+Allow AI to:
+
+Generate messages for channels
+
+Edit existing messages
+
+Moderate content (delete/flag inappropriate messages)
+
+Schedule announcements
+
+Full API + frontend interface for easy use.
+
+Multi-server support with per-server configuration.
+
+Step 1: Install Dependencies
+npm install discord.js axios openai node-cron
+
+
+discord.js → Discord bot API
+
+axios → API requests to your backend
+
+openai → AI generation
+
+node-cron → Scheduling automated messages
+
+Step 2: Add Secrets to Replit
+DISCORD_BOT_TOKEN=<your-bot-token>
+OPENAI_API_KEY=<your-openai-key>
+
+Step 3: Backend Integration
+
+Create /backend/routes/discordAI.js:
+
+const express = require("express");
+const router = express.Router();
+const { Client, GatewayIntentBits } = require("discord.js");
+const { Configuration, OpenAIApi } = require("openai");
+const cron = require("node-cron");
+
+// Discord client
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+// OpenAI client
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
+
+// Login Discord Bot
+client.login(process.env.DISCORD_BOT_TOKEN);
+client.on("ready", () => {
+  console.log(`AI Discord Manager logged in as ${client.user.tag}`);
+});
+
+// --------------------- Routes -----------------------
+
+// 1️⃣ Get all servers and channels
+router.get("/servers", async (req, res) => {
+  try {
+    const guilds = client.guilds.cache.map(g => ({
+      id: g.id,
+      name: g.name,
+      channels: g.channels.cache
+        .filter(c => c.isTextBased())
+        .map(ch => ({ id: ch.id, name: ch.name }))
+    }));
+    res.json({ guilds });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2️⃣ Send message via AI
+router.post("/send-message", async (req, res) => {
+  const { channelId, prompt } = req.body;
+  try {
+    // Generate AI message
+    const completion = await openai.createChatCompletion({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }]
+    });
+    const aiMessage = completion.data.choices[0].message.content;
+
+    // Send message to Discord channel
+    const channel = await client.channels.fetch(channelId);
+    const sent = await channel.send(aiMessage);
+
+    res.json({ success: true, messageId: sent.id, content: aiMessage });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3️⃣ Edit message via AI
+router.post("/edit-message", async (req, res) => {
+  const { channelId, messageId, prompt } = req.body;
+  try {
+    // Generate new AI content
+    const completion = await openai.createChatCompletion({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }]
+    });
+    const aiMessage = completion.data.choices[0].message.content;
+
+    // Fetch message and edit
+    const channel = await client.channels.fetch(channelId);
+    const message = await channel.messages.fetch(messageId);
+    await message.edit(aiMessage);
+
+    res.json({ success: true, messageId, content: aiMessage });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4️⃣ Moderate messages (delete offensive content)
+client.on("messageCreate", async message => {
+  if (message.author.bot) return;
+  const flaggedWords = ["badword1", "badword2"]; // customize
+  if (flaggedWords.some(w => message.content.toLowerCase().includes(w))) {
+    await message.delete();
+    console.log(`Deleted message from ${message.author.username}`);
+  }
+});
+
+// 5️⃣ Schedule AI messages (example: daily announcements)
+router.post("/schedule", async (req, res) => {
+  const { channelId, prompt, cronTime } = req.body; 
+  cron.schedule(cronTime, async () => {
+    try {
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages: [{ role: "user", content: prompt }]
+      });
+      const aiMessage = completion.data.choices[0].message.content;
+      const channel = await client.channels.fetch(channelId);
+      await channel.send(aiMessage);
+      console.log(`Scheduled AI message sent to ${channelId}`);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+  res.json({ success: true, cronTime });
+});
+
+module.exports = router;
+
+Step 4: Hook into your Express server
+const discordAIRoutes = require("./routes/discordAI");
+app.use("/api/discordAI", discordAIRoutes);
+
+Step 5: Frontend Example (React)
+
+Create /frontend/src/pages/DiscordAI.jsx:
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function DiscordAI() {
+  const [guilds, setGuilds] = useState([]);
+  const [selectedChannel, setSelectedChannel] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [cronTime, setCronTime] = useState("0 9 * * *"); // daily 9 AM
+
+  useEffect(() => {
+    axios.get("/api/discordAI/servers").then(res => setGuilds(res.data.guilds));
+  }, []);
+
+  const sendMessage = async () => {
+    await axios.post("/api/discordAI/send-message", { channelId: selectedChannel, prompt });
+    alert("Message sent!");
+  };
+
+  const editMessage = async () => {
+    const messageId = prompt("Enter message ID to edit:");
+    await axios.post("/api/discordAI/edit-message", { channelId: selectedChannel, messageId, prompt });
+    alert("Message edited!");
+  };
+
+  const scheduleMessage = async () => {
+    await axios.post("/api/discordAI/schedule", { channelId: selectedChannel, prompt, cronTime });
+    alert("Message scheduled!");
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>AI Discord Manager</h2>
+      <div>
+        <select onChange={e => setSelectedChannel(e.target.value)} value={selectedChannel}>
+          <option value="">Select Channel</option>
+          {guilds.map(g => g.channels.map(c => (
+            <option key={c.id} value={c.id}>{g.name} → {c.name}</option>
+          )))}
+        </select>
+      </div>
+      <textarea placeholder="Enter AI prompt" value={prompt} onChange={e => setPrompt(e.target.value)} style={{ width: "100%", height: 100 }} />
+      <div style={{ marginTop: 10 }}>
+        <button onClick={sendMessage}>Send AI Message</button>
+        <button onClick={editMessage}>Edit AI Message</button>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <input value={cronTime} onChange={e => setCronTime(e.target.value)} placeholder="Cron time (e.g., 0 9 * * *)" />
+        <button onClick={scheduleMessage}>Schedule AI Message</button>
+      </div>
+    </div>
+  );
+}
+
+✅ Module Capabilities
+
+Connects multiple Discord servers.
+
+Syncs channels and members.
+
+AI can generate content, edit messages, and moderate.
+
+Schedule automatic AI-generated announcements.
+
+Easily expandable with buttons, embeds, or marketplace features.

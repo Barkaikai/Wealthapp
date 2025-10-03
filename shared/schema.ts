@@ -694,3 +694,34 @@ export const insertAnomalyDetectionSchema = createInsertSchema(anomalyDetections
 
 export type InsertAnomalyDetection = z.infer<typeof insertAnomalyDetectionSchema>;
 export type AnomalyDetection = typeof anomalyDetections.$inferSelect;
+
+// Receipts - Receipt upload and OCR analysis
+export const receipts = pgTable("receipts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  filename: text("filename").notNull(),
+  imageUrl: text("image_url"), // URL to stored image (if using Object Storage)
+  rawText: text("raw_text"), // OCR extracted text
+  merchant: text("merchant"), // AI-extracted merchant name
+  amount: real("amount"), // AI-extracted amount
+  currency: text("currency").default('USD'),
+  receiptDate: timestamp("receipt_date"), // Date on receipt
+  category: text("category"), // AI-suggested category (groceries, dining, travel, etc)
+  aiAnalysis: text("ai_analysis"), // Full AI analysis and insights
+  tags: text("tags").array(),
+  status: text("status").notNull().default('pending'), // 'pending', 'processed', 'reviewed', 'archived'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_receipts_user_id").on(table.userId)]);
+
+export const insertReceiptSchema = createInsertSchema(receipts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  receiptDate: z.coerce.date().optional(),
+});
+
+export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
+export type Receipt = typeof receipts.$inferSelect;

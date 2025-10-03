@@ -13,7 +13,8 @@ const math = create(all, {
 
 export function Calculator() {
   const [display, setDisplay] = useState("0");
-  const [previousValue, setPreviousValue] = useState<string | null>(null);
+  const [internalValue, setInternalValue] = useState<any>(null); // Store BigNumber for precision
+  const [previousValue, setPreviousValue] = useState<any>(null); // Store BigNumber
   const [operation, setOperation] = useState<string | null>(null);
   const [newNumber, setNewNumber] = useState(true);
   const [mode, setMode] = useState<"basic" | "scientific" | "expression">("basic");
@@ -22,9 +23,12 @@ export function Calculator() {
   const handleNumber = (num: string) => {
     if (newNumber) {
       setDisplay(num);
+      setInternalValue(null);
       setNewNumber(false);
     } else {
-      setDisplay(display === "0" ? num : display + num);
+      const newDisplay = display === "0" ? num : display + num;
+      setDisplay(newDisplay);
+      setInternalValue(null);
     }
   };
 
@@ -38,15 +42,18 @@ export function Calculator() {
   };
 
   const handleOperation = (op: string) => {
-    const current = display;
+    const current = internalValue || math.bignumber(display);
     
     if (previousValue !== null && operation && !newNumber) {
       try {
         const result = calculate(previousValue, current, operation);
-        setDisplay(result);
+        const formatted = math.format(result, { precision: 14 });
+        setDisplay(formatted);
+        setInternalValue(result);
         setPreviousValue(result);
       } catch (error) {
         setDisplay("Error");
+        setInternalValue(null);
         setPreviousValue(null);
         setOperation(null);
         return;
@@ -59,51 +66,62 @@ export function Calculator() {
     setNewNumber(true);
   };
 
-  const calculate = (a: string, b: string, op: string): string => {
+  const calculate = (a: any, b: any, op: string): any => {
     try {
       let result;
       switch (op) {
         case "+":
-          result = math.add(math.bignumber(a), math.bignumber(b));
+          result = math.add(a, b);
           break;
         case "-":
-          result = math.subtract(math.bignumber(a), math.bignumber(b));
+          result = math.subtract(a, b);
           break;
         case "×":
-          result = math.multiply(math.bignumber(a), math.bignumber(b));
+          result = math.multiply(a, b);
           break;
         case "÷":
-          if (parseFloat(b) === 0) return "Error";
-          result = math.divide(math.bignumber(a), math.bignumber(b));
+          if (math.equal(b, 0)) throw new Error("Division by zero");
+          result = math.divide(a, b);
           break;
         case "%":
-          result = math.multiply(math.bignumber(a), math.divide(math.bignumber(b), 100));
+          result = math.multiply(a, math.divide(b, 100));
           break;
         case "^":
-          result = math.pow(math.bignumber(a), math.bignumber(b));
+          result = math.pow(a, b);
           break;
         default:
           return b;
       }
-      return math.format(result, { precision: 14 });
+      return result;
     } catch (error) {
-      return "Error";
+      throw error;
     }
   };
 
   const handleEquals = () => {
     if (operation && previousValue !== null) {
-      const current = display;
-      const result = calculate(previousValue, current, operation);
-      setDisplay(result);
-      setPreviousValue(null);
-      setOperation(null);
-      setNewNumber(true);
+      const current = internalValue || math.bignumber(display);
+      try {
+        const result = calculate(previousValue, current, operation);
+        const formatted = math.format(result, { precision: 14 });
+        setDisplay(formatted);
+        setInternalValue(result);
+        setPreviousValue(null);
+        setOperation(null);
+        setNewNumber(true);
+      } catch (error) {
+        setDisplay("Error");
+        setInternalValue(null);
+        setPreviousValue(null);
+        setOperation(null);
+        setNewNumber(true);
+      }
     }
   };
 
   const handleClear = () => {
     setDisplay("0");
+    setInternalValue(null);
     setPreviousValue(null);
     setOperation(null);
     setNewNumber(true);
@@ -122,7 +140,7 @@ export function Calculator() {
   const handleScientific = (func: string) => {
     try {
       let result;
-      const val = math.bignumber(display);
+      const val = internalValue || math.bignumber(display);
       
       switch (func) {
         case "sin":
@@ -154,10 +172,12 @@ export function Calculator() {
           break;
         case "π":
           setDisplay(math.format(math.pi, { precision: 14 }));
+          setInternalValue(math.pi);
           setNewNumber(true);
           return;
         case "e":
           setDisplay(math.format(math.e, { precision: 14 }));
+          setInternalValue(math.e);
           setNewNumber(true);
           return;
         case "abs":
@@ -168,9 +188,11 @@ export function Calculator() {
       }
       
       setDisplay(math.format(result, { precision: 14 }));
+      setInternalValue(result);
       setNewNumber(true);
     } catch (error) {
       setDisplay("Error");
+      setInternalValue(null);
       setNewNumber(true);
     }
   };
@@ -180,10 +202,12 @@ export function Calculator() {
       const result = math.evaluate(expressionInput);
       const formatted = math.format(result, { precision: 14 });
       setDisplay(formatted);
+      setInternalValue(result);
       setExpressionInput(formatted);
       setNewNumber(true);
     } catch (error) {
       setDisplay("Error");
+      setInternalValue(null);
       setNewNumber(true);
     }
   };

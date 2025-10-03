@@ -41,6 +41,11 @@ const menuGroups = [
         icon: CreditCard,
       },
       {
+        title: "Wealth Forge",
+        url: "/wealth-forge",
+        icon: Coins,
+      },
+      {
         title: "NFT Vault",
         url: "/nft-vault",
         icon: Image,

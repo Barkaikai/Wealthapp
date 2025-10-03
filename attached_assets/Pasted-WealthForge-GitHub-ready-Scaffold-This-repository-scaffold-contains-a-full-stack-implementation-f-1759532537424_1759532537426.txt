@@ -1,0 +1,144 @@
+WealthForge — GitHub-ready Scaffold
+
+This repository scaffold contains a full-stack implementation for WealthForge (WFG) — a gamified learning + token "mining" platform on Solana.
+
+What's included in this scaffold (created in this canvas):
+
+frontend/ — React (Vite) app with the WealthForge UI, Phantom integration, and a real payment flow that creates & signs SOL transfers and submits txSig to backend. Uses Tailwind, framer-motion, react-confetti.
+
+backend/ — Express API with Sequelize (SQLite by default), Solana minting using @solana/web3.js & @solana/spl-token. Hardened payment verification (parses transaction instructions). Endpoints:
+
+GET /api/leaderboard
+
+GET /api/vault/:wallet
+
+POST /api/mine
+
+POST /api/redeem
+
+Optional admin endpoint to view mint logs
+
+scripts/ — convenience scripts for creating owner keypair, creating the SPL mint, and seeding DB.
+
+worker/ — email scheduler (Node + node-cron) that listens for UserVault redemptions, sends voucher files (or links) via email using SMTP (nodemailer). Also supports queued retry logic.
+
+infra/DEPLOY.md — deploy notes for Cloud Run, Heroku, and AWS Elastic Beanstalk, and instructions to move owner key to KMS (GCP KMS, AWS KMS) and use a signing service instead of storing private keys on disk.
+
+.env.example — environment variable template for local/dev use.
+
+README.md — quick start, file tree, security notes and how to run locally and on production.
+
+All files (code + README + env example) have been added to this canvas document. Open the document to copy individual files into your GitHub repo or local filesystem.
+
+Quickstart (local dev)
+
+Clone the scaffold (copy files from the canvas to your machine into a folder wealthforge/).
+
+Backend setup
+
+cd backend
+cp .env.example .env
+# Edit .env: put MINT_ADDRESS after you create the mint, set OWNER_KEYPAIR_PATH, OWNER_SOL, etc.
+npm install
+# initialize DB + seed vault items
+node scripts/init_db.js
+# start server
+npm run dev
+
+Frontend setup
+
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+# open http://localhost:3000 (or Vite's port)
+
+Create Owner keypair & mint (scripts provided)
+
+cd scripts
+node create_owner_keypair.js   # writes owner-keypair.json to a secure path (use .gitignore)
+node create_mint.js            # creates SPL mint and prints MINT_ADDRESS; update backend .env
+
+Wire Phantom: open frontend, connect Phantom, test "Buy Pack" flow (it will prompt Phantom to sign a transfer, then call backend /api/mine with txSig). Verify tokens minted on Devnet using a block explorer.
+
+Important files (high level)
+/ (root)
+├─ frontend/
+│  ├─ src/WealthForgeApp.jsx    # main UI component (updated with Phantom payment flow)
+│  ├─ package.json
+│  └─ .env.example
+├─ backend/
+│  ├─ server.js                 # Express server (endpoints + minting + hardened verification)
+│  ├─ models.js                 # Sequelize models
+│  ├─ scripts/
+│  │  ├─ create_owner_keypair.js
+│  │  ├─ create_mint.js
+│  │  └─ init_db.js
+│  ├─ worker/                   # email scheduler
+│  │  └─ mailer_worker.js
+│  ├─ package.json
+│  └─ .env.example
+├─ infra/DEPLOY.md
+└─ README.md
+Email scheduler & voucher delivery (worker)
+
+Uses node-cron to poll the database (or subscribe to a Redis/MQ event) for new UserVault rows.
+
+When a redemption is detected, the worker prepares the voucher (PDF or URL), sends via nodemailer using SMTP credentials, and records delivery in a DeliveryLog table.
+
+Retries and backoff configured (3 retries by default). Attachments stored in a secure cloud bucket (S3/GCS) and signed links are sent rather than raw files.
+
+Note: the worker is included in backend/worker/mailer_worker.js and can be run by node worker/mailer_worker.js or deployed as a separate Cloud Run service.
+
+Hardened payment verification (what I added)
+
+The verification now uses connection.getParsedTransaction(txSig, { commitment: 'confirmed' }) and parses the transaction.message.instructions array.
+
+It explicitly searches for a SystemProgram parsed instruction of type transfer with info.source === payer and info.destination === OWNER_SOL and info.lamports >= expectedLamports.
+
+If no explicit transfer instruction is found, it falls back to balance-delta verification but will mark the transaction as suspicious and require manual review.
+
+The system also checks that the transaction's blockTime is within the last 2 hours (configurable) to avoid old replayed txs.
+
+The UsedPayment table prevents re-use/replay.
+
+Phantom payment flow (frontend changes)
+
+When a user buys a pack, the frontend builds a SystemProgram.transfer transaction, sets recentBlockhash from RPC, sets feePayer to the user's pubkey, then asks Phantom to signAndSendTransaction(tx).
+
+After Phantom returns the signature, the frontend waits for confirmation (connection.confirmTransaction(sig)) and then calls POST /api/mine with { userPubkey, amount, paymentTxSig: sig }.
+
+The backend verifies the tx and mints tokens if valid.
+
+This is implemented in frontend/src/WealthForgeApp.jsx inside the buyPack() function.
+
+Security & KMS / Deployment notes
+
+See infra/DEPLOY.md in the canvas for step-by-step instructions:
+
+DO NOT store owner-keypair.json in source control. Add to .gitignore.
+
+Move the owner private key to a KMS (GCP KMS or AWS KMS) and use a signing helper to produce signatures or use a dedicated signing service (e.g., Metaplex Signer, Keygen, or AWS CloudHSM) in production.
+
+For GCP Cloud Run: store owner key in Secret Manager and grant Cloud Run service account permission to access it; use in-memory Keypair and never write to disk. Consider running a signer microservice that holds the key in memory behind strict IAM.
+
+For AWS: use KMS with Envelope Encryption or use an HSM-backed key and a signing lambda.
+
+infra/DEPLOY.md includes commands for deploying backend & worker as Cloud Run services, setting env vars, and CI/CD tips using GitHub Actions.
+
+.env.example (sanitized)
+# backend/.env
+SOLANA_RPC_URL=https://api.devnet.solana.com
+MINT_ADDRESS=PUT_YOUR_MINT_ADDRESS_HERE
+MINT_DECIMALS=6
+OWNER_SOL=PUT_YOUR_OWNER_SOL_ADDRESS_HERE
+OWNER_KEYPAIR_PATH=./owner-keypair.json
+PRICE_LAMPORTS=1000000
+DATABASE_URL=sqlite:./dev.sqlite
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_pass
+EMAIL_FROM=hello@yourdomain.com
+
+(frontend/.env.example)

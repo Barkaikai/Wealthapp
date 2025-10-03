@@ -38,6 +38,7 @@ import LearnPage from "@/pages/LearnPage";
 import Wallet from "@/pages/Wallet";
 import DigitalAccountant from "@/pages/DigitalAccountant";
 import CRMPage from "@/pages/crm";
+import NFTVault from "@/pages/NFTVault";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -67,6 +68,7 @@ function Router() {
           <Route path="/" component={DailyBriefing} />
           <Route path="/login" component={Login} />
           <Route path="/wallet" component={Wallet} />
+          <Route path="/nft-vault" component={NFTVault} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
           <Route path="/notepad" component={ProductivityHubConsolidated} />

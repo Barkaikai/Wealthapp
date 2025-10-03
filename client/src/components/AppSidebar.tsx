@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -39,6 +39,11 @@ const menuGroups = [
         title: "Personal Wallet",
         url: "/wallet",
         icon: CreditCard,
+      },
+      {
+        title: "NFT Vault",
+        url: "/nft-vault",
+        icon: Image,
       },
       {
         title: "Digital Accountant",

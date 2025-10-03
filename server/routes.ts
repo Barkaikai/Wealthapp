@@ -1847,8 +1847,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageBase64 = req.file.buffer.toString('base64');
 
       // Analyze receipt with GPT-4o Vision
-      console.log(`Analyzing receipt image for user ${userId}...`);
-      const analysis = await analyzeReceiptImage(imageBase64);
+      console.log(`Analyzing receipt image for user ${userId} (${req.file.mimetype})...`);
+      const analysis = await analyzeReceiptImage(imageBase64, req.file.mimetype);
       console.log(`Receipt analysis complete:`, analysis);
 
       // Create receipt record in database
@@ -1878,7 +1878,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
-      const updated = await storage.updateReceipt(id, userId, req.body);
+      
+      // Coerce receiptDate to Date if it's a string
+      const updateData = { ...req.body };
+      if (updateData.receiptDate && typeof updateData.receiptDate === 'string') {
+        updateData.receiptDate = new Date(updateData.receiptDate);
+      }
+      
+      const updated = await storage.updateReceipt(id, userId, updateData);
       res.json(updated);
     } catch (error) {
       console.error("Error updating receipt:", error);

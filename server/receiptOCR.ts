@@ -19,7 +19,7 @@ export interface ReceiptAnalysis {
   items?: string[];
 }
 
-export async function analyzeReceiptImage(imageBase64: string): Promise<ReceiptAnalysis> {
+export async function analyzeReceiptImage(imageBase64: string, mimeType: string = 'image/jpeg'): Promise<ReceiptAnalysis> {
   if (!openai) {
     throw new Error("OpenAI API key not configured");
   }
@@ -58,7 +58,7 @@ Return ONLY valid JSON in this exact format:
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: `data:${mimeType};base64,${imageBase64}`,
                 detail: "high"
               },
             },
@@ -81,8 +81,24 @@ Return ONLY valid JSON in this exact format:
       aiAnalysis: analysis.aiAnalysis || "Receipt processed successfully",
       items: analysis.items || [],
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error analyzing receipt with GPT-4o Vision:", error);
-    throw new Error("Failed to analyze receipt image");
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      type: error.type,
+      status: error.status,
+    });
+    
+    // Provide user-friendly error messages
+    if (error.code === 'invalid_image_format' || error.message?.includes('image')) {
+      throw new Error("Invalid image format. Please upload a clear photo of your receipt in JPEG or PNG format.");
+    } else if (error.status === 400) {
+      throw new Error("Unable to analyze receipt. Please ensure the image is clear and contains visible text.");
+    } else if (error.status === 429) {
+      throw new Error("Service temporarily busy. Please try again in a few moments.");
+    } else {
+      throw new Error("Failed to analyze receipt image. Please try again with a different image.");
+    }
   }
 }

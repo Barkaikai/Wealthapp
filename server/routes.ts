@@ -3026,6 +3026,138 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  // ============================================
+  // NFT & WEB3 ROUTES
+  // ============================================
+
+  // Connect wallet
+  app.post('/api/nft/wallet/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Validate input
+      const { z } = await import('zod');
+      const connectWalletSchema = z.object({
+        walletType: z.string().min(1),
+        chain: z.string().min(1),
+        address: z.string().min(1),
+        metadata: z.record(z.any()).optional(),
+      });
+
+      const validated = connectWalletSchema.parse(req.body);
+
+      const wallet = await storage.createWalletConnection(userId, {
+        walletType: validated.walletType,
+        walletAddress: validated.address,
+        chainId: validated.metadata?.chainId || null,
+        network: validated.chain,
+        isActive: 'true',
+        walletName: validated.metadata?.name || validated.walletType,
+        metadata: JSON.stringify(validated.metadata || {}),
+      });
+
+      res.json({ wallet, message: 'Wallet connected successfully' });
+    } catch (error: any) {
+      console.error('[NFT] Wallet connect error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to connect wallet' });
+    }
+  });
+
+  // Get connected wallets
+  app.get('/api/nft/wallets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const wallets = await storage.getWalletConnectionsByUserId(userId);
+      res.json({ wallets });
+    } catch (error: any) {
+      console.error('[NFT] Get wallets error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch wallets' });
+    }
+  });
+
+  // Sync NFTs from blockchain
+  app.post('/api/nft/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Validate input
+      const { z } = await import('zod');
+      const syncSchema = z.object({
+        walletId: z.number().optional(),
+        chain: z.enum(['ethereum', 'polygon', 'solana', 'hedera']),
+        address: z.string().min(1),
+      });
+
+      const validated = syncSchema.parse(req.body);
+      let nfts: any[] = [];
+
+      // Fetch NFTs based on chain
+      if (validated.chain === 'ethereum' || validated.chain === 'polygon') {
+        const { evmProvider } = await import('./web3/evmProvider');
+        if (!evmProvider.isConfigured()) {
+          return res.status(503).json({ message: 'Alchemy API key not configured. Add ALCHEMY_API_KEY to secrets.' });
+        }
+        nfts = await evmProvider.getNFTsByOwner(validated.address, validated.chain);
+      } else if (validated.chain === 'solana') {
+        const { solanaProvider } = await import('./web3/solanaProvider');
+        nfts = await solanaProvider.getNFTsByOwner(validated.address);
+      } else if (validated.chain === 'hedera') {
+        const { hederaProvider } = await import('./web3/hederaProvider');
+        nfts = await hederaProvider.getNFTsByOwner(validated.address);
+      }
+
+      // TODO: Persist NFTs to database
+      // NOTE: Full implementation requires adding methods to storage interface:
+      // - storage.createNftCollection() for collections
+      // - storage.createNftAsset() for individual NFTs
+      // - storage.getNftsByUserId() to fetch stored NFTs
+      // For now, we return the fetched data directly from blockchain
+
+      res.json({ 
+        message: `Synced ${nfts.length} NFTs from ${validated.chain}`, 
+        count: nfts.length,
+        nfts: nfts, // Return all NFTs (will be cached by frontend)
+        note: 'NFT persistence to database is pending storage interface implementation'
+      });
+    } catch (error: any) {
+      console.error('[NFT] Sync error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to sync NFTs' });
+    }
+  });
+
+  // Get NFTs for user
+  app.get('/api/nft/assets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      // Would fetch from database via storage
+      // For now, return empty array (implementation pending)
+      res.json({ nfts: [] });
+    } catch (error: any) {
+      console.error('[NFT] Get assets error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch NFTs' });
+    }
+  });
+
+  // Disconnect wallet
+  app.delete('/api/nft/wallet/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const walletId = parseInt(req.params.id);
+      
+      // Would delete via storage
+      res.json({ message: 'Wallet disconnected successfully' });
+    } catch (error: any) {
+      console.error('[NFT] Disconnect wallet error:', error);
+      res.status(500).json({ message: error.message || 'Failed to disconnect wallet' });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

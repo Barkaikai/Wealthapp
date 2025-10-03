@@ -21,19 +21,9 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Notepad",
-    url: "/notepad",
-    icon: FileText,
-  },
-  {
-    title: "Receipt Manager",
-    url: "/receipts",
-    icon: Receipt,
-  },
-  {
-    title: "AI Videos",
-    url: "/videos",
-    icon: Video,
+    title: "Wealth Dashboard",
+    url: "/wealth",
+    icon: Wallet,
   },
   {
     title: "Personal Wallet",
@@ -41,14 +31,9 @@ const menuItems = [
     icon: CreditCard,
   },
   {
-    title: "Wealth Dashboard",
-    url: "/wealth",
-    icon: Wallet,
-  },
-  {
-    title: "Wealth Monitor",
-    url: "/wealth-monitor",
-    icon: TrendingUp,
+    title: "Productivity Hub",
+    url: "/notepad",
+    icon: FileText,
   },
   {
     title: "AI Intelligence",
@@ -56,34 +41,9 @@ const menuItems = [
     icon: Brain,
   },
   {
-    title: "Productivity Hub",
-    url: "/productivity",
-    icon: CheckSquare,
-  },
-  {
     title: "Health Monitoring",
     url: "/health",
     icon: Activity,
-  },
-  {
-    title: "Web3 Wallets",
-    url: "/wallets",
-    icon: Coins,
-  },
-  {
-    title: "Email Manager",
-    url: "/email",
-    icon: Mail,
-  },
-  {
-    title: "Routine Builder",
-    url: "/routine",
-    icon: Calendar,
-  },
-  {
-    title: "Terminal",
-    url: "/terminal",
-    icon: Terminal,
   },
   {
     title: "Guide",

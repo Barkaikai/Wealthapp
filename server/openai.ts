@@ -380,3 +380,126 @@ Respond with JSON in this format:
   const result = JSON.parse(response.choices[0].message.content!);
   return result.recommendations;
 }
+
+export async function generateRoutineReport(
+  templateName: string,
+  routines: any[],
+  briefingData?: any
+): Promise<{
+  report: string;
+  recommendations: string[];
+  focus_areas: string[];
+}> {
+  const templatePrinciples: Record<string, string> = {
+    "Jeff Bezos Morning": `Jeff Bezos' morning routine focuses on:
+- Deep, uninterrupted work before any meetings
+- Protecting the morning for high-IQ decisions
+- No meetings before 10 AM
+- Reading newspaper with coffee for context
+- Focus on long-term strategic thinking`,
+    
+    "Elon Musk Schedule": `Elon Musk's schedule principles:
+- Time-blocking in 5-minute increments for maximum efficiency
+- Batching similar tasks together
+- Multitasking meals with meetings when necessary
+- Minimal sleep (6 hours) to maximize productive hours
+- Focus on engineering and design work
+- Weekend work sessions for deep problems`,
+    
+    "Tim Cook Routine": `Tim Cook's routine emphasizes:
+- Early rise (3:45-4:00 AM start)
+- Fitness first thing in the morning
+- Email review and response in early hours
+- Leading by example with work ethic
+- Balance between strategic planning and operations
+- Consistent sleep schedule for peak performance`,
+  };
+
+  const currentRoutineDescription = routines.length > 0
+    ? routines.map(r => `${r.time} - ${r.title} (${r.duration}, ${r.category})`).join('\n')
+    : 'No routines currently scheduled';
+
+  const briefingSummary = briefingData 
+    ? `\n\nCURRENT DAILY BRIEFING CONTEXT:
+Highlights: ${briefingData.highlights?.join('; ') || 'None'}
+Risks: ${briefingData.risks?.join('; ') || 'None'}
+Actions: ${briefingData.actions?.join('; ') || 'None'}`
+    : '';
+
+  const prompt = `You are an elite productivity coach analyzing a user's daily routine against the proven principles of successful leaders.
+
+SELECTED TEMPLATE: ${templateName}
+
+TEMPLATE PRINCIPLES:
+${templatePrinciples[templateName] || 'Focus on productivity, health, and strategic thinking'}
+
+USER'S CURRENT ROUTINE:
+${currentRoutineDescription}${briefingSummary}
+
+━━━━━━━━━━━━━━━━
+
+TASK:
+Generate a comprehensive daily routine report that helps the user optimize their schedule based on the selected template's principles.
+
+Provide three sections:
+
+1. **report** (300-400 words): A detailed analysis comparing the user's current routine to the template principles. Include:
+   - What's working well and aligns with the template
+   - Key gaps or misalignments with the template's philosophy
+   - Specific time blocks that could be optimized
+   - Energy management insights based on the template
+   - How to integrate template principles with existing commitments
+
+2. **recommendations** (4-6 items): Specific, actionable recommendations:
+   - Time-block suggestions with exact times
+   - Activities to add, remove, or reschedule
+   - Habit stacking opportunities
+   - Energy optimization based on circadian rhythm
+   - Example: "Add 45-min deep work block at 6:00 AM before meetings (following Bezos' principle)"
+
+3. **focus_areas** (3-5 items): Key areas for improvement:
+   - Major gaps in current routine vs template
+   - Critical success factors from the template to adopt
+   - Long-term habits to develop
+   - Example: "Morning deep work window", "Strategic thinking time", "Physical wellness priority"
+
+TONE: Professional, motivating, data-driven. Assume the user is ambitious and wants to optimize performance.
+
+Respond with JSON in this exact format:
+{
+  "report": "...",
+  "recommendations": ["...", "...", "..."],
+  "focus_areas": ["...", "...", "..."]
+}`;
+
+  try {
+    console.log(`Generating routine report for template: ${templateName}`);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+
+    console.log('Routine report generated successfully');
+    
+    if (!response.choices || !response.choices[0] || !response.choices[0].message.content) {
+      throw new Error('OpenAI API returned invalid response structure');
+    }
+    
+    const result = JSON.parse(response.choices[0].message.content);
+    return result;
+  } catch (error: any) {
+    console.error('OpenAI API error in generateRoutineReport:', error);
+    
+    if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      throw new Error('Network error connecting to OpenAI API. Please check your internet connection.');
+    } else if (error.status === 401 || error.message?.includes('authentication')) {
+      throw new Error('OpenAI API authentication failed. Please check your API key.');
+    } else if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+    } else {
+      throw new Error('Unable to generate routine report at this time. Please try again later.');
+    }
+  }
+}

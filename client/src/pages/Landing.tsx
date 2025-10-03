@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown, Lock, CheckCircle } from "lucide-react";
-import heroImage from "@assets/image (3)_1759298327042.jpeg";
+import heroImage from "@assets/ChatGPT Image Oct 3, 2025, 12_12_37 AM_1759464919082.png";
 import luxuryGala from "@assets/Here are two realistic images depicting a diverse group of billionaires of various races enjoying a luxurious gala in an opulent mansion. The scenes capture the elegance and vibrancy of their lifestyle. Enjoy!_1759298327046.jpeg";
 
 export default function Landing() {

@@ -13,26 +13,21 @@ import { ChatGPT } from "@/components/ChatGPT";
 import { TimeDate } from "@/components/TimeDate";
 import { OnlineStatus } from "@/components/OnlineStatus";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ViewModeProvider } from "@/components/ViewModeProvider";
+import { ViewModeSwitcher } from "@/components/ViewModeSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import DailyBriefing from "@/pages/DailyBriefing";
 import WealthDashboard from "@/pages/WealthDashboard";
 import WealthMonitor from "@/pages/WealthMonitor";
-import ProductivityHub from "@/pages/ProductivityHub";
+import ProductivityHubConsolidated from "@/pages/ProductivityHubConsolidated";
 import HealthMonitoring from "@/pages/HealthMonitoring";
-import Web3Wallets from "@/pages/Web3Wallets";
-import EmailManager from "@/pages/EmailManager";
-import RoutineBuilder from "@/pages/RoutineBuilder";
-import Notepad from "@/pages/Notepad";
 import AIIntelligence from "@/pages/AIIntelligence";
-import ReceiptManager from "@/pages/ReceiptManager";
 import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
-import Videos from "@/pages/Videos";
 import Wallet from "@/pages/Wallet";
-import Terminal from "@/pages/Terminal";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -64,16 +59,9 @@ function Router() {
           <Route path="/wallet" component={Wallet} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
-          <Route path="/productivity" component={ProductivityHub} />
+          <Route path="/notepad" component={ProductivityHubConsolidated} />
           <Route path="/health" component={HealthMonitoring} />
-          <Route path="/wallets" component={Web3Wallets} />
-          <Route path="/email" component={EmailManager} />
-          <Route path="/routine" component={RoutineBuilder} />
-          <Route path="/notepad" component={Notepad} />
           <Route path="/ai-intelligence" component={AIIntelligence} />
-          <Route path="/receipts" component={ReceiptManager} />
-          <Route path="/videos" component={Videos} />
-          <Route path="/terminal" component={Terminal} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />
@@ -114,6 +102,12 @@ function AuthenticatedApp() {
           <main className="flex-1 overflow-auto p-6">
             <Router />
           </main>
+          <footer className="border-t border-border p-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="text-sm text-muted-foreground">
+              © 2025 Wealth Automation Platform
+            </div>
+            <ViewModeSwitcher />
+          </footer>
         </div>
       </div>
     </SidebarProvider>
@@ -142,10 +136,12 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark">
-          <TooltipProvider>
-            <AppContent />
-            <Toaster />
-          </TooltipProvider>
+          <ViewModeProvider>
+            <TooltipProvider>
+              <AppContent />
+              <Toaster />
+            </TooltipProvider>
+          </ViewModeProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

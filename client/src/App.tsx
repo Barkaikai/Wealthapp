@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import luxuryBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import DailyBriefing from "@/pages/DailyBriefing";
@@ -89,10 +90,19 @@ function AuthenticatedApp() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full relative">
+        {/* Luxury Background Image */}
+        <div 
+          className="fixed inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: `url(${luxuryBackground})` }}
+        />
+        
+        {/* Dark Gradient Overlay */}
+        <div className="fixed inset-0 bg-gradient-to-br from-background/98 via-background/96 to-background/98 z-0" />
+        
         <AppSidebar />
-        <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between gap-4 p-4 border-b border-border">
+        <div className="flex flex-col flex-1 relative z-10">
+          <header className="flex items-center justify-between gap-4 p-4 border-b border-border bg-background/80 backdrop-blur-sm">
             <div className="flex items-center gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
               <TimeDate onClick={() => setCalendarOpen(true)} />

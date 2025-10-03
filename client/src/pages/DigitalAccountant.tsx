@@ -34,15 +34,17 @@ import {
   DollarSign
 } from "lucide-react";
 import { z } from "zod";
-import type { 
-  Account, 
-  JournalEntry, 
-  JournalLine, 
-  Invoice, 
-  Payment,
+import { 
   insertAccountSchema,
   insertInvoiceSchema,
-  insertPaymentSchema
+  insertPaymentSchema,
+  insertJournalEntrySchema,
+  insertJournalLineSchema,
+  type Account, 
+  type JournalEntry, 
+  type JournalLine, 
+  type Invoice, 
+  type Payment
 } from "@shared/schema";
 
 type JournalEntryWithLines = JournalEntry & {
@@ -58,15 +60,7 @@ type PaymentWithJournal = Payment & {
   invoice?: Invoice;
 };
 
-const accountFormSchema = z.object({
-  code: z.string().min(1, "Account code is required"),
-  name: z.string().min(1, "Account name is required"),
-  accountType: z.enum(["asset", "liability", "equity", "income", "expense"]),
-  currency: z.string().default("USD"),
-  description: z.string().optional(),
-});
-
-const journalLineSchema = z.object({
+const journalLineFormSchema = z.object({
   accountId: z.number(),
   amount: z.number().positive(),
   isDebit: z.boolean(),
@@ -75,24 +69,7 @@ const journalLineSchema = z.object({
 
 const journalFormSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  lines: z.array(journalLineSchema).min(2, "At least 2 lines required"),
-});
-
-const invoiceFormSchema = z.object({
-  customer: z.string().min(1, "Customer is required"),
-  total: z.number().positive("Total must be positive"),
-  currency: z.string().default("USD"),
-  invoiceNumber: z.string().optional(),
-  issuedAt: z.string().optional(),
-  dueAt: z.string().optional(),
-});
-
-const paymentFormSchema = z.object({
-  invoiceId: z.number(),
-  amount: z.number().positive("Amount must be positive"),
-  currency: z.string().default("USD"),
-  method: z.enum(["wire", "card", "cash", "check"]),
-  paidAt: z.string().optional(),
+  lines: z.array(journalLineFormSchema).min(2, "At least 2 lines required"),
 });
 
 const formatCurrency = (amount: number, currency: string = "USD") => {
@@ -167,12 +144,19 @@ export default function DigitalAccountant() {
   });
 
   const accountForm = useForm({
-    resolver: zodResolver(accountFormSchema),
+    resolver: zodResolver(insertAccountSchema.extend({
+      userId: z.string().optional(),
+      isReconcilable: z.number().optional(),
+      balance: z.number().optional(),
+    })),
     defaultValues: {
+      userId: "",
       code: "",
       name: "",
       accountType: "asset" as const,
       currency: "USD",
+      isReconcilable: 0,
+      balance: 0,
       description: "",
     },
   });
@@ -191,20 +175,30 @@ export default function DigitalAccountant() {
   });
 
   const invoiceForm = useForm({
-    resolver: zodResolver(invoiceFormSchema),
+    resolver: zodResolver(insertInvoiceSchema.extend({
+      userId: z.string().optional(),
+      total: z.number().positive("Total must be positive"),
+    })),
     defaultValues: {
+      userId: "",
       customer: "",
       total: 0,
       currency: "USD",
       invoiceNumber: "",
       issuedAt: new Date().toISOString().split('T')[0],
       dueAt: "",
+      status: "draft",
     },
   });
 
   const paymentForm = useForm({
-    resolver: zodResolver(paymentFormSchema),
+    resolver: zodResolver(insertPaymentSchema.extend({
+      userId: z.string().optional(),
+      invoiceId: z.number().positive("Invoice is required"),
+      amount: z.number().positive("Amount must be positive"),
+    })),
     defaultValues: {
+      userId: "",
       invoiceId: 0,
       amount: 0,
       currency: "USD",
@@ -214,7 +208,7 @@ export default function DigitalAccountant() {
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof accountFormSchema>) => {
+    mutationFn: async (data: z.infer<typeof insertAccountSchema>) => {
       return await apiRequest("POST", "/api/accounting/accounts", data);
     },
     onSuccess: () => {
@@ -230,7 +224,15 @@ export default function DigitalAccountant() {
 
   const createJournalMutation = useMutation({
     mutationFn: async (data: { description: string; lines: Array<{ accountId: number; amount: number; isDebit: boolean }> }) => {
-      return await apiRequest("POST", "/api/accounting/journal", data);
+      const transformedData = {
+        description: data.description,
+        lines: data.lines.map(line => ({
+          accountId: line.accountId,
+          amount: line.amount,
+          isDebit: line.isDebit ? 1 : 0,
+        })),
+      };
+      return await apiRequest("POST", "/api/accounting/journal", transformedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/accounting/journal"] });
@@ -249,7 +251,7 @@ export default function DigitalAccountant() {
   });
 
   const createInvoiceMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof invoiceFormSchema>) => {
+    mutationFn: async (data: z.infer<typeof insertInvoiceSchema>) => {
       return await apiRequest("POST", "/api/accounting/invoices", data);
     },
     onSuccess: () => {
@@ -264,7 +266,7 @@ export default function DigitalAccountant() {
   });
 
   const createPaymentMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof paymentFormSchema>) => {
+    mutationFn: async (data: z.infer<typeof insertPaymentSchema>) => {
       return await apiRequest("POST", "/api/accounting/payments", data);
     },
     onSuccess: () => {
@@ -647,7 +649,7 @@ export default function DigitalAccountant() {
                 <Card key={entry.id} data-testid={`card-journal-entry-${entry.id}`}>
                   <Collapsible open={expandedEntries.has(entry.id)} onOpenChange={() => toggleEntry(entry.id)}>
                     <CollapsibleTrigger asChild>
-                      <div className="p-4 flex items-center justify-between cursor-pointer hover-elevate">
+                      <div className="p-4 flex items-center justify-between cursor-pointer hover-elevate" data-testid={`button-toggle-journal-${entry.id}`}>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold" data-testid={`text-journal-description-${entry.id}`}>{entry.description}</span>
@@ -1013,7 +1015,7 @@ export default function DigitalAccountant() {
                             {formatCurrency(payment.amount, payment.currency || 'USD')}
                           </TableCell>
                           <TableCell data-testid={`text-payment-method-${payment.id}`}>
-                            <Badge variant="outline">{payment.method}</Badge>
+                            <Badge variant="outline" data-testid={`badge-payment-method-${payment.id}`}>{payment.method}</Badge>
                           </TableCell>
                           <TableCell data-testid={`text-payment-date-${payment.id}`}>
                             {format(new Date(payment.paidAt), 'PP')}

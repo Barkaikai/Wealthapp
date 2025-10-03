@@ -1253,3 +1253,147 @@ export const insertAccountingAuditLogSchema = createInsertSchema(accountingAudit
 
 export type InsertAccountingAuditLog = z.infer<typeof insertAccountingAuditLogSchema>;
 export type AccountingAuditLog = typeof accountingAuditLogs.$inferSelect;
+
+// CRM System Tables
+
+// CRM Organizations
+export const crmOrganizations = pgTable("crm_organizations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar("name", { length: 255 }).notNull(),
+  website: varchar("website", { length: 400 }),
+  industry: varchar("industry", { length: 100 }),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_crm_orgs_user_id").on(table.userId)]);
+
+export const insertCrmOrganizationSchema = createInsertSchema(crmOrganizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCrmOrganization = z.infer<typeof insertCrmOrganizationSchema>;
+export type CrmOrganization = typeof crmOrganizations.$inferSelect;
+
+// CRM Contacts
+export const crmContacts = pgTable("crm_contacts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  orgId: integer("org_id").references(() => crmOrganizations.id, { onDelete: 'set null' }),
+  firstName: varchar("first_name", { length: 120 }),
+  lastName: varchar("last_name", { length: 120 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 80 }),
+  role: varchar("role", { length: 120 }), // e.g., CFO, Investor
+  kycStatus: varchar("kyc_status", { length: 50 }).default('unknown'), // unknown/pending/verified
+  portfolioId: varchar("portfolio_id", { length: 255 }), // link to wealth account
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_crm_contacts_user_id").on(table.userId)]);
+
+export const insertCrmContactSchema = createInsertSchema(crmContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCrmContact = z.infer<typeof insertCrmContactSchema>;
+export type CrmContact = typeof crmContacts.$inferSelect;
+
+// CRM Leads
+export const crmLeads = pgTable("crm_leads", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  contactId: integer("contact_id").references(() => crmContacts.id, { onDelete: 'set null' }),
+  source: varchar("source", { length: 255 }), // e.g., "website", "referral", "email"
+  status: varchar("status", { length: 50 }).default('new'), // new, contacted, qualified, lost
+  notes: text("notes").default(''),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_crm_leads_user_id").on(table.userId)]);
+
+export const insertCrmLeadSchema = createInsertSchema(crmLeads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCrmLead = z.infer<typeof insertCrmLeadSchema>;
+export type CrmLead = typeof crmLeads.$inferSelect;
+
+// CRM Deals
+export const crmDeals = pgTable("crm_deals", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar("title", { length: 255 }).notNull(),
+  contactId: integer("contact_id").references(() => crmContacts.id, { onDelete: 'set null' }),
+  orgId: integer("org_id").references(() => crmOrganizations.id, { onDelete: 'set null' }),
+  amount: real("amount").default(0),
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  stage: varchar("stage", { length: 100 }).default('prospect'), // prospect, proposal, negotiation, won, lost
+  probability: real("probability").default(0.1), // 0-1
+  closeDate: timestamp("close_date"),
+  accountingJournalId: integer("accounting_journal_id").references(() => journalEntries.id, { onDelete: 'set null' }),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_crm_deals_user_id").on(table.userId)]);
+
+export const insertCrmDealSchema = createInsertSchema(crmDeals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  closeDate: z.coerce.date().optional(),
+});
+
+export type InsertCrmDeal = z.infer<typeof insertCrmDealSchema>;
+export type CrmDeal = typeof crmDeals.$inferSelect;
+
+// CRM Activities
+export const crmActivities = pgTable("crm_activities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  contactId: integer("contact_id").references(() => crmContacts.id, { onDelete: 'cascade' }),
+  dealId: integer("deal_id").references(() => crmDeals.id, { onDelete: 'cascade' }),
+  type: varchar("type", { length: 50 }).notNull(), // call, email, meeting, task
+  subject: varchar("subject", { length: 255 }).notNull(),
+  body: text("body"),
+  dueAt: timestamp("due_at"),
+  completed: integer("completed").default(0), // 0 or 1 for boolean
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_crm_activities_user_id").on(table.userId)]);
+
+export const insertCrmActivitySchema = createInsertSchema(crmActivities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  dueAt: z.coerce.date().optional(),
+});
+
+export type InsertCrmActivity = z.infer<typeof insertCrmActivitySchema>;
+export type CrmActivity = typeof crmActivities.$inferSelect;
+
+// CRM Audit Logs
+export const crmAuditLogs = pgTable("crm_audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar("action", { length: 255 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }),
+  entityId: integer("entity_id"),
+  details: jsonb("details").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_crm_audit_logs_user_id").on(table.userId)]);
+
+export const insertCrmAuditLogSchema = createInsertSchema(crmAuditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCrmAuditLog = z.infer<typeof insertCrmAuditLogSchema>;
+export type CrmAuditLog = typeof crmAuditLogs.$inferSelect;

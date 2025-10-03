@@ -821,3 +821,234 @@ export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit
 
 export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
+
+// Step Records - Comprehensive step tracking
+export const stepRecords = pgTable("step_records", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  steps: integer("steps").notNull(),
+  distanceMeters: real("distance_meters"), // Distance in meters
+  calories: real("calories"), // Estimated calories burned
+  device: text("device"), // 'mobile', 'web', 'fitness_tracker'
+  source: text("source").default('manual'), // 'manual', 'healthkit', 'googlefit', 'web_api'
+  metadata: jsonb("metadata"), // Additional tracking data
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_step_records_user_id").on(table.userId)]);
+
+export const insertStepRecordSchema = createInsertSchema(stepRecords).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+});
+
+export type InsertStepRecord = z.infer<typeof insertStepRecordSchema>;
+export type StepRecord = typeof stepRecords.$inferSelect;
+
+// Cycling/Exercise Records - Detailed exercise tracking
+export const exerciseRecords = pgTable("exercise_records", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  activityType: text("activity_type").notNull(), // 'cycling', 'running', 'swimming', 'workout', 'yoga', 'other'
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  distanceMeters: real("distance_meters"), // Distance covered
+  avgSpeedMps: real("avg_speed_mps"), // Average speed in meters per second
+  maxSpeedMps: real("max_speed_mps"), // Maximum speed
+  calories: real("calories"), // Calories burned
+  avgHeartRate: integer("avg_heart_rate"), // Average heart rate
+  maxHeartRate: integer("max_heart_rate"), // Maximum heart rate
+  elevationGain: real("elevation_gain"), // Meters of elevation gained
+  intensity: text("intensity"), // 'low', 'medium', 'high', 'very_high'
+  notes: text("notes"),
+  route: jsonb("route"), // GPS coordinates if available
+  device: text("device"),
+  source: text("source").default('manual'),
+  metadata: jsonb("metadata"),
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_exercise_records_user_id").on(table.userId)]);
+
+export const insertExerciseRecordSchema = createInsertSchema(exerciseRecords).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+});
+
+export type InsertExerciseRecord = z.infer<typeof insertExerciseRecordSchema>;
+export type ExerciseRecord = typeof exerciseRecords.$inferSelect;
+
+// Vitals Records - Blood pressure and body composition
+export const vitalRecords = pgTable("vital_records", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  systolic: integer("systolic"), // Systolic blood pressure (mmHg)
+  diastolic: integer("diastolic"), // Diastolic blood pressure (mmHg)
+  heartRate: integer("heart_rate"), // BPM
+  bodyWeightKg: real("body_weight_kg"), // Weight in kg
+  bodyFatPercent: real("body_fat_percent"), // Body fat percentage
+  muscleMassKg: real("muscle_mass_kg"), // Muscle mass in kg
+  bmi: real("bmi"), // Body Mass Index
+  bodyTemperature: real("body_temperature"), // Temperature in Celsius
+  oxygenSaturation: integer("oxygen_saturation"), // SpO2 percentage
+  bloodGlucose: real("blood_glucose"), // Blood glucose in mg/dL
+  notes: text("notes"),
+  device: text("device"),
+  metadata: jsonb("metadata"),
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_vital_records_user_id").on(table.userId)]);
+
+export const insertVitalRecordSchema = createInsertSchema(vitalRecords).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  recordedAt: z.coerce.date().optional(),
+});
+
+export type InsertVitalRecord = z.infer<typeof insertVitalRecordSchema>;
+export type VitalRecord = typeof vitalRecords.$inferSelect;
+
+// Mindfulness Sessions - Meditation, breathing exercises, check-ins
+export const mindfulnessSessions = pgTable("mindfulness_sessions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  startedAt: timestamp("started_at").notNull(),
+  endedAt: timestamp("ended_at").notNull(),
+  type: text("type").notNull(), // 'breathing', 'meditation', 'checkin', 'visualization', 'body_scan'
+  durationMinutes: integer("duration_minutes").notNull(),
+  technique: text("technique"), // Specific technique used
+  moodBefore: integer("mood_before"), // 1-10 scale
+  moodAfter: integer("mood_after"), // 1-10 scale
+  stressLevelBefore: integer("stress_level_before"), // 1-10 scale
+  stressLevelAfter: integer("stress_level_after"), // 1-10 scale
+  rating: integer("rating"), // Session quality rating 1-5
+  notes: text("notes"),
+  guidedSession: text("guided_session").notNull().default('false'), // Whether it was guided
+  guideSource: text("guide_source"), // App/video/audio used
+  metadata: jsonb("metadata"),
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_mindfulness_sessions_user_id").on(table.userId)]);
+
+export const insertMindfulnessSessionSchema = createInsertSchema(mindfulnessSessions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  startedAt: z.coerce.date(),
+  endedAt: z.coerce.date(),
+});
+
+export type InsertMindfulnessSession = z.infer<typeof insertMindfulnessSessionSchema>;
+export type MindfulnessSession = typeof mindfulnessSessions.$inferSelect;
+
+// Sleep Logs - Sleep tracking
+export const sleepLogs = pgTable("sleep_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bedtime: timestamp("bedtime").notNull(),
+  wakeTime: timestamp("wake_time").notNull(),
+  totalSleepMinutes: integer("total_sleep_minutes").notNull(),
+  deepSleepMinutes: integer("deep_sleep_minutes"),
+  lightSleepMinutes: integer("light_sleep_minutes"),
+  remSleepMinutes: integer("rem_sleep_minutes"),
+  awakeMinutes: integer("awake_minutes"),
+  sleepQuality: integer("sleep_quality"), // 1-10 scale
+  sleepScore: integer("sleep_score"), // 0-100
+  interruptionsCount: integer("interruptions_count"),
+  snoringDuration: integer("snoring_duration"), // Minutes
+  avgHeartRate: integer("avg_heart_rate"),
+  restfulnessScore: integer("restfulness_score"), // 0-100
+  notes: text("notes"),
+  device: text("device"),
+  source: text("source").default('manual'),
+  metadata: jsonb("metadata"),
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_sleep_logs_user_id").on(table.userId)]);
+
+export const insertSleepLogSchema = createInsertSchema(sleepLogs).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  bedtime: z.coerce.date(),
+  wakeTime: z.coerce.date(),
+});
+
+export type InsertSleepLog = z.infer<typeof insertSleepLogSchema>;
+export type SleepLog = typeof sleepLogs.$inferSelect;
+
+// Food Logs - Nutrition tracking
+export const foodLogs = pgTable("food_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  loggedAt: timestamp("logged_at").notNull().defaultNow(),
+  mealType: text("meal_type"), // 'breakfast', 'lunch', 'dinner', 'snack'
+  foodName: text("food_name").notNull(),
+  description: text("description"),
+  calories: real("calories"),
+  protein: real("protein"), // Grams
+  carbs: real("carbs"), // Grams
+  fat: real("fat"), // Grams
+  fiber: real("fiber"), // Grams
+  sugar: real("sugar"), // Grams
+  sodium: real("sodium"), // Milligrams
+  servingSize: text("serving_size"),
+  servingUnit: text("serving_unit"),
+  quantity: real("quantity").default(1),
+  brandName: text("brand_name"),
+  barcode: text("barcode"),
+  notes: text("notes"),
+  photoUrl: text("photo_url"), // Meal photo
+  metadata: jsonb("metadata"),
+  syncedToAI: text("synced_to_ai").notNull().default('false'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_food_logs_user_id").on(table.userId)]);
+
+export const insertFoodLogSchema = createInsertSchema(foodLogs).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  loggedAt: z.coerce.date().optional(),
+});
+
+export type InsertFoodLog = z.infer<typeof insertFoodLogSchema>;
+export type FoodLog = typeof foodLogs.$inferSelect;
+
+// AI Sync Logs - Track synchronization with AI analyzer
+export const aiSyncLogs = pgTable("ai_sync_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  syncType: text("sync_type").notNull(), // 'steps', 'exercise', 'vitals', 'mindfulness', 'sleep', 'food', 'all'
+  recordsProcessed: integer("records_processed").notNull().default(0),
+  recordIds: jsonb("record_ids"), // Array of processed record IDs
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  status: text("status").notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  aiModel: text("ai_model").default('gpt-4o'), // AI model used
+  insights: text("insights").array(), // AI-generated insights
+  recommendations: text("recommendations").array(), // AI recommendations
+  healthScore: integer("health_score"), // Overall health score 0-100
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_ai_sync_logs_user_id").on(table.userId)]);
+
+export const insertAISyncLogSchema = createInsertSchema(aiSyncLogs).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  startedAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export type InsertAISyncLog = z.infer<typeof insertAISyncLogSchema>;
+export type AISyncLog = typeof aiSyncLogs.$inferSelect;

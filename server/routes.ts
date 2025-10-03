@@ -2580,6 +2580,200 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
     }
   });
 
+  // CRM routes
+  app.get('/api/crm/organizations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organizations = await storage.getCrmOrganizations(userId);
+      res.json(organizations);
+    } catch (error: any) {
+      console.error("Error fetching CRM organizations:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch organizations" });
+    }
+  });
+
+  app.post('/api/crm/organizations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.createCrmOrganization({
+        ...req.body,
+        userId,
+      });
+      res.json(organization);
+    } catch (error: any) {
+      console.error("Error creating CRM organization:", error);
+      res.status(500).json({ message: error.message || "Failed to create organization" });
+    }
+  });
+
+  app.get('/api/crm/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const query = req.query.search as string | undefined;
+      const contacts = await storage.getCrmContacts(userId, query);
+      res.json(contacts);
+    } catch (error: any) {
+      console.error("Error fetching CRM contacts:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch contacts" });
+    }
+  });
+
+  app.get('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const contact = await storage.getCrmContact(id, userId);
+      
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      res.json(contact);
+    } catch (error: any) {
+      console.error("Error fetching CRM contact:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch contact" });
+    }
+  });
+
+  app.post('/api/crm/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contact = await storage.createCrmContact({
+        ...req.body,
+        userId,
+      });
+      res.json(contact);
+    } catch (error: any) {
+      console.error("Error creating CRM contact:", error);
+      res.status(500).json({ message: error.message || "Failed to create contact" });
+    }
+  });
+
+  app.patch('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const contact = await storage.updateCrmContact(id, userId, req.body);
+      res.json(contact);
+    } catch (error: any) {
+      console.error("Error updating CRM contact:", error);
+      res.status(500).json({ message: error.message || "Failed to update contact" });
+    }
+  });
+
+  app.get('/api/crm/leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const leads = await storage.getCrmLeads(userId);
+      res.json(leads);
+    } catch (error: any) {
+      console.error("Error fetching CRM leads:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch leads" });
+    }
+  });
+
+  app.post('/api/crm/leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const lead = await storage.createCrmLead({
+        ...req.body,
+        userId,
+      });
+      res.json(lead);
+    } catch (error: any) {
+      console.error("Error creating CRM lead:", error);
+      res.status(500).json({ message: error.message || "Failed to create lead" });
+    }
+  });
+
+  app.patch('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const lead = await storage.updateCrmLead(id, userId, req.body);
+      res.json(lead);
+    } catch (error: any) {
+      console.error("Error updating CRM lead:", error);
+      res.status(500).json({ message: error.message || "Failed to update lead" });
+    }
+  });
+
+  app.get('/api/crm/deals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const deals = await storage.getCrmDeals(userId);
+      res.json(deals);
+    } catch (error: any) {
+      console.error("Error fetching CRM deals:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch deals" });
+    }
+  });
+
+  app.post('/api/crm/deals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const deal = await storage.createCrmDeal({
+        ...req.body,
+        userId,
+      });
+      res.json(deal);
+    } catch (error: any) {
+      console.error("Error creating CRM deal:", error);
+      res.status(500).json({ message: error.message || "Failed to create deal" });
+    }
+  });
+
+  app.patch('/api/crm/deals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const deal = await storage.updateCrmDeal(id, userId, req.body);
+      res.json(deal);
+    } catch (error: any) {
+      console.error("Error updating CRM deal:", error);
+      res.status(500).json({ message: error.message || "Failed to update deal" });
+    }
+  });
+
+  app.get('/api/crm/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contactId = req.query.contactId ? parseInt(req.query.contactId as string) : undefined;
+      const dealId = req.query.dealId ? parseInt(req.query.dealId as string) : undefined;
+      const activities = await storage.getCrmActivities(userId, contactId, dealId);
+      res.json(activities);
+    } catch (error: any) {
+      console.error("Error fetching CRM activities:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch activities" });
+    }
+  });
+
+  app.post('/api/crm/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activity = await storage.createCrmActivity({
+        ...req.body,
+        userId,
+      });
+      res.json(activity);
+    } catch (error: any) {
+      console.error("Error creating CRM activity:", error);
+      res.status(500).json({ message: error.message || "Failed to create activity" });
+    }
+  });
+
+  app.patch('/api/crm/activities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const activity = await storage.updateCrmActivity(id, userId, req.body);
+      res.json(activity);
+    } catch (error: any) {
+      console.error("Error updating CRM activity:", error);
+      res.status(500).json({ message: error.message || "Failed to update activity" });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

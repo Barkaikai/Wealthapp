@@ -18,6 +18,11 @@ import {
   notes,
   documents,
   documentInsights,
+  portfolioReports,
+  tradingRecommendations,
+  taxEvents,
+  rebalancingRecommendations,
+  anomalyDetections,
   type User,
   type UpsertUser,
   type Asset,
@@ -56,6 +61,16 @@ import {
   type InsertDocument,
   type DocumentInsight,
   type InsertDocumentInsight,
+  type PortfolioReport,
+  type InsertPortfolioReport,
+  type TradingRecommendation,
+  type InsertTradingRecommendation,
+  type TaxEvent,
+  type InsertTaxEvent,
+  type RebalancingRecommendation,
+  type InsertRebalancingRecommendation,
+  type AnomalyDetection,
+  type InsertAnomalyDetection,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -161,6 +176,31 @@ export interface IStorage {
   // Document Insight operations
   getDocumentInsight(documentId: number, userId: string): Promise<DocumentInsight | undefined>;
   createDocumentInsight(insight: InsertDocumentInsight): Promise<DocumentInsight>;
+  
+  // Portfolio Report operations
+  getPortfolioReports(userId: string): Promise<PortfolioReport[]>;
+  getLatestPortfolioReport(userId: string): Promise<PortfolioReport | undefined>;
+  createPortfolioReport(report: InsertPortfolioReport): Promise<PortfolioReport>;
+  
+  // Trading Recommendation operations
+  getTradingRecommendations(userId: string): Promise<TradingRecommendation[]>;
+  createTradingRecommendation(recommendation: InsertTradingRecommendation): Promise<TradingRecommendation>;
+  updateTradingRecommendation(id: number, userId: string, recommendation: Partial<InsertTradingRecommendation>): Promise<TradingRecommendation>;
+  
+  // Tax Event operations
+  getTaxEvents(userId: string, year?: number): Promise<TaxEvent[]>;
+  createTaxEvent(event: InsertTaxEvent): Promise<TaxEvent>;
+  updateTaxEvent(id: number, userId: string, event: Partial<InsertTaxEvent>): Promise<TaxEvent>;
+  
+  // Rebalancing Recommendation operations
+  getRebalancingRecommendations(userId: string): Promise<RebalancingRecommendation[]>;
+  createRebalancingRecommendation(recommendation: InsertRebalancingRecommendation): Promise<RebalancingRecommendation>;
+  updateRebalancingRecommendation(id: number, userId: string, recommendation: Partial<InsertRebalancingRecommendation>): Promise<RebalancingRecommendation>;
+  
+  // Anomaly Detection operations
+  getAnomalyDetections(userId: string, status?: string): Promise<AnomalyDetection[]>;
+  createAnomalyDetection(anomaly: InsertAnomalyDetection): Promise<AnomalyDetection>;
+  updateAnomalyDetection(id: number, userId: string, anomaly: Partial<InsertAnomalyDetection>): Promise<AnomalyDetection>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -639,6 +679,126 @@ export class DatabaseStorage implements IStorage {
   async createDocumentInsight(insight: InsertDocumentInsight): Promise<DocumentInsight> {
     const [newInsight] = await db.insert(documentInsights).values(insight).returning();
     return newInsight;
+  }
+
+  // Portfolio Report operations
+  async getPortfolioReports(userId: string): Promise<PortfolioReport[]> {
+    return await db.select().from(portfolioReports).where(eq(portfolioReports.userId, userId)).orderBy(desc(portfolioReports.createdAt));
+  }
+
+  async getLatestPortfolioReport(userId: string): Promise<PortfolioReport | undefined> {
+    const [report] = await db.select().from(portfolioReports)
+      .where(eq(portfolioReports.userId, userId))
+      .orderBy(desc(portfolioReports.createdAt))
+      .limit(1);
+    return report;
+  }
+
+  async createPortfolioReport(report: InsertPortfolioReport): Promise<PortfolioReport> {
+    const [newReport] = await db.insert(portfolioReports).values(report).returning();
+    return newReport;
+  }
+
+  // Trading Recommendation operations
+  async getTradingRecommendations(userId: string): Promise<TradingRecommendation[]> {
+    return await db.select().from(tradingRecommendations)
+      .where(eq(tradingRecommendations.userId, userId))
+      .orderBy(desc(tradingRecommendations.createdAt));
+  }
+
+  async createTradingRecommendation(recommendation: InsertTradingRecommendation): Promise<TradingRecommendation> {
+    const [newRecommendation] = await db.insert(tradingRecommendations).values(recommendation).returning();
+    return newRecommendation;
+  }
+
+  async updateTradingRecommendation(id: number, userId: string, recommendation: Partial<InsertTradingRecommendation>): Promise<TradingRecommendation> {
+    const [updatedRecommendation] = await db
+      .update(tradingRecommendations)
+      .set(recommendation)
+      .where(and(eq(tradingRecommendations.id, id), eq(tradingRecommendations.userId, userId)))
+      .returning();
+    
+    if (!updatedRecommendation) {
+      throw new Error("Trading recommendation not found");
+    }
+    return updatedRecommendation;
+  }
+
+  // Tax Event operations
+  async getTaxEvents(userId: string, year?: number): Promise<TaxEvent[]> {
+    const conditions = year 
+      ? and(eq(taxEvents.userId, userId), eq(taxEvents.taxYear, year))
+      : eq(taxEvents.userId, userId);
+    return await db.select().from(taxEvents).where(conditions).orderBy(desc(taxEvents.eventDate));
+  }
+
+  async createTaxEvent(event: InsertTaxEvent): Promise<TaxEvent> {
+    const [newEvent] = await db.insert(taxEvents).values(event).returning();
+    return newEvent;
+  }
+
+  async updateTaxEvent(id: number, userId: string, event: Partial<InsertTaxEvent>): Promise<TaxEvent> {
+    const [updatedEvent] = await db
+      .update(taxEvents)
+      .set(event)
+      .where(and(eq(taxEvents.id, id), eq(taxEvents.userId, userId)))
+      .returning();
+    
+    if (!updatedEvent) {
+      throw new Error("Tax event not found");
+    }
+    return updatedEvent;
+  }
+
+  // Rebalancing Recommendation operations
+  async getRebalancingRecommendations(userId: string): Promise<RebalancingRecommendation[]> {
+    return await db.select().from(rebalancingRecommendations)
+      .where(eq(rebalancingRecommendations.userId, userId))
+      .orderBy(desc(rebalancingRecommendations.createdAt));
+  }
+
+  async createRebalancingRecommendation(recommendation: InsertRebalancingRecommendation): Promise<RebalancingRecommendation> {
+    const [newRecommendation] = await db.insert(rebalancingRecommendations).values(recommendation).returning();
+    return newRecommendation;
+  }
+
+  async updateRebalancingRecommendation(id: number, userId: string, recommendation: Partial<InsertRebalancingRecommendation>): Promise<RebalancingRecommendation> {
+    const [updatedRecommendation] = await db
+      .update(rebalancingRecommendations)
+      .set(recommendation)
+      .where(and(eq(rebalancingRecommendations.id, id), eq(rebalancingRecommendations.userId, userId)))
+      .returning();
+    
+    if (!updatedRecommendation) {
+      throw new Error("Rebalancing recommendation not found");
+    }
+    return updatedRecommendation;
+  }
+
+  // Anomaly Detection operations
+  async getAnomalyDetections(userId: string, status?: string): Promise<AnomalyDetection[]> {
+    const conditions = status 
+      ? and(eq(anomalyDetections.userId, userId), eq(anomalyDetections.status, status))
+      : eq(anomalyDetections.userId, userId);
+    return await db.select().from(anomalyDetections).where(conditions).orderBy(desc(anomalyDetections.detectedAt));
+  }
+
+  async createAnomalyDetection(anomaly: InsertAnomalyDetection): Promise<AnomalyDetection> {
+    const [newAnomaly] = await db.insert(anomalyDetections).values(anomaly).returning();
+    return newAnomaly;
+  }
+
+  async updateAnomalyDetection(id: number, userId: string, anomaly: Partial<InsertAnomalyDetection>): Promise<AnomalyDetection> {
+    const [updatedAnomaly] = await db
+      .update(anomalyDetections)
+      .set(anomaly)
+      .where(and(eq(anomalyDetections.id, id), eq(anomalyDetections.userId, userId)))
+      .returning();
+    
+    if (!updatedAnomaly) {
+      throw new Error("Anomaly detection not found");
+    }
+    return updatedAnomaly;
   }
 }
 

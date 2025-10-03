@@ -6,7 +6,7 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema } from "@shared/schema";
 import multer from "multer";
 import { fileStorage } from "./fileStorage";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
@@ -1467,6 +1467,259 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Chat error:", error);
       res.status(500).json({ message: error.message || "Failed to get chat response" });
+    }
+  });
+
+  // ==================== AI INTELLIGENCE FEATURES ====================
+
+  // Portfolio Reports routes
+  app.get('/api/portfolio-reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const reports = await storage.getPortfolioReports(userId);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching portfolio reports:", error);
+      res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  app.get('/api/portfolio-reports/latest', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const report = await storage.getLatestPortfolioReport(userId);
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching latest report:", error);
+      res.status(500).json({ message: "Failed to fetch report" });
+    }
+  });
+
+  app.post('/api/portfolio-reports/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { reportType = 'daily', periodStart, periodEnd } = req.body;
+      
+      const now = new Date();
+      const start = periodStart ? new Date(periodStart) : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const end = periodEnd ? new Date(periodEnd) : now;
+
+      const [assets, transactions] = await Promise.all([
+        storage.getAssets(userId),
+        storage.getTransactions(userId),
+      ]);
+
+      const { generatePortfolioReport } = await import('./aiIntelligence');
+      const reportData = await generatePortfolioReport(assets, transactions, start, end);
+
+      const report = await storage.createPortfolioReport({
+        userId,
+        reportType,
+        periodStart: start,
+        periodEnd: end,
+        ...reportData,
+      });
+
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error generating portfolio report:", error);
+      res.status(500).json({ message: error.message || "Failed to generate report" });
+    }
+  });
+
+  // Trading Recommendations routes
+  app.get('/api/trading-recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const recommendations = await storage.getTradingRecommendations(userId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching trading recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch recommendations" });
+    }
+  });
+
+  app.post('/api/trading-recommendations/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const [assets, transactions, marketContext] = await Promise.all([
+        storage.getAssets(userId),
+        storage.getTransactions(userId),
+        getMarketOverview().catch(() => null),
+      ]);
+
+      const { generateTradingRecommendations } = await import('./aiIntelligence');
+      const recommendations = await generateTradingRecommendations(assets, transactions, marketContext);
+
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+      const created = await Promise.all(
+        recommendations.map((rec: any) =>
+          storage.createTradingRecommendation({
+            userId,
+            ...rec,
+            expiresAt,
+          })
+        )
+      );
+
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error generating trading recommendations:", error);
+      res.status(500).json({ message: error.message || "Failed to generate recommendations" });
+    }
+  });
+
+  app.patch('/api/trading-recommendations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateTradingRecommendation(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating trading recommendation:", error);
+      res.status(400).json({ message: "Failed to update recommendation" });
+    }
+  });
+
+  // Tax Events routes
+  app.get('/api/tax-events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
+      const events = await storage.getTaxEvents(userId, year);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching tax events:", error);
+      res.status(500).json({ message: "Failed to fetch tax events" });
+    }
+  });
+
+  app.post('/api/tax-events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertTaxEventSchema.parse({ ...req.body, userId });
+      const event = await storage.createTaxEvent(validatedData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating tax event:", error);
+      res.status(400).json({ message: "Failed to create tax event" });
+    }
+  });
+
+  app.patch('/api/tax-events/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateTaxEvent(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating tax event:", error);
+      res.status(400).json({ message: "Failed to update tax event" });
+    }
+  });
+
+  // Rebalancing Recommendations routes
+  app.get('/api/rebalancing-recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const recommendations = await storage.getRebalancingRecommendations(userId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching rebalancing recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch recommendations" });
+    }
+  });
+
+  app.post('/api/rebalancing-recommendations/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const targetAllocation = req.body.targetAllocation;
+
+      const assets = await storage.getAssets(userId);
+
+      const { generateRebalancingRecommendations } = await import('./aiIntelligence');
+      const recommendation = await generateRebalancingRecommendations(assets, targetAllocation);
+
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+      const created = await storage.createRebalancingRecommendation({
+        userId,
+        ...recommendation,
+        expiresAt,
+      });
+
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error generating rebalancing recommendation:", error);
+      res.status(500).json({ message: error.message || "Failed to generate recommendation" });
+    }
+  });
+
+  app.patch('/api/rebalancing-recommendations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateRebalancingRecommendation(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating rebalancing recommendation:", error);
+      res.status(400).json({ message: "Failed to update recommendation" });
+    }
+  });
+
+  // Anomaly Detection routes
+  app.get('/api/anomalies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const status = req.query.status as string | undefined;
+      const anomalies = await storage.getAnomalyDetections(userId, status);
+      res.json(anomalies);
+    } catch (error) {
+      console.error("Error fetching anomalies:", error);
+      res.status(500).json({ message: "Failed to fetch anomalies" });
+    }
+  });
+
+  app.post('/api/anomalies/detect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const [assets, transactions, events] = await Promise.all([
+        storage.getAssets(userId),
+        storage.getTransactions(userId),
+        storage.getEvents(userId),
+      ]);
+
+      const { detectAnomalies } = await import('./aiIntelligence');
+      const anomalies = await detectAnomalies(assets, transactions, events);
+
+      const created = await Promise.all(
+        anomalies.map((anomaly: any) =>
+          storage.createAnomalyDetection({
+            userId,
+            ...anomaly,
+          })
+        )
+      );
+
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error detecting anomalies:", error);
+      res.status(500).json({ message: error.message || "Failed to detect anomalies" });
+    }
+  });
+
+  app.patch('/api/anomalies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateAnomalyDetection(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating anomaly:", error);
+      res.status(400).json({ message: "Failed to update anomaly" });
     }
   });
 

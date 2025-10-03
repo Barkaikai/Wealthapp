@@ -2,11 +2,58 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { StatCard } from "@/components/StatCard";
 import { HighlightCard } from "@/components/HighlightCard";
 import MarketOverview from "@/components/MarketOverview";
-import { Sparkles, AlertTriangle, Target, RefreshCw } from "lucide-react";
+import { Sparkles, AlertTriangle, Target, RefreshCw, TrendingUp, CreditCard, Calculator, Users, FileText, Brain, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import type { Asset, Briefing } from "@shared/schema";
+
+const quickAccessItems = [
+  {
+    title: "Wealth Dashboard",
+    description: "View portfolio analytics",
+    icon: TrendingUp,
+    url: "/wealth",
+    color: "text-green-500",
+  },
+  {
+    title: "Personal Wallet",
+    description: "Manage funds & payments",
+    icon: CreditCard,
+    url: "/wallet",
+    color: "text-blue-500",
+  },
+  {
+    title: "Digital Accountant",
+    description: "Track finances & reports",
+    icon: Calculator,
+    url: "/accountant",
+    color: "text-purple-500",
+  },
+  {
+    title: "CRM",
+    description: "Manage relationships",
+    icon: Users,
+    url: "/crm",
+    color: "text-orange-500",
+  },
+  {
+    title: "Productivity Hub",
+    description: "Notes, tasks & calendar",
+    icon: FileText,
+    url: "/notepad",
+    color: "text-cyan-500",
+  },
+  {
+    title: "AI Intelligence",
+    description: "AI insights & analysis",
+    icon: Brain,
+    url: "/ai-intelligence",
+    color: "text-pink-500",
+  },
+];
 
 export default function DailyBriefing() {
   const { toast } = useToast();
@@ -106,6 +153,29 @@ export default function DailyBriefing() {
         {stats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-4" data-testid="text-quick-access-title">Quick Access</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {quickAccessItems.map((item) => (
+            <Link
+              key={item.title}
+              href={item.url}
+              data-testid={`card-quick-access-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <Card className="hover-elevate active-elevate-2 cursor-pointer transition-all h-full">
+                <CardHeader className="p-4 space-y-2">
+                  <item.icon className={`h-8 w-8 ${item.color}`} />
+                  <div>
+                    <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
+                    <CardDescription className="text-xs">{item.description}</CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {briefingLoading ? (

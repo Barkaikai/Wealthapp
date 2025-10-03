@@ -1779,7 +1779,7 @@ ${processedText}`;
       // Analyze each transaction for tax implications
       for (const transaction of transactions) {
         try {
-          const taxAnalysis = await analyzeTaxImplications(transaction, transaction.costBasis || undefined);
+          const taxAnalysis = await analyzeTaxImplications(transaction, (transaction as any).costBasis || undefined);
           
           // Validate and sanitize numeric fields (AI may return "unknown" or invalid values)
           const sanitizeNumber = (value: any, fallback: number = 0): number => {
@@ -2551,11 +2551,15 @@ Authentication: Active`;
         case 'whoami':
           try {
             const user = await storage.getUser(userId);
+            if (!user) {
+              error = 'User not found';
+              break;
+            }
             output = `User Information:
 ID: ${user.id}
 Email: ${user.email || 'N/A'}
 Name: ${user.firstName || ''} ${user.lastName || ''}
-Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
+Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}`;
           } catch (e) {
             error = 'Failed to fetch user information';
           }
@@ -2799,13 +2803,16 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
       if (req.body.autoCreate) {
         for (const task of tasks) {
           await storage.createTask({
-            ...task,
             userId,
+            title: task.title,
+            description: task.description,
             status: 'pending',
+            category: task.category,
+            priority: task.priority,
+            dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
             aiSuggestions: task.aiContext,
           });
         }
-        await storage.refreshTaskCache?.(userId);
       }
 
       res.json({ tasks, created: req.body.autoCreate || false });
@@ -2850,7 +2857,7 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
 
       // Get existing folders from user's documents
       const documents = await storage.getDocuments(userId);
-      const existingFolders = [...new Set(documents.map((d: any) => d.folder).filter(Boolean))];
+      const existingFolders = Array.from(new Set(documents.map((d: any) => d.folder).filter(Boolean)));
 
       const { analyzeDocumentForOrganization } = await import('./openai');
       const organization = await analyzeDocumentForOrganization(
@@ -2905,12 +2912,12 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
       // Store tokens securely (encrypted in DB in production)
       // For now, set in session
       if (req.session) {
-        req.session.msTokens = {
+        (req.session as any).msTokens = {
           accessToken: tokenResponse.accessToken,
           refreshToken: tokenResponse.refreshToken,
           expiresOn: tokenResponse.expiresOn,
         };
-        req.session.msAccount = tokenResponse.account;
+        (req.session as any).msAccount = tokenResponse.account;
       }
 
       // Redirect to frontend with success
@@ -2925,14 +2932,15 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
 
   // Get Microsoft account info
   app.get('/api/microsoft/profile', isAuthenticated, async (req: any, res) => {
-    if (!req.session?.msTokens) {
+    const msTokens = (req.session as any)?.msTokens;
+    if (!msTokens) {
       return res.status(401).json({ message: 'Microsoft account not connected' });
     }
 
     try {
       const { Client } = require('@microsoft/microsoft-graph-client');
       const client = Client.init({
-        authProvider: (done: any) => done(null, req.session.msTokens.accessToken),
+        authProvider: (done: any) => done(null, msTokens.accessToken),
       });
 
       const profile = await client.api('/me').get();
@@ -2945,9 +2953,9 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
 
   // Disconnect Microsoft account
   app.post('/api/microsoft/disconnect', isAuthenticated, async (req: any, res) => {
-    if (req.session?.msTokens) {
-      delete req.session.msTokens;
-      delete req.session.msAccount;
+    if ((req.session as any)?.msTokens) {
+      delete (req.session as any).msTokens;
+      delete (req.session as any).msAccount;
     }
     res.json({ message: 'Microsoft account disconnected successfully' });
   });

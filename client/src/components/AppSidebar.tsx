@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image, Bot } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -65,6 +65,11 @@ const menuGroups = [
         title: "Productivity Hub",
         url: "/notepad",
         icon: FileText,
+      },
+      {
+        title: "Discord AI",
+        url: "/discord",
+        icon: Bot,
       },
     ],
   },

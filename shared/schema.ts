@@ -1498,3 +1498,60 @@ export const insertNftActivitySchema = createInsertSchema(nftActivities).omit({
 
 export type InsertNftActivity = z.infer<typeof insertNftActivitySchema>;
 export type NftActivity = typeof nftActivities.$inferSelect;
+
+// ============================================
+// DISCORD INTEGRATION
+// ============================================
+
+// Discord Servers - Store connected servers
+export const discordServers = pgTable("discord_servers", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  serverId: varchar("server_id", { length: 255 }).notNull(),
+  serverName: varchar("server_name", { length: 255 }).notNull(),
+  iconUrl: text("icon_url"),
+  isActive: varchar("is_active", { length: 5 }).default('true'),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_discord_servers_user_id").on(table.userId),
+  index("idx_discord_servers_server_id").on(table.serverId)
+]);
+
+export const insertDiscordServerSchema = createInsertSchema(discordServers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDiscordServer = z.infer<typeof insertDiscordServerSchema>;
+export type DiscordServer = typeof discordServers.$inferSelect;
+
+// Discord Scheduled Messages - Store scheduled AI messages
+export const discordScheduledMessages = pgTable("discord_scheduled_messages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  serverId: varchar("server_id", { length: 255 }).notNull(),
+  channelId: varchar("channel_id", { length: 255 }).notNull(),
+  channelName: varchar("channel_name", { length: 255 }),
+  prompt: text("prompt").notNull(),
+  cronTime: varchar("cron_time", { length: 100 }).notNull(), // cron expression
+  isActive: varchar("is_active", { length: 5 }).default('true'),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_discord_scheduled_user_id").on(table.userId),
+  index("idx_discord_scheduled_channel_id").on(table.channelId)
+]);
+
+export const insertDiscordScheduledMessageSchema = createInsertSchema(discordScheduledMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDiscordScheduledMessage = z.infer<typeof insertDiscordScheduledMessageSchema>;
+export type DiscordScheduledMessage = typeof discordScheduledMessages.$inferSelect;

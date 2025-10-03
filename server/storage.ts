@@ -152,6 +152,12 @@ import {
   type InsertNftAsset,
   type NftActivity,
   type InsertNftActivity,
+  discordServers,
+  discordScheduledMessages,
+  type DiscordServer,
+  type InsertDiscordServer,
+  type DiscordScheduledMessage,
+  type InsertDiscordScheduledMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -243,6 +249,14 @@ export interface IStorage {
   createNftAsset(asset: InsertNftAsset): Promise<NftAsset>;
   getNftActivities(userId: string): Promise<NftActivity[]>;
   createNftActivity(activity: InsertNftActivity): Promise<NftActivity>;
+  
+  // Discord operations
+  getDiscordServers(userId: string): Promise<DiscordServer[]>;
+  createDiscordServer(server: InsertDiscordServer): Promise<DiscordServer>;
+  getDiscordScheduledMessages(userId: string): Promise<DiscordScheduledMessage[]>;
+  createDiscordScheduledMessage(message: InsertDiscordScheduledMessage): Promise<DiscordScheduledMessage>;
+  updateDiscordScheduledMessage(id: number, userId: string, message: Partial<InsertDiscordScheduledMessage>): Promise<DiscordScheduledMessage>;
+  deleteDiscordScheduledMessage(id: number, userId: string): Promise<void>;
   
   // Voice Command operations
   getVoiceCommands(userId: string, limit?: number): Promise<VoiceCommand[]>;
@@ -802,6 +816,56 @@ export class DatabaseStorage implements IStorage {
   async createNftActivity(activity: InsertNftActivity): Promise<NftActivity> {
     const [newActivity] = await db.insert(nftActivities).values(activity).returning();
     return newActivity;
+  }
+
+  // Discord operations
+  async getDiscordServers(userId: string): Promise<DiscordServer[]> {
+    return await db.select().from(discordServers).where(eq(discordServers.userId, userId)).orderBy(desc(discordServers.createdAt));
+  }
+
+  async createDiscordServer(server: InsertDiscordServer): Promise<DiscordServer> {
+    const [existing] = await db
+      .select()
+      .from(discordServers)
+      .where(
+        and(
+          eq(discordServers.userId, server.userId),
+          eq(discordServers.serverId, server.serverId)
+        )
+      );
+    
+    if (existing) {
+      return existing;
+    }
+
+    const [newServer] = await db.insert(discordServers).values(server).returning();
+    return newServer;
+  }
+
+  async getDiscordScheduledMessages(userId: string): Promise<DiscordScheduledMessage[]> {
+    return await db.select().from(discordScheduledMessages).where(eq(discordScheduledMessages.userId, userId)).orderBy(desc(discordScheduledMessages.createdAt));
+  }
+
+  async createDiscordScheduledMessage(message: InsertDiscordScheduledMessage): Promise<DiscordScheduledMessage> {
+    const [newMessage] = await db.insert(discordScheduledMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async updateDiscordScheduledMessage(id: number, userId: string, message: Partial<InsertDiscordScheduledMessage>): Promise<DiscordScheduledMessage> {
+    const [updated] = await db
+      .update(discordScheduledMessages)
+      .set({ ...message, updatedAt: new Date() })
+      .where(and(eq(discordScheduledMessages.id, id), eq(discordScheduledMessages.userId, userId)))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Scheduled message not found");
+    }
+    return updated;
+  }
+
+  async deleteDiscordScheduledMessage(id: number, userId: string): Promise<void> {
+    await db.delete(discordScheduledMessages).where(and(eq(discordScheduledMessages.id, id), eq(discordScheduledMessages.userId, userId)));
   }
 
   // Voice Command operations

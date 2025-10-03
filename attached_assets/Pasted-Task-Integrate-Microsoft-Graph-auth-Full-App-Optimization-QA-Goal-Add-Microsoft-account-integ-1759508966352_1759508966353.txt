@@ -1,0 +1,267 @@
+Task: Integrate Microsoft Graph auth + Full App Optimization & QA
+
+Goal: Add Microsoft account integration (OAuth via Microsoft / Graph API) into the app; ensure every function is updated, optimized, and tested; surface missing URLs to be filled; and produce a market-ready, fast, error-free release.
+
+1) File paths & where to place code (Replit-friendly)
+
+Place the code and modules at these suggested paths. If your repo layout differs, map them accordingly.
+
+Backend
+
+/backend/server.js — main Express server entry (or update your existing server entry)
+
+/backend/routes/authMicrosoft.js — Microsoft OAuth routes (auth redirect + callback)
+
+/backend/lib/msAuthClient.js — MSAL client config / helper functions
+
+/backend/controllers/userController.js — user profile creation + token handling
+
+/backend/api/graphClient.js — Microsoft Graph client helper (wrapping @microsoft/microsoft-graph-client)
+
+/backend/middleware/ensureAuth.js — checks for logged-in user / token valid
+
+/backend/config/index.js — loads env vars, validates presence of required URLs
+
+Frontend
+
+/frontend/src/pages/ConnectMicrosoft.jsx — button + flow that opens GET /auth/microsoft
+
+/frontend/src/components/SignUp.jsx — signup form (existing; update to call backend)
+
+/frontend/src/components/AccountSettings.jsx — shows linked services, button to disconnect
+
+/frontend/src/services/api.js — central fetch wrapper (handles auth tokens, retries)
+
+/frontend/src/styles/typography.css — update fonts, sizes, color variables for readable UI
+
+DevOps / Misc
+
+/scripts/test-e2e.sh — script to run end-to-end tests
+
+/scripts/run-linter.sh — linting & static analysis
+
+/docs/DEPLOY.md — deployment checklist and required URLs to fill
+
+2) Required environment variables (set these via Replit Secrets or your production secrets manager)
+
+REMINDER: you must fill every *_URL and *_KEY below. I will remind you where later.
+
+# Microsoft / OAuth
+MS_CLIENT_ID=
+MS_TENANT_ID=
+MS_CLIENT_SECRET=
+MS_REDIRECT_URI=           # e.g. https://daily-brief-brinsonbarkai.replit.app/auth/callback
+
+# Backend & App URLs
+APP_BASE_URL=              # e.g. https://daily-brief-brinsonbarkai.replit.app
+BACKEND_BASE_URL=          # e.g. https://daily-brief-brinsonbarkai.replit.app/api
+FRONTEND_BASE_URL=         # same as APP_BASE_URL or separate hosting URL
+
+# Microsoft Graph scopes (comma separated if needed)
+MS_GRAPH_SCOPES=user.read,mail.read,files.read,offline_access,calendars.readwrite
+
+# Other integrations (fill these if used)
+OPENAI_API_KEY=
+ETH_RPC_URL=
+POLYGON_RPC_URL=
+SOLANA_RPC_URL=
+BLOCKSTREAM_API_URL=
+REDIS_URL=
+DATABASE_URL=
+
+# JWT / Session
+SESSION_SECRET=
+JWT_SECRET=
+
+
+Important: Add the above MS_REDIRECT_URI and any other callback URLs to your Azure App Registration (Azure Portal → App Registrations → Authentication → Redirect URIs). If you forget to add them, OAuth will fail.
+
+3) Microsoft Integration: What to implement (developer instructions)
+
+Azure App Registration
+
+Register app, set Redirect URI to MS_REDIRECT_URI.
+
+Add delegated permissions: User.Read, Mail.Read, Files.ReadWrite, Calendars.ReadWrite, offline_access.
+
+Generate CLIENT_SECRET and store in MS_CLIENT_SECRET.
+
+Save MS_CLIENT_ID and MS_TENANT_ID.
+
+Backend route /auth/microsoft (GET)
+
+Uses MSAL to generate authorization URL with MS_GRAPH_SCOPES and MS_REDIRECT_URI.
+
+Redirect user to Microsoft login.
+
+Backend route /auth/callback (GET)
+
+Receives code query param.
+
+Exchange code for tokens (access + refresh).
+
+Save tokens securely (encrypted) in DB or provide short-lived session JWT to frontend.
+
+Optionally fetch user profile /me from Graph and create/update local user.
+
+Graph Client Helper
+
+Wrap Microsoft Graph client so other services can call graphClient.get('/me'), graphClient.get('/me/drive/root'), graphClient.post('/me/sendMail'), graphClient.patch('/me/calendars/{id}/events'), etc.
+
+Ensure token refresh using MSAL when access_token expires (use refresh_token).
+
+Frontend
+
+Connect button on Account Settings: opens /auth/microsoft.
+
+After callback, backend should redirect to front-end APP_BASE_URL with session cookie or token.
+
+Show connected account info, last sync time, permissions scope list, and a "Disconnect" button.
+
+Permissions & UX
+
+Show permission consent text before redirecting.
+
+Provide a way to disconnect & revoke permissions.
+
+Security
+
+Do not store product keys in code.
+
+Encrypt tokens at rest.
+
+Use HTTPS everywhere, set cookie Secure + HttpOnly.
+
+4) All URLs you must fill in (reminder copy for you)
+
+MS_REDIRECT_URI (add to Azure App Registration)
+
+APP_BASE_URL / FRONTEND_BASE_URL
+
+BACKEND_BASE_URL
+
+REDIS_URL, DATABASE_URL
+
+RPC & third-party service URLs (ETH_RPC_URL, POLYGON_RPC_URL, SOLANA_RPC_URL, BLOCKSTREAM_API_URL)
+
+Any webhook URLs (for webhooks you create), e.g., https://your-domain.com/webhooks/microsoft
+
+Action: Put these values into Replit Secrets now and confirm they match Azure settings.
+
+5) Optimization & QA checklist (run these; mark done)
+
+Performance & Memory
+
+ Add Redis caching for frequent Graph calls (e.g., GET /me, frequently accessed files) with sensible TTL.
+
+ Use connection pooling for DB and persistent provider instances for RPC (avoid new connections each request).
+
+ Increase Node memory if required in production (--max-old-space-size=...) and use clustering/PM2.
+
+ Serve compressed assets (gzip/ brotli) for frontend.
+
+Frontend UX & Typography
+
+ Fix font family, size, and contrast in /frontend/src/styles/typography.css.
+
+ Use accessible font sizes (>=16px body), high contrast colors, and responsive layout.
+
+ Add loading skeletons and optimistic UI for network calls.
+
+Reliability
+
+ Add retries & exponential backoff for external API calls.
+
+ Add circuit breaker logic (fail fast when provider down).
+
+ Validate all env variables on startup and fail with clear message listing missing URLs/keys.
+
+Security & Privacy
+
+ Ensure all tokens/keys stored in secrets manager.
+
+ Use HTTPS and Secure cookies.
+
+ Add rate limiting for sensitive endpoints (auth, withdraw).
+
+ Add audit logs for all external actions (syncs, sends, withdrawals).
+
+Functionality Tests
+
+ Unit tests for auth flow, token refresh, graph calls.
+
+ Integration tests for frontend-backend OAuth flow (E2E).
+
+ End-to-end tests for contact sync, calendar sync, file upload.
+
+ Manual device testing (iOS & Android if mobile wrapper used).
+
+Error Handling
+
+ Centralized error handler in backend to capture stack traces & respond friendly messages.
+
+ Map and fix all pre-recorded errors — document any unresolved regressions with steps to reproduce.
+
+ Add health-check endpoints: /health and /ready.
+
+Offline Support
+
+ Local storage + queue mechanism: store user changes locally and sync when online.
+
+ Conflict resolution policy on sync (last-write-wins or merge rules).
+
+6) Testing plan & scripts (deliverables to developer)
+
+Provide npm run test:unit, npm run test:e2e scripts.
+
+Provide scripts/test-e2e.sh to auto-run smoke tests and return non-zero exit on failure.
+
+Provide CI config for GitHub Actions or Replit that runs lint + unit tests + e2e on PRs.
+
+7) Acceptance Criteria (what “done” looks like)
+
+Microsoft auth flow works end-to-end:
+
+Clicking Connect → Microsoft login → redirect → app shows connected user.
+
+Tokens stored securely; token refresh works automatically.
+
+All required URLs/env variables are present and validated on startup.
+
+Contacts/calendar/files can be read (subject to granted scopes), and AI can use them.
+
+App performance: page load times under acceptable thresholds (e.g., TTFB < 300ms backend, First Contentful Paint < 1.5s on 3G simulated).
+
+Offline-first operations function for notes, basic tasks, and queued uploads.
+
+All pre-recorded errors fixed; unit & e2e tests pass.
+
+UI typography is readable and consistent across pages.
+
+8) Deliverable artifacts
+
+Updated repo with code in paths above.
+
+.env.example filled with all required variables (placeholders for secrets).
+
+DEPLOY.md with step-by-step deploy checklist (add URLs, set secrets, configure Azure).
+
+Test reports (unit & e2e) and a final sign-off QA checklist.
+
+9) Developer prompt (copy this to your engineer)
+
+Implement Microsoft Graph OAuth integration and full app optimization per the FSD.
+
+Add backend routes: /auth/microsoft and /auth/callback using MSAL and store tokens securely.
+
+Add front-end Connect flow & account settings UI.
+
+Validate and document all required environment variables and callback URLs; ensure they’re added to the Azure App registration.
+
+Optimize app performance (Redis caching, connection pooling, cluster/process management), fix pre-recorded errors, and run full unit and E2E tests.
+
+Ensure offline-first functionality for notes/tasks with sync on reconnect.
+
+Improve typography and UI accessibility.
+
+Deliver .env.example, DEPLOY.md, test scripts, and QA sign-off demonstrating all acceptance criteria.

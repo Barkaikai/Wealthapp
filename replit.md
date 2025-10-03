@@ -24,9 +24,21 @@ PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. 
 
 ### System Design Choices
 
-The platform features continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms (GPT-5 to GPT-4o). A luxury theme is globally implemented. An AI-powered "Learn" system generates educational content. Real financial API integrations provide real-time stock and crypto data with intelligent fallback mechanisms. Email automation supports AI categorization and automatic draft replies. The system includes comprehensive wealth monitoring (transactions, alerts, goals, liabilities), a Productivity Hub (calendar, tasks), health metrics tracking, and Web3 wallet integration (Coinbase, Hedera HBAR, MetaMask, WalletConnect). A global calculator and integrated web search (Tavily API) and ChatGPT assistant (OpenAI GPT-4o) are accessible from the header.
+The platform features continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms (GPT-5 to GPT-4o). A luxury theme is globally implemented. An AI-powered "Learn" system generates educational content. Real financial API integrations provide real-time stock and crypto data with intelligent fallback mechanisms. Email automation supports AI categorization and automatic draft replies. The system includes comprehensive wealth monitoring (transactions, alerts, goals, liabilities), a Productivity Hub (calendar, tasks), health metrics tracking, and Web3 wallet integration (Coinbase, Hedera HBAR, MetaMask, WalletConnect).
 
-The AI Intelligence Hub offers five key capabilities: Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, and Anomaly Detection, all powered by GPT-4o. The Notepad system supports CRUD operations and AI-powered analysis for text (GPT-4o-mini) and images (GPT-4o Vision), handling Replit Object Storage gracefully.
+**Header Tools:** Live time/date display, online/offline status indicator with toggle, advanced calculator (64-digit precision, 3 modes: Basic, Scientific, Expression), web search (Tavily API), and ChatGPT assistant (OpenAI GPT-4o) are accessible from the header.
+
+**AI Intelligence Hub** offers five key capabilities: Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, and Anomaly Detection, all powered by GPT-4o.
+
+**AI Videos Page** generates personalized YouTube video recommendations based on Daily Briefing content using GPT-4o, providing educational content relevant to portfolio highlights, risks, and actions.
+
+**Notepad system** supports CRUD operations and AI-powered analysis for text (GPT-4o-mini) and images (GPT-4o Vision), handling Replit Object Storage gracefully.
+
+**Receipt Manager** uses GPT-4o Vision for OCR processing of receipt images, extracting merchant, amount, date, items, and category information.
+
+**PWA Capabilities:** Service worker implementation enables offline functionality and automatic app updates with user notifications. Manifest configured for installable progressive web app experience.
+
+**Calculator Features:** Three operational modes (Basic, Scientific, Expression) with mathjs BigNumber providing 64-digit precision. Scientific mode includes trigonometric functions, logarithms, constants (π, e), and advanced operations. Expression mode supports complex mathematical expressions with safe evaluation.
 
 Production optimizations include database indexing, boot-time environment variable validation (critical and optional services), enhanced API security hardening for search/ChatGPT endpoints, and React Query optimizations (staleTime: Infinity, smart retries, disabled window refetching). API resilience ensures graceful handling of external API failures for stock/crypto additions, allowing manual input and subsequent synchronization.
 

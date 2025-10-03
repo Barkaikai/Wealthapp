@@ -1932,15 +1932,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const briefing = await storage.getLatestBriefing(userId);
       
       if (!briefing) {
+        console.error(`No briefing found for user ${userId}`);
         return res.status(400).json({ message: "No briefing found. Please generate a daily briefing first." });
       }
 
       console.log(`Generating video recommendations for user ${userId} based on briefing ${briefing.id}`);
+      console.log(`Briefing data:`, { highlights: briefing.highlights, risks: briefing.risks, actions: briefing.actions });
       
       // Generate video recommendations using GPT-4o
       const recommendations = await generateVideoRecommendations(briefing);
       
       console.log(`Generated ${recommendations.length} video recommendations`);
+      console.log(`Sample recommendation:`, recommendations[0]);
       
       // Store in session for caching
       (req as any).session.videoRecommendations = recommendations;
@@ -1948,6 +1951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error generating video recommendations:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ message: error.message || "Failed to generate video recommendations" });
     }
   });

@@ -1,0 +1,331 @@
+Parallel calls to multiple providers
+
+Per-provider weighting and response scoring
+
+Simple debate / chain-of-opinion where agents can critique each other
+
+Tool invocation support (call blockchain helpers, DB lookups, calculators)
+
+Caching + short-term “memory” via Redis
+
+Streaming-friendly hooks (but example uses batch responses)
+
+Security notes (read): never store private keys in code; use Replit secrets or an external secrets manager. Do NOT use server-side keys to sign transactions unless you use HSM/MPC.
+
+What you’ll get
+
+multiAgent.js — core orchestrator module (Node.js)
+
+Example server.js — Express endpoints that use the orchestrator
+
+Guidance to add providers & tools
+
+Recommendations for production (rate limits, timeouts, retries)
+
+Install these dependencies
+
+Run in your project:
+
+npm install express dotenv axios openai ioredis uuid
+
+
+(If you use Anthropic, Cohere or other official SDKs, add their npm packages and wire them in — the code below uses axios for generic provider calls so adding them is straightforward.)
+
+1) multiAgent.js — orchestrator module
+
+Create multiAgent.js:
+
+// multiAgent.js
+require('dotenv').config();
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const Redis = require('ioredis');
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+// Example OpenAI client (node-openai)
+const { OpenAI } = require('openai');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Helper: call OpenAI completion (chat)
+async function callOpenAI(messages, opts = {}) {
+  const resp = await openai.chat.completions.create({
+    model: opts.model || (process.env.OPENAI_MODEL || 'gpt-4o-mini'), // adapt to your available model
+    messages,
+    max_tokens: opts.max_tokens || 700,
+    temperature: (opts.temperature ?? 0.2),
+  });
+  // Choose the assistant content
+  const text = resp.choices?.[0]?.message?.content ?? '';
+  return { provider: 'openai', text, raw: resp };
+}
+
+// Generic provider via HTTP (for Anthropic/Cohere or internal LLMs)
+// Implement provider-specific call details in config below
+async function callGenericProvider(providerConfig, prompt, opts = {}) {
+  if (!providerConfig || !providerConfig.type) throw new Error('providerConfig required');
+  // Example: Anthropics (simplified)
+  if (providerConfig.type === 'anthropic') {
+    const resp = await axios.post(
+      providerConfig.endpoint,
+      {
+        model: providerConfig.model,
+        prompt,
+        max_tokens: opts.max_tokens || 700,
+        temperature: opts.temperature ?? 0.2
+      },
+      { headers: { Authorization: `Bearer ${providerConfig.key}` } }
+    );
+    return { provider: providerConfig.name, text: resp.data?.completion ?? resp.data?.result ?? '', raw: resp.data };
+  }
+
+  // Example: Cohere-like
+  if (providerConfig.type === 'cohere') {
+    const resp = await axios.post(providerConfig.endpoint, {
+      model: providerConfig.model,
+      prompt,
+      max_tokens: opts.max_tokens || 700,
+      temperature: opts.temperature ?? 0.2
+    }, { headers: { Authorization: `Bearer ${providerConfig.key}` }});
+    return { provider: providerConfig.name, text: resp.data?.text ?? '', raw: resp.data };
+  }
+
+  // Fallback: direct POST
+  const resp = await axios.post(providerConfig.endpoint, { prompt, ...opts }, {
+    headers: { Authorization: `Bearer ${providerConfig.key}` }
+  });
+  return { provider: providerConfig.name, text: resp.data?.text ?? JSON.stringify(resp.data), raw: resp.data };
+}
+
+// Utility: score a provider response by heuristics
+function scoreResponse(text, providerName) {
+  // Basic heuristics: longer answers + keyword presence + provider weight
+  let score = Math.max(0, Math.min(1, text.length / 1000)); // normalize length up to 1.0
+  // small bonus for helpful-seeming phrasing
+  const helpfulTerms = ['therefore', 'recommended', 'steps', 'first', 'second', 'in summary'];
+  for (const t of helpfulTerms) if (text.toLowerCase().includes(t)) score += 0.1;
+  // provider weighting (example)
+  if (providerName === 'openai') score *= 1.05;
+  return score;
+}
+
+// Tool interface example: runTool(name, args) -> returns string
+async function runTool(name, args = {}) {
+  // Add tool integrations here (blockchain transfer, balance check, calculator, DB query)
+  if (name === 'getPortfolioSnapshot') {
+    // Example: call your portfolio API
+    const resp = await axios.get(process.env.PORTFOLIO_API + '/snapshot', { headers: { 'Authorization': `Bearer ${process.env.PORTFOLIO_API_KEY}` }});
+    return `Portfolio snapshot: ${JSON.stringify(resp.data)}`;
+  }
+  if (name === 'simpleCalc') {
+    // args.expr e.g. "100000 * 0.05"
+    try {
+      // caution: do NOT eval untrusted input in production. Use a safe expression parser.
+      // Here we use Function as minimal example (NOT recommended for untrusted strings).
+      const result = Function(`"use strict"; return (${args.expr})`)();
+      return `Result: ${result}`;
+    } catch (e) {
+      return `Calculation error: ${String(e)}`;
+    }
+  }
+  return `Unknown tool ${name}`;
+}
+
+// Coordinator: runs multiple agents in parallel, lets them critique, then returns best result
+async function multiAgentQuery({ userId, prompt, context = '', providers = [], tools = [], options = {} }) {
+  // providers: array of provider configs, e.g. [{name:'openai', type:'openai'}, {name:'anthropic', type:'anthropic', endpoint:'...', key:'...'}]
+  const requestId = uuidv4();
+  // Compose base system messages
+  const systemMsg = `You are a helpful assistant. Context: ${context}`;
+
+  // If we have cached short-term memory for user, append
+  let memory = '';
+  const memKey = `mem:${userId}`;
+  const memCached = await redis.get(memKey);
+  if (memCached) memory = `\n\nShort-term memory: ${memCached}`;
+
+  // Build messages for chat-style models
+  const chatMessages = [{ role: 'system', content: systemMsg + memory }, { role: 'user', content: prompt }];
+
+  // Fire off provider calls in parallel
+  const calls = providers.map(async (prov) => {
+    try {
+      if (prov.type === 'openai') {
+        return await callOpenAI(chatMessages, prov.opts || {});
+      } else {
+        // some providers accept prompt string instead of messages
+        const promptText = `${systemMsg}\n\nUser: ${prompt}${memory}`;
+        return await callGenericProvider(prov, promptText, prov.opts || {});
+      }
+    } catch (err) {
+      return { provider: prov.name, text: `ERROR from ${prov.name}: ${err.message}`, raw: err };
+    }
+  });
+
+  const responses = await Promise.all(calls);
+
+  // Optional: let agents critique each other's answers (mini-debate)
+  const critiques = [];
+  if (options.enableCritique) {
+    // For each response, ask another fast model (or same providers) to rate usefulness
+    // Here we use OpenAI quickly to critique the other providers
+    for (const r of responses) {
+      const critiquePrompt = [
+        { role: 'system', content: 'You are a critic that scores the helpfulness and correctness of an assistant reply from 0-10 and provides a short reason.'},
+        { role: 'user', content: `Original prompt: ${prompt}\n\nProvider reply:\n${r.text}\n\nScore and short reason:` }
+      ];
+      try {
+        const c = await callOpenAI(critiquePrompt, { max_tokens: 200, temperature: 0 });
+        critiques.push({ provider: r.provider, critique: c.text });
+      } catch (e) {
+        critiques.push({ provider: r.provider, critique: `Critique error: ${e.message}` });
+      }
+    }
+  }
+
+  // Score each response with heuristic + optional critique signals
+  const scored = responses.map((r) => {
+    const s = scoreResponse(r.text, r.provider);
+    const critiqueObj = critiques.find(c => c.provider === r.provider);
+    let critiqueScore = 0;
+    if (critiqueObj && critiqueObj.critique) {
+      // try extract number from critique text like "8/10" or "score: 7"
+      const m = critiqueObj.critique.match(/(\d{1,2})(?:\/10)?/);
+      if (m) critiqueScore = Number(m[1]) / 10;
+    }
+    const combined = Math.min(1, s * (0.75 + 0.25 * (1 + critiqueScore)));
+    return { provider: r.provider, text: r.text, raw: r.raw, score: combined, critique: critiqueObj?.critique || null };
+  });
+
+  // Optionally run tools requested by user (inspect prompt for tool instructions)
+  // Very simple detection: if prompt contains [TOOL:getPortfolioSnapshot]
+  const toolResults = {};
+  for (const t of tools) {
+    if (prompt.includes(`[TOOL:${t.name}]`) || options.alwaysRunTools) {
+      toolResults[t.name] = await runTool(t.name, t.args || {});
+    }
+  }
+
+  // Compose final answer: choose highest scoring response, optionally augment with tool results
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+
+  // Save brief memory of this interaction (append)
+  const newMem = (memCached ? memCached + '\n' : '') + `Q:${prompt}\nA:${best.text.slice(0, 300)}`;
+  await redis.set(memKey, newMem, 'EX', options.memoryTTL || 60 * 60 * 6); // store 6 hours by default
+
+  // Return structured result
+  return {
+    requestId,
+    prompt,
+    context,
+    best: { provider: best.provider, text: best.text, score: best.score, critique: best.critique },
+    all: scored,
+    toolResults
+  };
+}
+
+module.exports = {
+  multiAgentQuery,
+  callOpenAI,
+  callGenericProvider,
+  runTool
+};
+
+2) server.js — example endpoints to call the orchestrator
+
+Create server.js (or integrate into your existing Express app):
+
+// server.js
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const { multiAgentQuery } = require('./multiAgent');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Configure providers to use (pull keys from env or secrets)
+const defaultProviders = [
+  { name: 'openai', type: 'openai', opts: { model: process.env.OPENAI_MODEL || 'gpt-4o-mini' }, weight: 1.0 },
+  // Example placeholder for another provider (Anthropic)
+  { name: 'anthropic', type: 'anthropic', endpoint: process.env.ANTHROPIC_ENDPOINT, key: process.env.ANTHROPIC_KEY, model: process.env.ANTHROPIC_MODEL || 'claude-2' , weight: 0.9 },
+  // Add more providers here...
+];
+
+app.post('/api/ai/query', async (req, res) => {
+  try {
+    const { userId, prompt, context, providers, options } = req.body;
+    const provs = providers || defaultProviders;
+    const result = await multiAgentQuery({
+      userId: userId || 'anon',
+      prompt,
+      context: context || '',
+      providers: provs,
+      tools: [
+        { name: 'getPortfolioSnapshot' },
+        { name: 'simpleCalc' }
+      ],
+      options: { enableCritique: true, ...options }
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('AI query error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Multi-agent server running on ${PORT}`));
+
+3) How to use from your frontend
+
+Example fetch from React (call your endpoint):
+
+async function askAI(prompt) {
+  const resp = await fetch('/api/ai/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: 'user-123', prompt })
+  });
+  const json = await resp.json();
+  // json.best.text is final answer; json.all contains each provider's output & scores
+  return json;
+}
+
+4) How to add more providers
+
+For each provider, add a config entry to defaultProviders with type, endpoint, key, model.
+
+Implement provider logic inside callGenericProvider (or add a new helper function callAnthropic, callCohere, etc.) and return { provider, text, raw }.
+
+Weighting: you can add weight param and adjust scoreResponse to multiply by provider weight.
+
+5) Tools, plugins & shared memory
+
+Tools: runTool(name, args) is where you plug in your app’s capabilities (blockchain transfer, balance checks, DB lookups, printer control, calendar writes). The orchestrator can call tools automatically when prompt instructs it (detect [TOOL:name]) or via function calls in dialog.
+
+Memory: currently uses Redis for short-term memory. For long-term or semantic memory use a vector DB (Pinecone, RedisVector, Weaviate) and embed user content; add a retrieval step before calling providers.
+
+6) Production recommendations
+
+Timeouts — add per-provider timeout (e.g., 8s) so a slow provider doesn’t block the whole response.
+
+Retries & circuit breakers — wrap provider calls with retry/backoff.
+
+Cost control — set max_tokens and temperature per provider; monitor usage.
+
+Security — never log raw user data with PII in plaintext; secure Redis; encrypt traffic.
+
+Non-custodial tools — if tools can move money (blockchain), require multi-sig/human approval and audit logs.
+
+Streaming — if you want partial streaming answers, the orchestrator can stream each provider and do progressive aggregation (more complex).
+
+Testing — create unit tests that mock provider responses and verify ensemble logic.
+
+7) Example flows you can implement now
+
+Fact-check flow: ask model A for an answer, ask model B to fact-check A, then produce final answer with citations.
+
+Decision flow: run 3 agents and select the majority or highest-scoring recommendation; if disagreement is > threshold, return multiple viewpoints.
+
+Tool-powered flow: if user asks "How much is my net worth?", orchestrator calls getPortfolioSnapshot tool then asks LLMs to interpret results and recommend actions.

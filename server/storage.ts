@@ -401,11 +401,12 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.email, userData.email));
       
       if (existingUserByEmail) {
-        // Update existing user with new ID (Replit Auth sub changed)
+        // Update existing user (but keep existing ID to avoid foreign key violations)
+        const { id, ...updateData } = userData;
         const [updatedUser] = await db
           .update(users)
           .set({
-            ...userData,
+            ...updateData,
             updatedAt: new Date(),
           })
           .where(eq(users.email, userData.email))

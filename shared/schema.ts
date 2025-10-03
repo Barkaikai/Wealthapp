@@ -1397,3 +1397,104 @@ export const insertCrmAuditLogSchema = createInsertSchema(crmAuditLogs).omit({
 
 export type InsertCrmAuditLog = z.infer<typeof insertCrmAuditLogSchema>;
 export type CrmAuditLog = typeof crmAuditLogs.$inferSelect;
+
+// ============================================
+// NFT MANAGEMENT (extends existing walletConnections table)
+// ============================================
+
+// NFT Collections - Store collection metadata
+export const nftCollections = pgTable("nft_collections", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  chain: varchar("chain", { length: 50 }).notNull(), // ethereum, polygon, solana, hedera
+  contractAddress: varchar("contract_address", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  symbol: varchar("symbol", { length: 50 }),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  externalUrl: text("external_url"),
+  floorPrice: real("floor_price"),
+  totalSupply: integer("total_supply"),
+  metadata: jsonb("metadata").default({}), // Additional collection data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_nft_collections_user_id").on(table.userId),
+  index("idx_nft_collections_contract").on(table.contractAddress)
+]);
+
+export const insertNftCollectionSchema = createInsertSchema(nftCollections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertNftCollection = z.infer<typeof insertNftCollectionSchema>;
+export type NftCollection = typeof nftCollections.$inferSelect;
+
+// NFT Assets - Store individual NFTs
+export const nftAssets = pgTable("nft_assets", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  walletId: integer("wallet_id").references(() => walletConnections.id, { onDelete: 'cascade' }),
+  collectionId: integer("collection_id").references(() => nftCollections.id, { onDelete: 'set null' }),
+  chain: varchar("chain", { length: 50 }).notNull(),
+  contractAddress: varchar("contract_address", { length: 255 }).notNull(),
+  tokenId: varchar("token_id", { length: 255 }).notNull(),
+  tokenStandard: varchar("token_standard", { length: 50 }), // ERC721, ERC1155, SPL, HTS
+  name: varchar("name", { length: 255 }),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  animationUrl: text("animation_url"),
+  externalUrl: text("external_url"),
+  attributes: jsonb("attributes").default([]), // NFT traits/attributes
+  metadata: jsonb("metadata").default({}), // Full metadata object
+  balance: varchar("balance", { length: 100 }).default('1'), // For ERC1155
+  lastSynced: timestamp("last_synced"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_nft_assets_user_id").on(table.userId),
+  index("idx_nft_assets_wallet_id").on(table.walletId),
+  index("idx_nft_assets_token").on(table.contractAddress, table.tokenId)
+]);
+
+export const insertNftAssetSchema = createInsertSchema(nftAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertNftAsset = z.infer<typeof insertNftAssetSchema>;
+export type NftAsset = typeof nftAssets.$inferSelect;
+
+// NFT Activities - Store transfer and activity history
+export const nftActivities = pgTable("nft_activities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  nftId: integer("nft_id").references(() => nftAssets.id, { onDelete: 'cascade' }),
+  activityType: varchar("activity_type", { length: 50 }).notNull(), // transfer, mint, burn, list, sale
+  fromAddress: varchar("from_address", { length: 255 }),
+  toAddress: varchar("to_address", { length: 255 }),
+  chain: varchar("chain", { length: 50 }).notNull(),
+  transactionHash: varchar("transaction_hash", { length: 255 }),
+  price: real("price"),
+  currency: varchar("currency", { length: 20 }),
+  metadata: jsonb("metadata").default({}), // Additional activity data
+  activityAt: timestamp("activity_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_nft_activities_user_id").on(table.userId),
+  index("idx_nft_activities_nft_id").on(table.nftId),
+  index("idx_nft_activities_tx").on(table.transactionHash)
+]);
+
+export const insertNftActivitySchema = createInsertSchema(nftActivities).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  activityAt: z.coerce.date(),
+});
+
+export type InsertNftActivity = z.infer<typeof insertNftActivitySchema>;
+export type NftActivity = typeof nftActivities.$inferSelect;

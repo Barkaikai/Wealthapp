@@ -3189,6 +3189,184 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  // ============================================
+  // DISCORD ROUTES
+  // ============================================
+
+  // Initialize Discord bot
+  app.post('/api/discord/initialize', isAuthenticated, async (req: any, res) => {
+    try {
+      const { z } = await import('zod');
+      const initSchema = z.object({
+        botToken: z.string().min(1),
+      });
+
+      const { botToken } = initSchema.parse(req.body);
+      const { discordBot } = await import('./discord/discordBot');
+
+      await discordBot.initialize(botToken);
+      res.json({ message: 'Discord bot initialized successfully' });
+    } catch (error: any) {
+      console.error('[Discord] Initialize error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to initialize Discord bot' });
+    }
+  });
+
+  // Get Discord servers
+  app.get('/api/discord/servers', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { discordBot } = await import('./discord/discordBot');
+      
+      if (!discordBot.isReady()) {
+        return res.status(503).json({ message: 'Discord bot not initialized. Please add your bot token first.' });
+      }
+
+      const servers = await discordBot.getServers();
+      
+      // Store servers in database
+      for (const server of servers) {
+        await storage.createDiscordServer({
+          userId,
+          serverId: server.id,
+          serverName: server.name,
+          iconUrl: server.iconUrl || null,
+          isActive: 'true',
+          metadata: JSON.stringify({ channels: server.channels }),
+        });
+      }
+
+      res.json({ servers });
+    } catch (error: any) {
+      console.error('[Discord] Get servers error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch servers' });
+    }
+  });
+
+  // Send AI message
+  app.post('/api/discord/send-message', isAuthenticated, async (req: any, res) => {
+    try {
+      const { z } = await import('zod');
+      const messageSchema = z.object({
+        channelId: z.string().min(1),
+        prompt: z.string().min(1),
+      });
+
+      const { channelId, prompt } = messageSchema.parse(req.body);
+      const { discordBot } = await import('./discord/discordBot');
+
+      const result = await discordBot.sendAIMessage(channelId, prompt);
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Discord] Send message error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to send message' });
+    }
+  });
+
+  // Edit AI message
+  app.post('/api/discord/edit-message', isAuthenticated, async (req: any, res) => {
+    try {
+      const { z } = await import('zod');
+      const editSchema = z.object({
+        channelId: z.string().min(1),
+        messageId: z.string().min(1),
+        prompt: z.string().min(1),
+      });
+
+      const { channelId, messageId, prompt } = editSchema.parse(req.body);
+      const { discordBot } = await import('./discord/discordBot');
+
+      const result = await discordBot.editAIMessage(channelId, messageId, prompt);
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Discord] Edit message error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to edit message' });
+    }
+  });
+
+  // Schedule AI message
+  app.post('/api/discord/schedule', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { z } = await import('zod');
+      const scheduleSchema = z.object({
+        serverId: z.string().min(1),
+        channelId: z.string().min(1),
+        channelName: z.string().optional(),
+        prompt: z.string().min(1),
+        cronTime: z.string().min(1),
+      });
+
+      const { serverId, channelId, channelName, prompt, cronTime } = scheduleSchema.parse(req.body);
+      
+      // Save scheduled message to database
+      const scheduledMessage = await storage.createDiscordScheduledMessage({
+        userId,
+        serverId,
+        channelId,
+        channelName: channelName || null,
+        prompt,
+        cronTime,
+        isActive: 'true',
+        lastRunAt: null,
+        nextRunAt: null,
+      });
+
+      // Schedule with Discord bot
+      const { discordBot } = await import('./discord/discordBot');
+      await discordBot.scheduleAIMessage(scheduledMessage.id, channelId, prompt, cronTime);
+
+      res.json({ message: 'Message scheduled successfully', schedule: scheduledMessage });
+    } catch (error: any) {
+      console.error('[Discord] Schedule error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message || 'Failed to schedule message' });
+    }
+  });
+
+  // Get scheduled messages
+  app.get('/api/discord/scheduled', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const scheduled = await storage.getDiscordScheduledMessages(userId);
+      res.json({ scheduled });
+    } catch (error: any) {
+      console.error('[Discord] Get scheduled error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch scheduled messages' });
+    }
+  });
+
+  // Delete scheduled message
+  app.delete('/api/discord/scheduled/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const scheduleId = parseInt(req.params.id);
+      
+      // Cancel in Discord bot
+      const { discordBot } = await import('./discord/discordBot');
+      discordBot.cancelScheduledMessage(scheduleId);
+      
+      // Delete from database
+      await storage.deleteDiscordScheduledMessage(scheduleId, userId);
+      
+      res.json({ message: 'Scheduled message deleted successfully' });
+    } catch (error: any) {
+      console.error('[Discord] Delete scheduled error:', error);
+      res.status(500).json({ message: error.message || 'Failed to delete scheduled message' });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

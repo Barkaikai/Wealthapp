@@ -1,0 +1,528 @@
+1) models.py
+# models.py
+from sqlalchemy import (
+    Column, Integer, String, DateTime, Float, ForeignKey, Boolean, JSON, UniqueConstraint
+)
+from sqlalchemy.orm import relationship, declarative_base
+import datetime
+
+Base = declarative_base()
+
+def now():
+    return datetime.datetime.utcnow()
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False)
+    name = Column(String(255))
+    created_at = Column(DateTime, default=now)
+
+class Account(Base):
+    """
+    Chart of Accounts entry. Use account_type to classify (asset, liability, equity, income, expense).
+    Balance direction rules: asset & expense debit positive; liability, equity, income credit positive.
+    """
+    __tablename__ = "accounts"
+    id = Column(Integer, primary_key=True)
+    code = Column(String(50), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    account_type = Column(String(50), nullable=False)  # 'asset','liability','equity','income','expense'
+    currency = Column(String(8), default="USD")
+    created_at = Column(DateTime, default=now)
+    is_reconcilable = Column(Boolean, default=False)
+
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+    id = Column(Integer, primary_key=True)
+    posted_at = Column(DateTime, default=now)
+    description = Column(String(1000))
+    client_ref = Column(String(255), nullable=True)  # idempotency for external sync
+    metadata = Column(JSON, default={})
+    lines = relationship("JournalLine", back_populates="entry")
+
+class JournalLine(Base):
+    __tablename__ = "journal_lines"
+    id = Column(Integer, primary_key=True)
+    entry_id = Column(Integer, ForeignKey("journal_entries.id"))
+    account_id = Column(Integer, ForeignKey("accounts.id"))
+    amount = Column(Float, nullable=False)  # positive number; sign implied by 'is_debit'
+    is_debit = Column(Boolean, nullable=False)
+    currency = Column(String(8), default="USD")
+    created_at = Column(DateTime, default=now)
+
+    entry = relationship("JournalEntry", back_populates="lines")
+    account = relationship("Account")
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id = Column(Integer, primary_key=True)
+    client_ref = Column(String(255), nullable=True)
+    customer = Column(String(255), nullable=False)
+    total = Column(Float, nullable=False)
+    currency = Column(String(8), default="USD")
+    issued_at = Column(DateTime, default=now)
+    due_at = Column(DateTime, nullable=True)
+    status = Column(String(50), default="draft")  # draft, issued, paid, partially_paid
+    journal_entry_id = Column(Integer, ForeignKey("journal_entries.id"), nullable=True)  # AR posting
+    metadata = Column(JSON, default={})
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True)
+    client_ref = Column(String(255), nullable=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True)
+    amount = Column(Float, nullable=False)
+    currency = Column(String(8), default="USD")
+    paid_at = Column(DateTime, default=now)
+    method = Column(String(255), nullable=True)
+    journal_entry_id = Column(Integer, ForeignKey("journal_entries.id"), nullable=True)
+    metadata = Column(JSON, default={})
+
+class BankTransaction(Base):
+    __tablename__ = "bank_transactions"
+    id = Column(Integer, primary_key=True)
+    bank_ref = Column(String(255), nullable=True)  # e.g., from Plaid
+    amount = Column(Float, nullable=False)
+    currency = Column(String(8), default="USD")
+    posted_at = Column(DateTime, default=now)
+    description = Column(String(1000))
+    matched = Column(Boolean, default=False)
+    metadata = Column(JSON, default={})
+
+class Reconciliation(Base):
+    __tablename__ = "reconciliations"
+    id = Column(Integer, primary_key=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"))
+    started_at = Column(DateTime, default=now)
+    finished_at = Column(DateTime, nullable=True)
+    metadata = Column(JSON, default={})
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True)
+    action = Column(String(255))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=now)
+    details = Column(JSON, default={})
+
+2) schemas.py (Pydantic)
+# schemas.py
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
+
+class CreateAccount(BaseModel):
+    code: str
+    name: str
+    account_type: str
+    currency: Optional[str] = "USD"
+    is_reconcilable: Optional[bool] = False
+
+class JournalLineIn(BaseModel):
+    account_code: str
+    amount: float
+    is_debit: bool
+    currency: Optional[str] = "USD"
+
+class JournalEntryIn(BaseModel):
+    description: str
+    lines: List[JournalLineIn]
+    client_ref: Optional[str] = None
+
+class InvoiceIn(BaseModel):
+    customer: str
+    total: float
+    currency: Optional[str] = "USD"
+    issued_at: Optional[datetime] = None
+    due_at: Optional[datetime] = None
+    client_ref: Optional[str] = None
+
+class PaymentIn(BaseModel):
+    invoice_id: int
+    amount: float
+    currency: Optional[str] = "USD"
+    method: Optional[str] = None
+    client_ref: Optional[str] = None
+
+3) crud.py — core accounting logic (double-entry enforcement, postings)
+# crud.py
+from sqlalchemy.orm import Session
+from models import Account, JournalEntry, JournalLine, Invoice, Payment, BankTransaction, AuditLog
+from schemas import JournalEntryIn, InvoiceIn, PaymentIn
+import datetime
+
+# Helper: find account by code
+def get_account_by_code(db: Session, code: str):
+    return db.query(Account).filter(Account.code == code).first()
+
+def create_account(db: Session, account_data):
+    a = Account(
+        code=account_data.code,
+        name=account_data.name,
+        account_type=account_data.account_type,
+        currency=account_data.currency,
+        is_reconcilable=account_data.is_reconcilable
+    )
+    db.add(a); db.commit(); db.refresh(a)
+    db.add(AuditLog(action="create_account", details={"code": a.code}))
+    db.commit()
+    return a
+
+def post_journal_entry(db: Session, entry_in: JournalEntryIn, user_id=None):
+    # Validate double-entry: sum debits == sum credits (in base currency)
+    total_debits = 0.0
+    total_credits = 0.0
+    # Map account codes to accounts
+    lines_objs = []
+    for l in entry_in.lines:
+        acct = get_account_by_code(db, l.account_code)
+        if not acct:
+            raise Exception(f"Account not found: {l.account_code}")
+        if l.is_debit:
+            total_debits += float(l.amount)
+        else:
+            total_credits += float(l.amount)
+        lines_objs.append((acct, l))
+    # enforce balanced
+    if round(total_debits, 6) != round(total_credits, 6):
+        raise Exception(f"Entry not balanced: debits={total_debits} credits={total_credits}")
+
+    entry = JournalEntry(description=entry_in.description, client_ref=entry_in.client_ref or None, posted_at=datetime.datetime.utcnow())
+    db.add(entry); db.flush()
+    for acct, l in lines_objs:
+        jl = JournalLine(entry_id=entry.id, account_id=acct.id, amount=float(l.amount), is_debit=bool(l.is_debit), currency=l.currency)
+        db.add(jl)
+    db.commit()
+    db.refresh(entry)
+    db.add(AuditLog(action="post_journal_entry", user_id=user_id, details={"entry_id": entry.id, "desc": entry.description}))
+    db.commit()
+    return entry
+
+# Invoice creation: creates AR (debit AR account), credit revenue
+def create_invoice(db: Session, inv_in: InvoiceIn, ar_account_code="1000-AR", revenue_account_code="4000-REVENUE", user_id=None):
+    invoice = Invoice(customer=inv_in.customer, total=inv_in.total, currency=inv_in.currency or "USD", issued_at=inv_in.issued_at or datetime.datetime.utcnow(), due_at=inv_in.due_at, client_ref=inv_in.client_ref)
+    db.add(invoice); db.flush()
+    # Auto-post: debit AR, credit Revenue
+    ar = get_account_by_code(db, ar_account_code)
+    rev = get_account_by_code(db, revenue_account_code)
+    if not ar or not rev:
+        db.rollback()
+        raise Exception("AR or Revenue account not found. Please create accounts first.")
+    je_in = JournalEntryIn(
+        description=f"Issue invoice {invoice.id} to {invoice.customer}",
+        client_ref=invoice.client_ref,
+        lines=[
+            # debit AR
+            type("L",(object,),{"account_code": ar_account_code, "amount": invoice.total, "is_debit": True, "currency": invoice.currency}),
+            type("L",(object,),{"account_code": revenue_account_code, "amount": invoice.total, "is_debit": False, "currency": invoice.currency})
+        ]
+    )
+    # Post journal
+    entry = post_journal_entry(db, je_in, user_id=user_id)
+    invoice.journal_entry_id = entry.id
+    invoice.status = "issued"
+    db.commit(); db.refresh(invoice)
+    db.add(AuditLog(action="create_invoice", user_id=user_id, details={"invoice_id": invoice.id}))
+    db.commit()
+    return invoice
+
+# Record payment: creates cash/bank debit and AR credit, applies to invoice
+def record_payment(db: Session, pay_in: PaymentIn, cash_account_code="1010-CASH", user_id=None):
+    invoice = db.query(Invoice).filter(Invoice.id == pay_in.invoice_id).first()
+    if not invoice:
+        raise Exception("Invoice not found")
+    # create Payment row
+    p = Payment(invoice_id=invoice.id, amount=pay_in.amount, currency=pay_in.currency or invoice.currency, paid_at=datetime.datetime.utcnow(), method=pay_in.method, client_ref=pay_in.client_ref)
+    db.add(p); db.flush()
+    # accounts
+    cash = get_account_by_code(db, cash_account_code)
+    ar = get_account_by_code(db, "1000-AR")
+    if not cash or not ar:
+        db.rollback()
+        raise Exception("Cash or AR account missing")
+    # Journal: debit Cash, credit AR
+    je_in = JournalEntryIn(
+        description=f"Payment for invoice {invoice.id}",
+        client_ref=p.client_ref,
+        lines=[
+            type("L",(object,),{"account_code": cash_account_code, "amount": p.amount, "is_debit": True, "currency": p.currency}),
+            type("L",(object,),{"account_code": "1000-AR", "amount": p.amount, "is_debit": False, "currency": p.currency})
+        ]
+    )
+    entry = post_journal_entry(db, je_in, user_id=user_id)
+    p.journal_entry_id = entry.id
+    # update invoice status
+    if abs(invoice.total - p.amount) < 1e-6:
+        invoice.status = "paid"
+    else:
+        invoice.status = "partially_paid"
+    db.commit()
+    db.add(AuditLog(action="record_payment", user_id=user_id, details={"payment_id": p.id, "invoice_id": invoice.id}))
+    db.commit()
+    return p
+
+
+post_journal_entry enforces debit==credit, uses account codes, and logs actions. Invoices auto-post AR and revenue; payments auto-post cash and AR.
+
+4) reporting.py — Trial balance, Ledger, P&L, Balance Sheet
+# reporting.py
+from sqlalchemy.orm import Session
+from models import JournalLine, Account
+from collections import defaultdict
+import math
+
+def trial_balance(db: Session, currency="USD"):
+    # Sum debits and credits per account
+    q = db.query(JournalLine).all()
+    totals = defaultdict(lambda: {"debits": 0.0, "credits": 0.0})
+    for l in q:
+        key = l.account_id
+        if l.is_debit:
+            totals[key]["debits"] += float(l.amount)
+        else:
+            totals[key]["credits"] += float(l.amount)
+    # Map to account codes
+    rows = []
+    for acc_id, vals in totals.items():
+        acc = db.query(Account).filter(Account.id == acc_id).first()
+        rows.append({
+            "account_code": acc.code,
+            "account_name": acc.name,
+            "account_type": acc.account_type,
+            "debits": round(vals["debits"], 2),
+            "credits": round(vals["credits"], 2),
+            "balance": round(vals["debits"] - vals["credits"], 2)
+        })
+    # verify totals balance
+    total_debits = round(sum(r["debits"] for r in rows), 2)
+    total_credits = round(sum(r["credits"] for r in rows), 2)
+    return {"rows": rows, "total_debits": total_debits, "total_credits": total_credits, "balanced": math.isclose(total_debits, total_credits, rel_tol=1e-6)}
+
+def ledger_for_account(db: Session, account_code: str):
+    acc = db.query(Account).filter(Account.code == account_code).first()
+    if not acc: return []
+    lines = db.query(JournalLine).filter(JournalLine.account_id == acc.id).all()
+    out = []
+    for l in lines:
+        out.append({
+            "date": l.created_at.isoformat(),
+            "amount": l.amount,
+            "is_debit": l.is_debit,
+            "entry_id": l.entry_id
+        })
+    return {"account": acc.code, "name": acc.name, "lines": out}
+
+# Simple P&L and Balance sheet by summing accounts by type
+def profit_and_loss(db: Session):
+    q = db.query(JournalLine).all()
+    sums = defaultdict(float)
+    accounts = {a.id: a for a in db.query(Account).all()}
+    for l in q:
+        acc = accounts.get(l.account_id)
+        # income credited increases income (credit positive)
+        # expense debited increases expense
+        if acc.account_type == "income":
+            # net income: credits - debits
+            if l.is_debit:
+                sums["income"] -= l.amount
+            else:
+                sums["income"] += l.amount
+        if acc.account_type == "expense":
+            if l.is_debit:
+                sums["expense"] += l.amount
+            else:
+                sums["expense"] -= l.amount
+    return {"income": round(sums.get("income", 0.0),2), "expense": round(sums.get("expense", 0.0),2), "net": round(sums.get("income",0.0) - sums.get("expense",0.0),2)}
+
+def balance_sheet(db: Session):
+    q = db.query(JournalLine).all()
+    accounts = {a.id: a for a in db.query(Account).all()}
+    bs = defaultdict(float)
+    for l in q:
+        acc = accounts.get(l.account_id)
+        if not acc: continue
+        bal = l.amount if l.is_debit else -l.amount
+        bs[acc.account_type] += bal
+    # format
+    out = {k: round(v,2) for k,v in bs.items()}
+    # assets should equal liabilities+equity
+    return out
+
+5) main.py — FastAPI app wiring endpoints
+# main.py
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+from models import Base, User
+from schemas import CreateAccount, JournalEntryIn, InvoiceIn, PaymentIn
+import crud, reporting
+from models import Account
+from pydantic import BaseModel
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./accounting.db")
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
+SessionLocal = sessionmaker(bind=engine)
+
+# create tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="LedgerCore API")
+
+# simple dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/accounts")
+def create_account(acc: CreateAccount, db=Depends(get_db)):
+    # ensure code uniqueness
+    existing = db.query(Account).filter(Account.code == acc.code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Account code exists")
+    return crud.create_account(db, acc)
+
+@app.post("/journal")
+def post_journal(entry: JournalEntryIn, db=Depends(get_db)):
+    try:
+        je = crud.post_journal_entry(db, entry)
+        return {"ok": True, "entry_id": je.id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/invoices")
+def create_invoice(inv: InvoiceIn, db=Depends(get_db)):
+    try:
+        invoice = crud.create_invoice(db, inv)
+        return {"ok": True, "invoice_id": invoice.id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/payments")
+def create_payment(p: PaymentIn, db=Depends(get_db)):
+    try:
+        payment = crud.record_payment(db, p)
+        return {"ok": True, "payment_id": payment.id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/reports/trial_balance")
+def get_trial_balance(db=Depends(get_db)):
+    return reporting.trial_balance(db)
+
+@app.get("/reports/ledger/{account_code}")
+def get_ledger(account_code: str, db=Depends(get_db)):
+    return reporting.ledger_for_account(db, account_code)
+
+@app.get("/reports/pnl")
+def get_pnl(db=Depends(get_db)):
+    return reporting.profit_and_loss(db)
+
+@app.get("/reports/balance_sheet")
+def get_bs(db=Depends(get_db)):
+    return reporting.balance_sheet(db)
+
+6) seed.py — seed demo chart of accounts & sample invoice
+# seed.py
+from main import SessionLocal
+from models import Base
+from crud import create_account, post_journal_entry, create_invoice, record_payment
+from schemas import CreateAccount, JournalEntryIn
+import datetime
+
+def seed():
+    db = SessionLocal()
+    # create common accounts
+    accounts = [
+        {"code":"1000-AR","name":"Accounts Receivable","account_type":"asset","is_reconcilable":False},
+        {"code":"1010-CASH","name":"Cash on Hand","account_type":"asset","is_reconcilable":True},
+        {"code":"2000-AP","name":"Accounts Payable","account_type":"liability","is_reconcilable":False},
+        {"code":"3000-EQUITY","name":"Equity","account_type":"equity"},
+        {"code":"4000-REVENUE","name":"Sales Revenue","account_type":"income"},
+        {"code":"5000-EXPENSE","name":"General Expense","account_type":"expense"},
+    ]
+    for a in accounts:
+        ca = CreateAccount(**a)
+        try:
+            create_account(db, ca)
+        except Exception:
+            pass
+    # issue an invoice
+    from schemas import InvoiceIn, PaymentIn
+    inv = InvoiceIn(customer="Acme Corp", total=1500.00, currency="USD", issued_at=datetime.datetime.utcnow())
+    invoice = create_invoice(db, inv)
+    # record payment half
+    pay = PaymentIn(invoice_id=invoice.id, amount=1500.00, currency="USD", method="wire")
+    record_payment(db, pay)
+    print("Seed complete")
+    db.close()
+
+if __name__ == "__main__":
+    seed()
+
+7) How to run (Replit / local)
+
+Create a new Python project in Replit (or use your existing backend).
+
+Add the files above: models.py, schemas.py, crud.py, reporting.py, main.py, seed.py.
+
+Install deps:
+
+pip install fastapi uvicorn sqlalchemy pydantic
+
+
+Run seed once:
+
+python seed.py
+
+
+Start the API:
+
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+
+Try endpoints:
+
+Create account: POST /accounts
+
+Issue invoice: POST /invoices
+
+Pay invoice: POST /payments
+
+View reports: GET /reports/trial_balance etc.
+
+8) Extension ideas & integration hooks
+
+Authentication & multi-tenant: add OAuth2 / JWT; add organization_id to models for multi-tenant setups.
+
+Bank integrations: add Plaid adapter to ingest bank transactions → auto-suggest matches to invoices/payments → create bank transaction + auto-post GL entries.
+
+Payment processing: integrate Stripe/PayPal for online payments; create payment webhook handlers that create Payment records and post GL entries idempotently.
+
+Tax & VAT: add tax lines on invoices (tax rate table, tax liability accounts, periodic tax reporting).
+
+Multi-currency: store currency per line and add exchange-rate conversion table; run FX revaluation entries.
+
+Batch import: CSV/MT940 import for bank statements with matching engine and reconciliation UI.
+
+Audit & Compliance: sign journal entries with immutability (append-only), versioned entries, and exportable audit trails.
+
+AI features: send anonymized ledger segments to AI worker to detect anomalies, categorize expenses automatically, forecast cashflow, or generate suggested reconciliations.
+
+Frontend: build React/Next UI that calls these endpoints; build accountant dashboard with GL explorer and reconciliation workflow.
+
+9) Security / Production notes
+
+Use a production DB (Postgres) not SQLite for concurrency and reliability.
+
+Use DB transactions and row-level locking when matching/reconciling to avoid race conditions.
+
+Secure endpoints via JWT/OAuth2, RBAC (accountant vs viewer), and field-level encryption for sensitive metadata.
+
+Add rate limits and input validation to prevent malformed ledger posts.
+
+Add tests (unit + integration) for all accounting rules (especially double-entry and idempotency).

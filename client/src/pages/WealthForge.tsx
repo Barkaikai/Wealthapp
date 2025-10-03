@@ -45,10 +45,8 @@ export default function WealthForge() {
 
   const mineMutation = useMutation({
     mutationFn: async (data: { type: string; gameScore?: number; gameData?: any }) => {
-      return await apiRequest('/api/wealth-forge/mine', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/wealth-forge/mine', data);
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/progress'] });
@@ -72,10 +70,8 @@ export default function WealthForge() {
 
   const updateProgressMutation = useMutation({
     mutationFn: async (data: { nickname?: string; solanaWallet?: string }) => {
-      return await apiRequest('/api/wealth-forge/progress', {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('PATCH', '/api/wealth-forge/progress', data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/progress'] });
@@ -88,10 +84,8 @@ export default function WealthForge() {
 
   const buyMutation = useMutation({
     mutationFn: async (data: { amount: number; packName: string }) => {
-      return await apiRequest('/api/wealth-forge/buy', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/wealth-forge/buy', data);
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/progress'] });
@@ -105,10 +99,8 @@ export default function WealthForge() {
 
   const redeemMutation = useMutation({
     mutationFn: async (vaultItemId: number) => {
-      return await apiRequest('/api/wealth-forge/redeem', {
-        method: 'POST',
-        body: JSON.stringify({ vaultItemId }),
-      });
+      const response = await apiRequest('POST', '/api/wealth-forge/redeem', { vaultItemId });
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/progress'] });
@@ -426,7 +418,7 @@ export default function WealthForge() {
                           </div>
                           <div>
                             <div className="font-medium">
-                              {player.nickname || (player.solanaWallet?.slice(0, 6) + '...' + player.solanaWallet?.slice(-4)) || `Player ${player.userId.slice(0, 6)}`}
+                              {player.nickname || (player.solanaWallet ? `${player.solanaWallet.slice(0, 6)}...${player.solanaWallet.slice(-4)}` : `Player ${player.userId.slice(0, 6)}`)}
                             </div>
                             <div className="text-sm text-muted-foreground">Level {player.level}</div>
                           </div>

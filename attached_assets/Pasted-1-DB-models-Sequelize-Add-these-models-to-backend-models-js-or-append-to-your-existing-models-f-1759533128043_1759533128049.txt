@@ -1,0 +1,422 @@
+1) DB models (Sequelize)
+
+Add these models to backend/models.js (or append to your existing models file). They store referral codes, clicks, conversions and pending rewards.
+
+// backend/models.referrals.js
+// Imports: Sequelize instance `sequelize`, DataTypes (assume you already have these)
+import { DataTypes } from 'sequelize';
+import crypto from 'crypto';
+
+export function defineReferralModels(sequelize) {
+  const Referral = sequelize.define('Referral', {
+    code: { type: DataTypes.STRING, unique: true },
+    wallet: { type: DataTypes.STRING, allowNull: false }, // owner/creator wallet
+    nickname: { type: DataTypes.STRING, allowNull: true },
+    description: { type: DataTypes.STRING, allowNull: true },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    rewardType: { type: DataTypes.STRING, defaultValue: 'token' }, // 'token' or 'percent' or 'fixed'
+    rewardValue: { type: DataTypes.INTEGER, defaultValue: 5 } // tokens (whole tokens) OR percent basis points
+  });
+
+  const ReferralClick = sequelize.define('ReferralClick', {
+    code: { type: DataTypes.STRING },
+    ip: { type: DataTypes.STRING },
+    ua: { type: DataTypes.STRING },
+    referrerUrl: { type: DataTypes.STRING },
+    walletSeen: { type: DataTypes.STRING }, // if wallet connected on click
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  const ReferralConversion = sequelize.define('ReferralConversion', {
+    code: { type: DataTypes.STRING },
+    referredWallet: { type: DataTypes.STRING }, // wallet of the new user who converted
+    action: { type: DataTypes.STRING }, // 'mint', 'purchase', ...
+    amount: { type: DataTypes.BIGINT }, // smallest units if token reward or purchase lamports
+    mintLogId: { type: DataTypes.INTEGER, allowNull: true },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  const ReferralReward = sequelize.define('ReferralReward', {
+    code: { type: DataTypes.STRING },
+    referrerWallet: { type: DataTypes.STRING },
+    referredWallet: { type: DataTypes.STRING },
+    amountTokens: { type: DataTypes.BIGINT }, // smallest units
+    paid: { type: DataTypes.BOOLEAN, defaultValue: false },
+    paidAt: { type: DataTypes.DATE, allowNull: true },
+    note: { type: DataTypes.STRING },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  // Helpers
+  Referral.generateCode = function(prefix='WF') {
+    const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
+    return `${prefix}${rand}`;
+  };
+
+  return { Referral, ReferralClick, ReferralConversion, ReferralReward };
+}
+
+
+After adding, call defineReferralModels in your DB init and sequelize.sync().
+
+2) Backend endpoints (Express)
+
+Add these routes to backend/server.js (or a new routes/referral.js). They handle creating links, redirect counting, and conversion recording.
+
+// backend/routes/referral.js
+import express from 'express';
+import { Referral, ReferralClick, ReferralConversion, ReferralReward } from './models.referrals'; // adapt import
+import { Op } from 'sequelize';
+import qrcode from 'qrcode';
+
+const router = express.Router();
+
+// Create a referral code (user must be logged / have wallet) -> returns code + share link + QR data URL
+router.post('/create', async (req, res) => {
+  const { wallet, nickname, description, rewardType, rewardValue } = req.body;
+  if (!wallet) return res.status(400).json({ error: 'wallet required' });
+  const code = Referral.generateCode('WFG');
+  const ref = await Referral.create({ code, wallet, nickname, description, rewardType, rewardValue });
+  const shareLink = `${process.env.FRONTEND_BASE_URL || 'http://localhost:3000'}/r/${code}`;
+  const qrDataUrl = await qrcode.toDataURL(shareLink);
+  res.json({ success: true, code, shareLink, qrDataUrl, ref });
+});
+
+// Redirect endpoint — used in share links and QR codes
+// GET /r/:code
+router.get('/r/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const ref = await Referral.findOne({ where: { code, active: true } });
+    // Record click (ip, ua, wallet query param if present)
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ua = req.get('User-Agent') || '';
+    const walletSeen = req.query.wallet || null; // optional param if connecting wallet on click
+    await ReferralClick.create({ code, ip, ua, referrerUrl: req.get('Referrer') || req.query.ref || null, walletSeen });
+    // Redirect to frontend registration/onboarding page with UTM param
+    const target = `${process.env.FRONTEND_BASE_URL || 'http://localhost:3000'}/onboard?ref=${code}`;
+    res.redirect(302, target);
+  } catch (err) {
+    console.error(err);
+    res.redirect(302, process.env.FRONTEND_BASE_URL || 'http://localhost:3000');
+  }
+});
+
+// Record conversion: called when a referred user performs qualifying action (e.g., minted tokens).
+// Backend mine flow should call this whenever it successfully mints tokens and request contained `referralCode`.
+router.post('/conversion', async (req, res) => {
+  try {
+    const { code, referredWallet, action, amountSmallest, mintLogId } = req.body;
+    if (!code || !referredWallet || !action) return res.status(400).json({ error: 'missing' });
+
+    const ref = await Referral.findOne({ where: { code, active: true } });
+    if (!ref) return res.status(404).json({ error: 'invalid-code' });
+
+    // Prevent self-referral: if ref.wallet === referredWallet reject
+    if (ref.wallet === referredWallet) return res.status(400).json({ error: 'self-referral-not-allowed' });
+
+    // Optional: check that referredWallet hasn't converted before for this ref
+    const prior = await ReferralConversion.findOne({ where: { code, referredWallet } });
+    if (prior) return res.status(400).json({ error: 'already-converted' });
+
+    // Record conversion
+    const conv = await ReferralConversion.create({ code, referredWallet, action, amount: amountSmallest || 0, mintLogId });
+
+    // Calculate reward (simple example: rewardValue tokens to referrer)
+    let rewardTokens = 0n;
+    if (ref.rewardType === 'token') {
+      // rewardValue is whole tokens -> convert to smallest units (SPL decimals)
+      const decimals = Number(process.env.MINT_DECIMALS || 6);
+      rewardTokens = BigInt(ref.rewardValue) * BigInt(10 ** decimals);
+    } else if (ref.rewardType === 'percent') {
+      // reward percent of purchase in lamports -> convert percent to tokens? Dependent on business rules.
+      // For demo, skip percent handling.
+    }
+
+    // Append a ReferralReward row (paid=false). Worker will pay or mint bonus later.
+    await ReferralReward.create({
+      code,
+      referrerWallet: ref.wallet,
+      referredWallet,
+      amountTokens: rewardTokens.toString(),
+      paid: false,
+      note: `Reward for ${action}`,
+    });
+
+    res.json({ success: true, conv });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Query stats for a referrer (secure: only allow the wallet owner to fetch their code stats)
+router.get('/stats/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { wallet } = req.query; // the wallet of the requester — verify outside or via auth middleware
+    const ref = await Referral.findOne({ where: { code } });
+    if (!ref) return res.status(404).json({ error: 'not-found' });
+    if (wallet && wallet !== ref.wallet) return res.status(403).json({ error: 'forbidden' });
+
+    const clicks = await ReferralClick.count({ where: { code } });
+    const conversions = await ReferralConversion.count({ where: { code } });
+    const rewards = await ReferralReward.findAll({ where: { code } });
+
+    res.json({ code, wallet: ref.wallet, clicks, conversions, rewards });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
+
+
+Mount this router in server.js:
+
+import referralRouter from './routes/referral.js';
+app.use('/api/referral', referralRouter);
+
+3) Integrate referral into minting flow
+
+Update your /api/mine handler (the one that mints tokens) to accept an optional referralCode and, upon successful mint, call the referral conversion endpoint (internally) so referral rows are recorded immediately.
+
+Add inside the successful mint block of /api/mine:
+
+// inside /api/mine after successful minting and MintLog.create(...)
+const { referralCode } = req.body;
+if (referralCode) {
+  try {
+    // call internal function to record conversion instead of HTTP request to keep atomicity
+    await ReferralConversion.create({
+      code: referralCode,
+      referredWallet: userPubkey,
+      action: paymentTxSig ? 'purchase' : 'mint',
+      amount: paymentDelta || 0,
+      mintLogId: mintLogEntry.id
+    });
+    // compute reward and create ReferralReward entry
+    const ref = await Referral.findOne({ where: { code: referralCode } });
+    if (ref && ref.wallet !== userPubkey) {
+      const rewardTokens = BigInt(ref.rewardValue || 0) * BigInt(10 ** MINT_DECIMALS); // if rewardType=token
+      await ReferralReward.create({
+        code: referralCode,
+        referrerWallet: ref.wallet,
+        referredWallet: userPubkey,
+        amountTokens: rewardTokens.toString(),
+        paid: false,
+        note: 'Auto-created on conversion'
+      });
+    }
+  } catch (e) {
+    console.error('Referral recording failed:', e);
+  }
+}
+
+
+Be sure to import Referral models into the file.
+
+4) Worker to pay/refund/mint referral rewards
+
+Add a worker that runs periodically (cron) and pays out ReferralRewards that are paid=false. For token rewards we will mint WFG to the referrer’s ATA (or credit off-chain and schedule manual payout). Keep private key secure.
+
+backend/worker/referral_payout_worker.js:
+
+import cron from 'node-cron';
+import { ReferralReward, Referral } from '../models.referrals.js';
+import { mintTo, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', 'confirmed');
+const ownerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(process.env.OWNER_KEYPAIR_PATH))));
+const MINT_ADDRESS = new PublicKey(process.env.MINT_ADDRESS);
+const MINT_DECIMALS = Number(process.env.MINT_DECIMALS || 6);
+
+// payout function
+async function processPending() {
+  const pending = await ReferralReward.findAll({ where: { paid: false }, limit: 20 }); // batch
+  for (const r of pending) {
+    try {
+      const amount = BigInt(r.amountTokens);
+      if (amount <= 0n) {
+        // if zero (maybe fixed discount elsewhere), mark paid with 0
+        r.paid = true; r.paidAt = new Date();
+        await r.save(); continue;
+      }
+      // mint to referrer
+      const destATA = await getOrCreateAssociatedTokenAccount(connection, ownerKeypair, MINT_ADDRESS, new PublicKey(r.referrerWallet));
+      const sig = await mintTo(connection, ownerKeypair, MINT_ADDRESS, destATA.address, ownerKeypair, amount);
+      r.paid = true; r.paidAt = new Date(); r.note = (r.note || '') + `; minted tx:${sig}`;
+      await r.save();
+      console.log('Paid referral', r.id, 'tx', sig);
+    } catch (e) {
+      console.error('Failed to pay referral', r.id, e);
+      // do not crash, worker will retry later
+    }
+  }
+}
+
+// schedule every 5 minutes (example)
+cron.schedule('*/5 * * * *', async () => {
+  console.log('Referral payout worker running', new Date().toISOString());
+  await processPending();
+});
+
+
+Run as a separate process: node backend/worker/referral_payout_worker.js (in production use Cloud Run or worker service).
+
+5) Frontend: referral UI & flow
+
+Add a small React component (ReferralPanel.jsx) to let a connected user create a referral code, copy link, share, and show stats.
+
+// frontend/src/components/ReferralPanel.jsx
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode.react';
+import axios from 'axios';
+
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+
+export default function ReferralPanel({ wallet }) {
+  const [ref, setRef] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    // Try to fetch existing referral code for this wallet
+    if (!wallet) return;
+    (async () => {
+      try {
+        const r = await axios.get(`${API}/api/referral/stats`, { params: { wallet } }).catch(()=>null);
+        // You might have an endpoint e.g. GET /api/referral/my?wallet=...
+      } catch (e) {}
+    })();
+  }, [wallet]);
+
+  async function createRef() {
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/referral/create`, { wallet, nickname: '', description: '', rewardType: 'token', rewardValue: 5 });
+      setRef(res.data);
+    } catch (e) {
+      alert('Failed to create referral: '+(e.response?.data?.error||e.message));
+    } finally { setLoading(false); }
+  }
+
+  function copyLink() {
+    const link = ref?.shareLink;
+    if (!link) return alert('No link yet');
+    navigator.clipboard.writeText(link);
+    alert('Copied share link');
+  }
+
+  function openShare() {
+    const link = ref?.shareLink;
+    if (navigator.share && link) {
+      navigator.share({ title: 'Join WealthForge', text: 'Earn WFG tokens with me!', url: link }).catch(()=>{});
+    } else {
+      copyLink();
+    }
+  }
+
+  return (
+    <div className="p-4 bg-white rounded shadow">
+      <h4 className="font-semibold">Referral Program</h4>
+      {!wallet ? <div className="text-xs text-gray-500">Connect your wallet to create referral links.</div> : (
+        <>
+          {!ref ? (
+            <div className="mt-3">
+              <div>Create a referral link to invite others and earn rewards.</div>
+              <button onClick={createRef} disabled={loading} className="mt-2 px-3 py-2 bg-yellow-400 rounded">Create Link</button>
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <div className="text-sm">Your code: <strong>{ref.code}</strong></div>
+              <div>Share link:</div>
+              <div className="flex gap-2 items-center">
+                <input className="flex-1 border rounded p-1 text-sm" value={ref.shareLink} readOnly />
+                <button onClick={copyLink} className="px-2 py-1 border rounded">Copy</button>
+                <button onClick={openShare} className="px-2 py-1 bg-green-500 text-white rounded">Share</button>
+              </div>
+              <div className="mt-2">
+                <QRCode value={ref.shareLink} size={96} />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+Integrate this into the dashboard/onboard page. When user registers (onboard), ensure you include the ref query param (from /r/:code redirect) and store it client-side (localStorage). When calling /api/mine or making a purchase, include { referralCode: storedRef } in the request body.
+
+Example in the front-end mine call:
+
+// before calling /api/mine
+const referralCode = localStorage.getItem('wf_referral_code'); // set on landing page if present
+await axios.post('/api/mine', { userPubkey: wallet.publicKey.toString(), amount, paymentTxSig: sig, referralCode });
+
+
+Also save the ref param on route load:
+
+// On frontend app mount or onboarding page
+const query = new URLSearchParams(window.location.search);
+const ref = query.get('ref');
+if (ref) localStorage.setItem('wf_referral_code', ref);
+
+6) Anti-fraud & best practices
+
+Implement these server-side to stop abuse:
+
+Self-referral block — already added (ref.wallet !== referredWallet).
+
+One conversion per referred wallet per ref code — stored in ReferralConversion prevents duplicates.
+
+Rate limit clicks — track per IP and limit click creation (e.g., >100 clicks/hr flagged). Use express-rate-limit or Redis.
+
+Require email verification or KYC for high-value rewards — if rewards are significant, require identity checks.
+
+Make reward delayed/vesting — mark reward pending for N days (e.g., 7 days) and only pay after that period to avoid chargeback/sandbagging. Worker can check createdAt before paying.
+
+Replay protection — UsedPayment table prevents reuse of payment txs.
+
+IP heuristics — multiple referrals from the same IP, similar user agents, or identical wallet patterns should trigger manual review.
+
+7) Env variables to add to .env.example
+# referral / general
+FRONTEND_BASE_URL=http://localhost:3000
+# existing: SOLANA_RPC_URL, OWNER_KEYPAIR_PATH, MINT_ADDRESS, MINT_DECIMALS
+
+8) Example flow summary
+
+Alice (referrer) creates referral code via /api/referral/create and shares link: https://app.com/r/WFG3A1B2.
+
+Bob clicks link — /r/WFG3A1B2 records a ReferralClick and redirects Bob to onboarding with ?ref=WFG3A1B2. Client stores wf_referral_code=WFG3A1B2.
+
+Bob connects wallet and completes purchase or mints tokens. Client includes referralCode when calling /api/mine.
+
+Backend mints tokens to Bob, records MintLog, then creates a ReferralConversion and a ReferralReward (paid=false).
+
+Worker periodically runs and mints/refunds/pays referrer (Alice) the bonus tokens, or emails a voucher. ReferralReward is marked paid and logs tx.
+
+9) Quick integration checklist (what to edit in your repo)
+
+Add referral models to your models.js and sequelize.sync().
+
+Mount referral router in server.js.
+
+Update /api/mine to accept referralCode and create ReferralConversion/ReferralReward.
+
+Add worker process backend/worker/referral_payout_worker.js and run it (or Cloud Run job).
+
+Add ReferralPanel to the frontend dashboard & store ref query param on landing.
+
+Add FRONTEND_BASE_URL to backend .env.
+
+Add rate-limiter middleware to /api/referral/r/:code and /api/mine (use express-rate-limit).

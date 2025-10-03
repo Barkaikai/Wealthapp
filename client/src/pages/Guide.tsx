@@ -7,46 +7,46 @@ export default function Guide() {
   const sections = [
     {
       icon: BookOpen,
-      title: "Getting Started",
-      description: "Learn the basics of the platform",
+      title: "Core Features",
+      description: "Essential platform capabilities",
       items: [
-        { text: "Setting up your first daily briefing", link: "/" },
-        { text: "Connecting financial accounts", link: "/wealth" },
-        { text: "Configuring AI email automation", link: "/email" },
-        { text: "Building your ideal routine", link: "/routine" }
+        { text: "AI Daily Briefing - Personalized insights", link: "/" },
+        { text: "Wealth Dashboard - Asset management", link: "/wealth" },
+        { text: "AI Intelligence Hub - Advanced analytics", link: "/ai-intelligence" },
+        { text: "Email Manager - AI automation", link: "/email" }
       ]
     },
     {
       icon: Video,
-      title: "Video Tutorials",
-      description: "Step-by-step video guides",
+      title: "AI & Automation",
+      description: "Intelligent features powered by AI",
       items: [
-        { text: "Platform walkthrough (5 min)", link: "/" },
-        { text: "Asset tracking setup (3 min)", link: "/wealth" },
-        { text: "Email categorization demo (4 min)", link: "/email" },
-        { text: "Routine templates overview (6 min)", link: "/routine" }
+        { text: "AI Video Recommendations - YouTube content", link: "/videos" },
+        { text: "Receipt Manager - OCR processing", link: "/receipts" },
+        { text: "Notepad - AI document analysis", link: "/notepad" },
+        { text: "ChatGPT Assistant - AI help (header)", link: "/" }
       ]
     },
     {
       icon: FileText,
-      title: "Documentation",
-      description: "Detailed feature documentation",
+      title: "Productivity & Health",
+      description: "Optimize your daily life",
       items: [
-        { text: "API integration guide", link: "/wealth" },
-        { text: "Security & privacy settings", link: "/settings" },
-        { text: "Advanced automation rules", link: "/email" },
-        { text: "Troubleshooting common issues", link: "/" }
+        { text: "Routine Builder - Schedule optimization", link: "/routine" },
+        { text: "Productivity Hub - Calendar & tasks", link: "/productivity" },
+        { text: "Health Monitoring - Track metrics", link: "/health" },
+        { text: "Web3 Wallets - Crypto integration", link: "/wallets" }
       ]
     },
     {
       icon: MessageSquare,
-      title: "Support",
-      description: "Get help when you need it",
+      title: "Tools & Settings",
+      description: "Platform utilities and configuration",
       items: [
-        { text: "FAQ section", link: "/guide" },
-        { text: "Contact support team", link: "/guide" },
-        { text: "Community forum", link: "/guide" },
-        { text: "Feature requests", link: "/guide" }
+        { text: "Advanced Calculator - 64-digit precision", link: "/" },
+        { text: "Web Search - Global search (header)", link: "/" },
+        { text: "Online/Offline Mode - Status toggle", link: "/" },
+        { text: "Settings & Preferences", link: "/settings" }
       ]
     }
   ];

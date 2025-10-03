@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +29,11 @@ const menuItems = [
     title: "Receipt Manager",
     url: "/receipts",
     icon: Receipt,
+  },
+  {
+    title: "AI Videos",
+    url: "/videos",
+    icon: Video,
   },
   {
     title: "Wealth Dashboard",

@@ -130,7 +130,7 @@ function AuthenticatedApp() {
         <div className="flex flex-col flex-1 relative z-10">
           <header className="flex items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 border-b border-border bg-background/80 backdrop-blur-sm">
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-11 !w-11" />
               <TimeDate onClick={() => setCalendarOpen(true)} />
             </div>
             <div className="hidden md:flex flex-1 max-w-2xl mx-auto">

@@ -40,6 +40,7 @@ import DigitalAccountant from "@/pages/DigitalAccountant";
 import CRMPage from "@/pages/crm";
 import NFTVault from "@/pages/NFTVault";
 import DiscordManager from "@/pages/DiscordManager";
+import WealthForge from "@/pages/WealthForge";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -73,6 +74,7 @@ function Router() {
           <Route path="/discord" component={DiscordManager} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
+          <Route path="/wealth-forge" component={WealthForge} />
           <Route path="/notepad" component={ProductivityHubConsolidated} />
           <Route path="/health" component={HealthMonitoring} />
           <Route path="/ai-intelligence" component={AIIntelligence} />

@@ -3756,6 +3756,80 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  // Seed initial vault items (admin/development only)
+  app.post('/api/wealth-forge/seed-vault', isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if items already exist
+      const existing = await storage.getWealthForgeVaultItems();
+      if (existing.length > 0) {
+        return res.json({ message: 'Vault items already seeded', count: existing.length });
+      }
+
+      // Create default vault items
+      const items = [
+        {
+          name: 'Starter Budget Template',
+          description: 'Professional Excel budget template with automated calculations',
+          cost: 15,
+          category: 'template',
+          itemType: 'pdf',
+          itemData: { downloadUrl: '/vault/starter-budget-template.pdf' },
+          isActive: 'true',
+          sortOrder: 1,
+        },
+        {
+          name: 'Investment Guide E-Book',
+          description: 'Complete guide to building your investment portfolio',
+          cost: 30,
+          category: 'lesson',
+          itemType: 'pdf',
+          itemData: { downloadUrl: '/vault/investment-guide.pdf' },
+          isActive: 'true',
+          sortOrder: 2,
+        },
+        {
+          name: '30-Min Financial Consultation',
+          description: 'One-on-one session with a wealth advisor',
+          cost: 100,
+          category: 'mentor_time',
+          itemType: 'call',
+          itemData: { bookingUrl: '/vault/book-consultation' },
+          isActive: 'true',
+          sortOrder: 3,
+        },
+        {
+          name: 'Premium Asset Tracker',
+          description: 'Advanced spreadsheet for tracking all your assets',
+          cost: 25,
+          category: 'template',
+          itemType: 'pdf',
+          itemData: { downloadUrl: '/vault/premium-asset-tracker.xlsx' },
+          isActive: 'true',
+          sortOrder: 4,
+        },
+        {
+          name: 'Tax Optimization Guide',
+          description: 'Strategies to minimize your tax burden legally',
+          cost: 40,
+          category: 'premium_content',
+          itemType: 'video',
+          itemData: { videoUrl: '/vault/tax-optimization-guide.mp4' },
+          isActive: 'true',
+          sortOrder: 5,
+        },
+      ];
+
+      for (const item of items) {
+        await storage.createWealthForgeVaultItem(item);
+      }
+
+      res.json({ message: 'Vault items seeded successfully', count: items.length });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Seed error:', error);
+      res.status(500).json({ message: error.message || 'Failed to seed vault items' });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

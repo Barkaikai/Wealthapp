@@ -22,6 +22,7 @@ The platform offers:
 - **Wealth Dashboard:** Portfolio visualization and analytics.
 - **Digital Accountant:** Double-entry bookkeeping with Chart of Accounts, Journal Entries, Invoices, Payments, and Financial Reports.
 - **Personal Wallet:** Integrated Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
+- **NFT Vault:** (In Development) Multi-chain NFT management with database schema complete (nftCollections, nftAssets, nftActivities tables). Full implementation requires Web3 package installation (ethers, wagmi, Solana adapters) - currently blocked by npm cache issue.
 - **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation (analyzes emails/calendar/notes to suggest actionable tasks), and AI Calendar Recommendations (suggests optimal calendar events based on routines and tasks).
 - **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration with parallel provider querying and response scoring.
 - **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights and recommendations.

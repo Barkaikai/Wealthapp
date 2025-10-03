@@ -1,7 +1,10 @@
 /**
  * Market data service with multiple fallback sources
  * Supports: Crypto, Stocks, Precious Metals (Gold, Silver, Platinum)
+ * Includes circuit breaker pattern for resilience
  */
+
+import { circuitBreakers } from './circuitBreaker';
 
 export interface MarketDataPoint {
   symbol: string;
@@ -72,25 +75,43 @@ export async function getCryptoMarketData(): Promise<MarketDataPoint[]> {
   const cached = getCached<MarketDataPoint[]>(cacheKey);
   if (cached) return cached;
 
-  // Try CoinGecko first (public API)
+  // Try CoinGecko first with circuit breaker
   try {
-    const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h';
-    const data = await fetchJson(url);
+    const result = await circuitBreakers.coinGecko.execute(
+      async () => {
+        const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h';
+        const data = await fetchJson(url, 10000);
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('Invalid CoinGecko response');
+        }
+        
+        const mappedData = data.map(item => ({
+          symbol: item.symbol?.toUpperCase() || '',
+          name: item.name || '',
+          price: item.current_price || 0,
+          change24h: item.price_change_24h || 0,
+          changePercent: item.price_change_percentage_24h || 0,
+          marketCap: item.market_cap || 0,
+          volume24h: item.total_volume || 0,
+          source: 'coingecko',
+        }));
+        
+        setCache(cacheKey, mappedData, 300); // Cache for 5 minutes
+        return mappedData;
+      },
+      // Fallback: Use stale cache if available
+      async () => {
+        const staleCache = cache.get(cacheKey);
+        if (staleCache) {
+          console.log('[MarketData] Using stale CoinGecko cache');
+          return staleCache.data;
+        }
+        throw new Error('No cached data available');
+      }
+    );
     
-    if (Array.isArray(data) && data.length > 0) {
-      const result = data.map(item => ({
-        symbol: item.symbol?.toUpperCase() || '',
-        name: item.name || '',
-        price: item.current_price || 0,
-        change24h: item.price_change_24h || 0,
-        changePercent: item.price_change_percentage_24h || 0,
-        marketCap: item.market_cap || 0,
-        volume24h: item.total_volume || 0,
-        source: 'coingecko',
-      }));
-      setCache(cacheKey, result, 300); // Cache for 5 minutes
-      return result;
-    }
+    return result;
   } catch (error) {
     console.warn('CoinGecko failed, trying fallback:', error);
   }

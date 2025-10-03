@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle, generateVideoRecommendations } from "./openai";
+import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle, generateVideoRecommendations, generateRoutineReport } from "./openai";
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
@@ -321,6 +321,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating recommendations:", error);
       res.status(500).json({ message: "Failed to generate recommendations" });
+    }
+  });
+
+  app.post('/api/routines/ai-report', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { templateName, routines } = req.body;
+      
+      if (!templateName) {
+        return res.status(400).json({ message: "Template name is required" });
+      }
+
+      const briefing = await storage.getLatestBriefing(userId).catch(() => null);
+      
+      const result = await generateRoutineReport(
+        templateName,
+        routines || [],
+        briefing
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error generating routine report:", error);
+      res.status(500).json({ message: error.message || "Failed to generate routine report" });
     }
   });
 

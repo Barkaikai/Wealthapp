@@ -54,6 +54,20 @@ Production optimizations include database indexing, boot-time environment variab
 
 **Design Theme:** Coinbase-inspired blue theme (hsl 221 83% 53%) throughout the platform with clean, modern UI components. Wealth-themed background images on landing and login pages providing luxury aesthetic. Settings page includes comprehensive configuration across 6 tabs (Account, Security, Notifications, Appearance, Diagnostics, About).
 
+**UI Consolidation (October 2025):** Major consolidation of application features to improve navigation and user experience. The sidebar now contains 8 streamlined sections:
+- **Daily Briefing:** AI-powered daily reports and portfolio overview
+- **Wealth Dashboard:** Portfolio visualization and analytics
+- **Personal Wallet:** Integrated tabs for Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect)
+- **Productivity Hub:** Consolidated workspace with 6 tabs - Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, and Tasks
+- **AI Intelligence:** Unified AI hub with 3 tabs - Intelligence Hub (portfolio reports, trading recommendations, tax events, rebalancing, anomaly detection), Terminal (command-line interface), and AI Videos (personalized YouTube recommendations)
+- **Health Monitoring:** Comprehensive tracking with 8 tabs - Dashboard (overview with health score), Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync (insights, recommendations, sync history)
+- **Guide:** Platform documentation and help
+- **Settings:** Application configuration
+
+**View Mode Switcher:** Footer includes mobile/desktop view switcher with global state management (ViewModeProvider context), allowing users to toggle between mobile and desktop layouts. View preference persists via localStorage.
+
+**Routine Builder AI Integration:** Success leader templates (Jeff Bezos Morning, Elon Musk Schedule, Tim Cook Routine) are now clickable and connect to AI (GPT-4o) for generating personalized daily reports. The AI analyzes template-specific principles (deep work, time-blocking, early rise patterns) and user's existing routines to provide 300-400 word detailed analysis, actionable recommendations, and key focus areas.
+
 ## External Dependencies
 
 ### AI Services

@@ -106,18 +106,23 @@ export async function generateTradingRecommendations(
     throw new Error("OpenAI API key not configured");
   }
 
+  const hasAssets = assets.length > 0;
+  const hasTransactions = transactions.length > 0;
+
   const prompt = `As a financial analyst, analyze this portfolio and market conditions to generate trading recommendations:
 
 Current Holdings:
-${assets.map(a => `${a.symbol} (${a.assetType}): ${a.quantity} @ $${a.value.toFixed(2)} (${a.changePercent?.toFixed(2)}% change)`).join('\n')}
+${hasAssets ? assets.map(a => `${a.symbol} (${a.assetType}): ${a.quantity} @ $${a.value.toFixed(2)} (${a.changePercent?.toFixed(2)}% change)`).join('\n') : 'No current holdings'}
 
 Recent Transactions (last 30 days):
-${transactions.slice(0, 10).map(t => `${t.type.toUpperCase()}: ${t.symbol} ${t.quantity} @ $${t.pricePerUnit}`).join('\n')}
+${hasTransactions ? transactions.slice(0, 10).map(t => `${t.type.toUpperCase()}: ${t.symbol} ${t.quantity} @ $${t.pricePerUnit}`).join('\n') : 'No recent transactions'}
 
 Market Context:
 ${marketContext ? JSON.stringify(marketContext, null, 2) : 'Not available'}
 
-Generate 3-5 specific trading recommendations. For each recommendation provide:
+${hasAssets || hasTransactions ? 'Analyze the portfolio and generate 3-5 specific trading recommendations.' : 'Generate 3-5 beginner-friendly trading recommendations for someone starting to build a portfolio.'}
+
+For each recommendation provide:
 1. Symbol to trade
 2. Asset type (stocks, crypto, bonds, real_estate, gold, silver)
 3. Action (buy, sell, hold)
@@ -130,23 +135,24 @@ Generate 3-5 specific trading recommendations. For each recommendation provide:
 10. Time horizon (short, medium, long)
 11. Market sentiment (bullish, bearish, neutral)
 
-Format as JSON array:
-[
-  {
-    "symbol": "AAPL",
-    "assetType": "stocks",
-    "action": "buy",
-    "confidence": 75,
-    "reasoning": "Strong earnings potential...",
-    "targetPrice": 185.50,
-    "currentPrice": 175.00,
-    "potentialReturn": 6.0,
-    "riskLevel": "medium",
-    "timeHorizon": "medium",
-    "marketSentiment": "bullish"
-  },
-  ...
-]`;
+Format as JSON object with recommendations array:
+{
+  "recommendations": [
+    {
+      "symbol": "AAPL",
+      "assetType": "stocks",
+      "action": "buy",
+      "confidence": 75,
+      "reasoning": "Strong earnings potential...",
+      "targetPrice": 185.50,
+      "currentPrice": 175.00,
+      "potentialReturn": 6.0,
+      "riskLevel": "medium",
+      "timeHorizon": "medium",
+      "marketSentiment": "bullish"
+    }
+  ]
+}`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -155,7 +161,11 @@ Format as JSON array:
   });
 
   const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.recommendations || [];
+  const recommendations = response.recommendations || [];
+  
+  console.log(`[AI Intelligence] Generated ${recommendations.length} trading recommendations for user`);
+  
+  return recommendations;
 }
 
 /**

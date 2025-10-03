@@ -540,3 +540,157 @@ export const insertDocumentInsightSchema = createInsertSchema(documentInsights).
 
 export type InsertDocumentInsight = z.infer<typeof insertDocumentInsightSchema>;
 export type DocumentInsight = typeof documentInsights.$inferSelect;
+
+// Portfolio Reports - Auto-generated wealth summaries
+export const portfolioReports = pgTable("portfolio_reports", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reportType: text("report_type").notNull(), // 'daily', 'weekly', 'monthly', 'custom'
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  totalValue: real("total_value").notNull(),
+  totalChange: real("total_change").notNull(),
+  totalChangePercent: real("total_change_percent").notNull(),
+  assetBreakdown: jsonb("asset_breakdown").notNull(), // {stocks: x, crypto: y, bonds: z, etc}
+  topGainers: text("top_gainers").array(),
+  topLosers: text("top_losers").array(),
+  insights: text("insights").array(), // AI-generated insights
+  recommendations: text("recommendations").array(), // AI recommendations
+  riskScore: real("risk_score"), // 0-100
+  diversificationScore: real("diversification_score"), // 0-100
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_portfolio_reports_user_id").on(table.userId)]);
+
+export const insertPortfolioReportSchema = createInsertSchema(portfolioReports).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+});
+
+export type InsertPortfolioReport = z.infer<typeof insertPortfolioReportSchema>;
+export type PortfolioReport = typeof portfolioReports.$inferSelect;
+
+// Trading Recommendations - AI-powered trade suggestions
+export const tradingRecommendations = pgTable("trading_recommendations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  symbol: text("symbol").notNull(),
+  assetType: text("asset_type").notNull(),
+  action: text("action").notNull(), // 'buy', 'sell', 'hold'
+  confidence: real("confidence").notNull(), // 0-100
+  reasoning: text("reasoning").notNull(), // AI explanation
+  targetPrice: real("target_price"),
+  currentPrice: real("current_price").notNull(),
+  potentialReturn: real("potential_return"), // Percentage
+  riskLevel: text("risk_level").notNull(), // 'low', 'medium', 'high'
+  timeHorizon: text("time_horizon"), // 'short', 'medium', 'long'
+  technicalIndicators: jsonb("technical_indicators"), // RSI, MACD, etc
+  marketSentiment: text("market_sentiment"), // 'bullish', 'bearish', 'neutral'
+  status: text("status").notNull().default('active'), // 'active', 'executed', 'expired', 'dismissed'
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_trading_recommendations_user_id").on(table.userId)]);
+
+export const insertTradingRecommendationSchema = createInsertSchema(tradingRecommendations).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  expiresAt: z.coerce.date().optional(),
+});
+
+export type InsertTradingRecommendation = z.infer<typeof insertTradingRecommendationSchema>;
+export type TradingRecommendation = typeof tradingRecommendations.$inferSelect;
+
+// Tax Events - Track tax implications
+export const taxEvents = pgTable("tax_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'set null' }),
+  eventType: text("event_type").notNull(), // 'capital_gain', 'capital_loss', 'dividend', 'interest', 'wash_sale'
+  taxYear: integer("tax_year").notNull(),
+  symbol: text("symbol"),
+  assetType: text("asset_type"),
+  costBasis: real("cost_basis"),
+  proceeds: real("proceeds"),
+  gainLoss: real("gain_loss"),
+  holdingPeriod: text("holding_period"), // 'short_term', 'long_term'
+  taxableAmount: real("taxable_amount").notNull(),
+  description: text("description").notNull(),
+  notes: text("notes"),
+  isReviewed: text("is_reviewed").notNull().default('false'),
+  eventDate: timestamp("event_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_tax_events_user_id").on(table.userId)]);
+
+export const insertTaxEventSchema = createInsertSchema(taxEvents).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  eventDate: z.coerce.date(),
+});
+
+export type InsertTaxEvent = z.infer<typeof insertTaxEventSchema>;
+export type TaxEvent = typeof taxEvents.$inferSelect;
+
+// Rebalancing Recommendations - AI portfolio optimization
+export const rebalancingRecommendations = pgTable("rebalancing_recommendations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  currentAllocation: jsonb("current_allocation").notNull(), // Current portfolio breakdown
+  targetAllocation: jsonb("target_allocation").notNull(), // Recommended allocation
+  actions: jsonb("actions").notNull(), // Array of {symbol, action, amount}
+  reasoning: text("reasoning").notNull(),
+  expectedBenefit: text("expected_benefit"),
+  riskReduction: real("risk_reduction"), // Percentage improvement
+  diversificationImprovement: real("diversification_improvement"),
+  estimatedCost: real("estimated_cost"), // Transaction fees
+  priority: text("priority").notNull().default('medium'), // 'low', 'medium', 'high'
+  status: text("status").notNull().default('pending'), // 'pending', 'accepted', 'rejected', 'executed'
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_rebalancing_recommendations_user_id").on(table.userId)]);
+
+export const insertRebalancingRecommendationSchema = createInsertSchema(rebalancingRecommendations).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  expiresAt: z.coerce.date().optional(),
+});
+
+export type InsertRebalancingRecommendation = z.infer<typeof insertRebalancingRecommendationSchema>;
+export type RebalancingRecommendation = typeof rebalancingRecommendations.$inferSelect;
+
+// Anomaly Detections - AI-powered anomaly tracking
+export const anomalyDetections = pgTable("anomaly_detections", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  anomalyType: text("anomaly_type").notNull(), // 'unusual_transaction', 'price_spike', 'unusual_email', 'account_activity', 'pattern_break'
+  severity: text("severity").notNull(), // 'low', 'medium', 'high', 'critical'
+  description: text("description").notNull(),
+  affectedEntity: text("affected_entity"), // Symbol, email ID, account name, etc
+  entityType: text("entity_type"), // 'asset', 'transaction', 'email', 'account'
+  detectedValue: real("detected_value"),
+  expectedValue: real("expected_value"),
+  deviation: real("deviation"), // Percentage deviation
+  aiAnalysis: text("ai_analysis"), // AI explanation
+  recommendations: text("recommendations").array(),
+  status: text("status").notNull().default('new'), // 'new', 'investigating', 'resolved', 'false_positive'
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: text("resolved_by"),
+  notes: text("notes"),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_anomaly_detections_user_id").on(table.userId)]);
+
+export const insertAnomalyDetectionSchema = createInsertSchema(anomalyDetections).omit({
+  id: true,
+  detectedAt: true,
+  createdAt: true,
+}).extend({
+  resolvedAt: z.coerce.date().optional(),
+});
+
+export type InsertAnomalyDetection = z.infer<typeof insertAnomalyDetectionSchema>;
+export type AnomalyDetection = typeof anomalyDetections.$inferSelect;

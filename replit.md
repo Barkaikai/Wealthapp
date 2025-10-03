@@ -1,106 +1,57 @@
 # Wealth Automation Platform
 
 ## Overview
-
-This AI-powered platform is designed for billionaire-level wealth management and lifestyle optimization. It automates financial tracking, email management, daily routines, and decision-making with minimal human input. Key capabilities include aggregating assets across various platforms, AI-driven email categorization and reply drafting, generating daily briefings with portfolio insights, and building optimized daily routines. The platform aims to provide an ultra-premium experience with a luxury aesthetic and advanced AI functionalities for comprehensive life automation.
+This AI-powered platform is designed for billionaire-level wealth management and lifestyle optimization. It automates financial tracking, email management, daily routines, and decision-making with minimal human input. Key capabilities include aggregating assets across various platforms, AI-driven email categorization and reply drafting, generating daily briefings with portfolio insights, and building optimized daily routines. The platform aims to provide an ultra-premium experience with a luxury aesthetic and advanced AI functionalities for comprehensive life automation. It includes a full double-entry Digital Accountant, comprehensive CRM, and robust health monitoring system.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend
+### UI/UX Decisions
+The frontend uses React 18 with TypeScript, Vite, Wouter for routing, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3 principles, featuring a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, and WCAG AA compliance. A Coinbase-inspired blue theme (hsl 221 83% 53%) is used throughout, with wealth-themed background images. A mobile/desktop view switcher is available.
 
-The frontend uses React 18 with TypeScript, Vite, Wouter for routing, and TanStack Query for server state management. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3 principles, featuring a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, and WCAG AA compliance. State management utilizes React Query, React Hook Form with Zod, and Context API for themes.
+### Technical Implementations
+The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA (Progressive Web App) implementation provides offline functionality and automatic updates.
+The system features a comprehensive Digital Calendar with Month/Week/Day views.
+A Terminal Interface provides advanced users with system information and direct data access.
 
-### Backend
-
-The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. API endpoints are organized by domain (e.g., authentication, asset management, AI briefings, email automation). Security measures include Helmet.js for HTTP headers, rate limiting, secure cookie parsing, CSRF protection (Double Submit Cookie), and robust session security. Health endpoints (`/livez`, `/readyz`, `/healthz`, `/admin/diagnostics`) are implemented for monitoring.
-
-### Data Storage
-
-PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The schema includes tables for users, sessions, assets, events, routines, emails, briefings, transactions (asset trades), wallet_transactions (deposits/withdrawals), wallets, payment_methods, wealth alerts, financial goals, liabilities, calendar events, tasks, health metrics, wallet connections, voice commands, notes, documents, receipts, and AI Intelligence tables for portfolio reports, trading recommendations, tax events, rebalancing, and anomaly detections. 
-
-**Comprehensive Health Tracking:** Seven specialized tables support detailed health monitoring: stepRecords (daily steps, distance, calories), exerciseRecords (cycling, running, gym sessions with duration and intensity), vitalsRecords (heart rate, blood pressure, SpO2, temperature, weight, BMI), mindfulnessSessions (meditation, breathing exercises, mood tracking), sleepLogs (bedtime, wake time, quality, sleep phases), foodLogs (meals with nutritional data), and aiSyncLogs (AI analysis history, health scores, insights, recommendations). All health data includes syncedAt timestamps for AI synchronization tracking.
-
-All user-centric tables link to `users.id` with cascade delete and include `createdAt`/`updatedAt` timestamps. Indices are added to all `userId` columns for performance.
+### Feature Specifications
+The platform offers:
+- **Daily Briefing:** AI-powered reports and portfolio overview.
+- **Wealth Dashboard:** Portfolio visualization and analytics.
+- **Digital Accountant:** Double-entry bookkeeping with Chart of Accounts, Journal Entries, Invoices, Payments, and Financial Reports.
+- **Personal Wallet:** Integrated Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
+- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, and Tasks.
+- **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, and personalized AI Videos.
+- **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights and recommendations.
+- **CRM:** Manages organizations, contacts, leads, deals, and activities with full CRUD operations and accounting integration.
+- **Header Tools:** Live time/date, online/offline status, advanced calculator (64-digit precision, Basic, Scientific, Expression modes), web search, and ChatGPT assistant.
 
 ### System Design Choices
-
-The platform features continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms (GPT-5 to GPT-4o). A luxury theme is globally implemented. An AI-powered "Learn" system generates educational content. Real financial API integrations provide real-time stock and crypto data with intelligent fallback mechanisms. Email automation supports AI categorization and automatic draft replies. The system includes comprehensive wealth monitoring (transactions, alerts, goals, liabilities), a Productivity Hub (calendar, tasks), health metrics tracking, and Web3 wallet integration (Coinbase, Hedera HBAR, MetaMask, WalletConnect).
-
-**Header Tools:** Live time/date display, online/offline status indicator with toggle, advanced calculator (64-digit precision, 3 modes: Basic, Scientific, Expression), web search (Tavily API), and ChatGPT assistant (OpenAI GPT-4o) are accessible from the header.
-
-**AI Intelligence Hub** offers five key capabilities: Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, and Anomaly Detection, all powered by GPT-4o.
-
-**AI Videos Page** generates personalized YouTube video recommendations based on Daily Briefing content using GPT-4o, providing educational content relevant to portfolio highlights, risks, and actions.
-
-**Notepad system** supports CRUD operations and AI-powered analysis for text (GPT-4o-mini) and images (GPT-4o Vision), handling Replit Object Storage gracefully.
-
-**Receipt Manager** uses GPT-4o Vision for OCR processing of receipt images, extracting merchant, amount, date, items, and category information.
-
-**PWA Capabilities:** Service worker implementation enables offline functionality and automatic app updates with user notifications. Manifest configured for installable progressive web app experience.
-
-**Calculator Features:** Three operational modes (Basic, Scientific, Expression) with mathjs BigNumber providing 64-digit precision. Scientific mode includes trigonometric functions, logarithms, constants (π, e), and advanced operations. Expression mode supports complex mathematical expressions with safe evaluation.
-
-**Personal Wallet:** Integrated funding and withdrawal system with transaction history. Database schema includes wallets table (balance, available balance, pending balance, total deposited/withdrawn, Stripe integration fields), wallet_transactions table (deposits, withdrawals, transfers with status tracking), and payment_methods table (cards, bank accounts, Google Pay, Apple Pay with verification status). Backend provides automated transaction processing with simulated Stripe integration for deposits and withdrawals.
-
-**Terminal Interface:** Command-line interface for advanced users providing system information and direct data access. Supports commands including help, status, wallet (balance display), portfolio (asset summary), health (system status), whoami (user info), and date. Features command history navigation, error handling, and real-time output display with terminal aesthetics.
-
-**Health Tracking & AI Sync:** Comprehensive health monitoring system tracking steps, exercise (cycling, running, strength training), vitals (heart rate, blood pressure, SpO2, temperature, weight, BMI), mindfulness sessions (meditation, breathing, mood), sleep patterns, and nutrition. AI Health Sync service powered by GPT-4o analyzes all health data, generates personalized insights and recommendations, calculates health scores (0-100), and tracks synchronization history. Backend provides RESTful endpoints for all health data types with automatic AI sync triggers. Server time endpoint (/api/time/server) ensures accurate UTC timestamp synchronization across all health tracking features.
-
-Production optimizations include database indexing, boot-time environment variable validation (critical and optional services), enhanced API security hardening for search/ChatGPT endpoints, and React Query optimizations (staleTime: Infinity, smart retries, disabled window refetching). API resilience ensures graceful handling of external API failures for stock/crypto additions, allowing manual input and subsequent synchronization.
-
-**Design Theme:** Coinbase-inspired blue theme (hsl 221 83% 53%) throughout the platform with clean, modern UI components. Wealth-themed background images on landing and login pages providing luxury aesthetic. Settings page includes comprehensive configuration across 6 tabs (Account, Security, Notifications, Appearance, Diagnostics, About).
-
-**UI Consolidation (October 2025):** Major consolidation of application features to improve navigation and user experience. The sidebar now contains 9 streamlined sections:
-- **Daily Briefing:** AI-powered daily reports and portfolio overview
-- **Wealth Dashboard:** Portfolio visualization and analytics
-- **Digital Accountant:** Comprehensive double-entry bookkeeping system with 5 tabs - Chart of Accounts, Journal Entries (with real-time balance validation), Invoices (auto-posts AR/Revenue), Payments (auto-posts Cash/AR), and Financial Reports (Trial Balance, P&L, Balance Sheet, Account Ledger)
-- **Personal Wallet:** Integrated tabs for Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect)
-- **Productivity Hub:** Consolidated workspace with 6 tabs - Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, and Tasks
-- **AI Intelligence:** Unified AI hub with 3 tabs - Intelligence Hub (portfolio reports, trading recommendations, tax events, rebalancing, anomaly detection), Terminal (command-line interface), and AI Videos (personalized YouTube recommendations)
-- **Health Monitoring:** Comprehensive tracking with 8 tabs - Dashboard (overview with health score), Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync (insights, recommendations, sync history)
-- **Guide:** Platform documentation and help
-- **Settings:** Application configuration
-
-**View Mode Switcher:** Footer includes mobile/desktop view switcher with global state management (ViewModeProvider context), allowing users to toggle between mobile and desktop layouts. View preference persists via localStorage.
-
-**Routine Builder AI Integration:** Success leader templates (Jeff Bezos Morning, Elon Musk Schedule, Tim Cook Routine) are now clickable and connect to AI (GPT-4o) for generating personalized daily reports. The AI analyzes template-specific principles (deep work, time-blocking, early rise patterns) and user's existing routines to provide 300-400 word detailed analysis, actionable recommendations, and key focus areas.
-
-**Digital Accountant System:** Full double-entry bookkeeping implementation with automated GL posting. Database schema includes accounts (chart of accounts with asset/liability/equity/income/expense types), journal_entries (headers), journal_lines (debit/credit details), invoices (AR), payments, bank_transactions, reconciliations, and accounting_audit_logs. Backend enforces double-entry validation (debits must equal credits), auto-posts journal entries for invoices (DR: AR, CR: Revenue) and payments (DR: Cash, CR: AR), updates account balances automatically, and maintains complete audit trail. Frontend provides comprehensive UI with Chart of Accounts management, Journal Entry creation with real-time balance validation, Invoice and Payment tracking with auto-GL posting, and Financial Reports (Trial Balance, Profit & Loss, Balance Sheet, Account Ledger). All forms use shared Zod schemas with zodResolver for type safety.
-
-**Digital Calendar:** Comprehensive calendar component with Month/Week/Day view tabs. Displays all calendar events with expandable details. Accessible via clickable time/date display in header or dedicated calendar button. Month view shows events on date cells, Week view displays events in columns, Day view shows detailed event information. Navigation includes Previous/Next/Today buttons. Integrates with existing calendar events API endpoint.
-
-**Luxury Backgrounds:** Wealth-themed background images applied throughout the entire authenticated application with subtle dark gradient overlay, providing premium aesthetic while maintaining UI readability. Fixed positioning with proper z-indexing ensures backgrounds don't interfere with interactive elements.
+The system is built for scalability and security, employing Helmet.js for HTTP headers, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are designed for user-centric data with appropriate indexing and `createdAt`/`updatedAt` timestamps. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI to generate personalized daily reports based on success leader templates. The Digital Accountant enforces double-entry validation and auto-posts journal entries for invoices and payments. The CRM integrates with the Digital Accountant for deal tracking.
 
 ## External Dependencies
 
 ### AI Services
-
 - **OpenAI GPT-5:** Daily briefing generation, email automation, lifestyle recommendations, educational content.
-- **OpenAI GPT-4o:** AI Intelligence Hub (portfolio reports, trading recommendations, tax analysis, rebalancing, anomaly detection), ChatGPT assistant, AI Health Sync (health data analysis, personalized insights, health score calculation).
+- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos.
 - **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes.
-- **OpenAI GPT-4o Vision:** OCR and analysis of images in the Notepad system, Receipt Manager.
+- **OpenAI GPT-4o Vision:** OCR and analysis of images in Notepad and Receipt Manager.
 
 ### Search Services
-
-- **Tavily API:** Real-time web search for global search bar.
+- **Tavily API:** Real-time web search.
 
 ### Email Integration
-
-- **Google Mail API via OAuth2:** For email synchronization, using Replit Connectors.
+- **Google Mail API via OAuth2:** Email synchronization (using Replit Connectors).
 
 ### Financial Data Integration
-
 - **Alpha Vantage API:** Real-time stock prices.
 - **CoinGecko API:** Cryptocurrency prices.
-- **Stripe:** (Integration ready) Payment processing for wallet deposits and withdrawals.
+- **Stripe:** Payment processing for wallet deposits and withdrawals.
 - **Plaid:** (Planned) Bank account aggregation.
 
 ### Third-Party Services
-
 - **Replit Auth (OIDC):** User authentication.
 - **Replit Connectors:** Secure credential management.
 - **Google Fonts:** Typography (Inter, JetBrains Mono).

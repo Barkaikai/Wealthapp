@@ -68,7 +68,7 @@ export class MSAuthClient {
     return await this.cca.acquireTokenByCode(tokenRequest);
   }
 
-  async acquireTokenByRefreshToken(refreshToken: string): Promise<msal.AuthenticationResult> {
+  async acquireTokenByRefreshToken(refreshToken: string): Promise<msal.AuthenticationResult | null> {
     if (!this.cca) {
       throw new Error('Microsoft Auth not configured');
     }

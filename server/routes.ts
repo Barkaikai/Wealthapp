@@ -3388,6 +3388,374 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  // ============================================
+  // WEALTH FORGE ROUTES
+  // ============================================
+
+  // Get user's Wealth Forge progress
+  app.get('/api/wealth-forge/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      let progress = await storage.getWealthForgeProgress(userId);
+      
+      // Create initial progress if it doesn't exist
+      if (!progress) {
+        progress = await storage.upsertWealthForgeProgress({
+          userId,
+          tokens: 0,
+          xp: 0,
+          level: 1,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalMined: 0,
+          totalSpent: 0,
+        });
+      }
+      
+      res.json(progress);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Get progress error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch progress' });
+    }
+  });
+
+  // Update Wealth Forge progress (nickname, wallet address)
+  app.patch('/api/wealth-forge/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { nickname, solanaWallet } = req.body;
+      
+      const progress = await storage.updateWealthForgeProgress(userId, {
+        nickname,
+        solanaWallet,
+      });
+      
+      res.json(progress);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Update progress error:', error);
+      res.status(500).json({ message: error.message || 'Failed to update progress' });
+    }
+  });
+
+  // Mine tokens (free or paid) - Server calculates all rewards
+  app.post('/api/wealth-forge/mine', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type, gameData, gameScore } = req.body;
+      
+      // Validate mining type
+      const validTypes = ['mini_game', 'daily_bonus', 'quiz', 'task'];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: 'Invalid mining type' });
+      }
+      
+      // Get or create progress
+      let progress = await storage.getWealthForgeProgress(userId);
+      if (!progress) {
+        progress = await storage.upsertWealthForgeProgress({
+          userId,
+          tokens: 0,
+          xp: 0,
+          level: 1,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalMined: 0,
+          totalSpent: 0,
+        });
+      }
+      
+      // Anti-abuse: Check for rapid mining (no more than 1 mine per 5 seconds)
+      const recentMining = await storage.getWealthForgeMiningHistory(userId, 1);
+      if (recentMining.length > 0) {
+        const lastMine = new Date(recentMining[0].createdAt).getTime();
+        const now = new Date().getTime();
+        if (now - lastMine < 5000) {
+          return res.status(429).json({ message: 'Mining too fast. Wait a few seconds.' });
+        }
+      }
+      
+      // Anti-abuse: Daily bonus can only be claimed once per day
+      if (type === 'daily_bonus') {
+        const today = new Date().toDateString();
+        const lastActivity = progress.lastActiveDate ? new Date(progress.lastActiveDate).toDateString() : null;
+        if (lastActivity === today) {
+          return res.status(400).json({ message: 'Daily bonus already claimed today' });
+        }
+      }
+      
+      // SERVER-SIDE ONLY reward calculation - client cannot manipulate these values
+      let tokensEarned = 0;
+      let xpEarned = 0;
+      
+      switch (type) {
+        case 'mini_game':
+          // Base reward + bonus for score (capped score validation)
+          tokensEarned = 5;
+          xpEarned = 10;
+          const validatedScore = Math.min(Math.max(gameScore || 0, 0), 100); // Clamp 0-100
+          if (validatedScore >= 80) {
+            tokensEarned += 3; // Bonus for high score
+            xpEarned += 5;
+          }
+          break;
+        case 'daily_bonus':
+          tokensEarned = 10;
+          xpEarned = 15;
+          break;
+        case 'quiz':
+          tokensEarned = 8;
+          xpEarned = 12;
+          break;
+        case 'task':
+          tokensEarned = 3;
+          xpEarned = 5;
+          break;
+      }
+      
+      // Update progress
+      const newTokens = (progress.tokens || 0) + tokensEarned;
+      const newXp = (progress.xp || 0) + xpEarned;
+      const newLevel = Math.floor(newXp / 100) + 1; // Level up every 100 XP
+      const newTotalMined = (progress.totalMined || 0) + tokensEarned;
+      
+      // Check and update streak
+      const now = new Date();
+      const lastActive = progress.lastActiveDate ? new Date(progress.lastActiveDate) : null;
+      let newStreak = progress.currentStreak || 0;
+      let newLongestStreak = progress.longestStreak || 0;
+      
+      if (lastActive) {
+        const diffDays = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          newStreak += 1;
+          newLongestStreak = Math.max(newLongestStreak, newStreak);
+        } else if (diffDays > 1) {
+          newStreak = 1;
+        }
+      } else {
+        newStreak = 1;
+      }
+      
+      await storage.updateWealthForgeProgress(userId, {
+        tokens: newTokens,
+        xp: newXp,
+        level: newLevel,
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        totalMined: newTotalMined,
+        lastActiveDate: now,
+      });
+      
+      // Create transaction record
+      await storage.createWealthForgeTransaction({
+        userId,
+        type: `mine_${type}`,
+        amount: tokensEarned,
+        description: `Mined ${tokensEarned} WFG from ${type}`,
+        metadata: gameData || {},
+      });
+      
+      // Create mining history record
+      await storage.createWealthForgeMiningHistory({
+        userId,
+        miningType: type,
+        tokensEarned,
+        xpGained: xpEarned,
+        gameScore,
+        gameData: gameData || {},
+      });
+      
+      res.json({
+        success: true,
+        tokensEarned,
+        xpGained: xpEarned,
+        newBalance: newTokens,
+        level: newLevel,
+        streak: newStreak,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Mine error:', error);
+      res.status(500).json({ message: error.message || 'Failed to mine tokens' });
+    }
+  });
+
+  // Get leaderboard
+  app.get('/api/wealth-forge/leaderboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const leaderboard = await storage.getWealthForgeLeaderboard(limit);
+      res.json(leaderboard);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Leaderboard error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch leaderboard' });
+    }
+  });
+
+  // Get vault items
+  app.get('/api/wealth-forge/vault', isAuthenticated, async (req: any, res) => {
+    try {
+      const items = await storage.getWealthForgeVaultItems();
+      res.json(items);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Vault error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch vault items' });
+    }
+  });
+
+  // Redeem vault item
+  app.post('/api/wealth-forge/redeem', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { vaultItemId } = req.body;
+      
+      // Get vault item
+      const items = await storage.getWealthForgeVaultItems();
+      const item = items.find(i => i.id === vaultItemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: 'Vault item not found' });
+      }
+      
+      // Get user progress
+      const progress = await storage.getWealthForgeProgress(userId);
+      if (!progress) {
+        return res.status(400).json({ message: 'User progress not found' });
+      }
+      
+      // Check if user has enough tokens
+      if ((progress.tokens || 0) < item.cost) {
+        return res.status(400).json({ message: 'Insufficient tokens' });
+      }
+      
+      // Deduct tokens
+      const newTokens = (progress.tokens || 0) - item.cost;
+      const newTotalSpent = (progress.totalSpent || 0) + item.cost;
+      
+      await storage.updateWealthForgeProgress(userId, {
+        tokens: newTokens,
+        totalSpent: newTotalSpent,
+      });
+      
+      // Create transaction record
+      await storage.createWealthForgeTransaction({
+        userId,
+        type: 'redeem',
+        amount: -item.cost,
+        description: `Redeemed: ${item.name}`,
+        metadata: { vaultItemId, itemName: item.name },
+      });
+      
+      // Create redemption record
+      const redemption = await storage.createWealthForgeRedemption({
+        userId,
+        vaultItemId,
+        itemName: item.name,
+        tokensCost: item.cost,
+        status: 'delivered',
+        deliveryData: item.itemData || {},
+        deliveredAt: new Date(),
+      });
+      
+      res.json({
+        success: true,
+        redemption,
+        newBalance: newTokens,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Redeem error:', error);
+      res.status(500).json({ message: error.message || 'Failed to redeem item' });
+    }
+  });
+
+  // Get user's transactions
+  app.get('/api/wealth-forge/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getWealthForgeTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Transactions error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch transactions' });
+    }
+  });
+
+  // Get user's redemptions
+  app.get('/api/wealth-forge/redemptions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const redemptions = await storage.getWealthForgeRedemptions(userId);
+      res.json(redemptions);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Redemptions error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch redemptions' });
+    }
+  });
+
+  // Get mining history
+  app.get('/api/wealth-forge/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const history = await storage.getWealthForgeMiningHistory(userId, limit);
+      res.json(history);
+    } catch (error: any) {
+      console.error('[Wealth Forge] History error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch mining history' });
+    }
+  });
+
+  // Buy token pack (simulated payment for MVP)
+  app.post('/api/wealth-forge/buy', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount, packName } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+      
+      // Get user progress
+      let progress = await storage.getWealthForgeProgress(userId);
+      if (!progress) {
+        progress = await storage.upsertWealthForgeProgress({
+          userId,
+          tokens: 0,
+          xp: 0,
+          level: 1,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalMined: 0,
+          totalSpent: 0,
+        });
+      }
+      
+      // Add tokens
+      const newTokens = (progress.tokens || 0) + amount;
+      await storage.updateWealthForgeProgress(userId, {
+        tokens: newTokens,
+      });
+      
+      // Create transaction record
+      await storage.createWealthForgeTransaction({
+        userId,
+        type: 'purchase',
+        amount,
+        description: `Purchased ${packName || 'Token Pack'}: ${amount} WFG`,
+        metadata: { packName, purchaseMethod: 'simulated' },
+      });
+      
+      res.json({
+        success: true,
+        amount,
+        newBalance: newTokens,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Buy error:', error);
+      res.status(500).json({ message: error.message || 'Failed to buy tokens' });
+    }
+  });
+
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

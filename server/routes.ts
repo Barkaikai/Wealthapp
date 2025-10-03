@@ -1620,6 +1620,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/tax-events/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      // Fetch all transactions for the user
+      const transactions = await storage.getTransactions(userId);
+      
+      if (transactions.length === 0) {
+        return res.json([]);
+      }
+
+      const { analyzeTaxImplications } = await import('./aiIntelligence');
+      const createdEvents = [];
+
+      // Analyze each transaction for tax implications
+      for (const transaction of transactions) {
+        try {
+          const taxAnalysis = await analyzeTaxImplications(transaction, transaction.costBasis || undefined);
+          
+          // Validate and sanitize numeric fields (AI may return "unknown" or invalid values)
+          const sanitizeNumber = (value: any, fallback: number = 0): number => {
+            if (typeof value === 'number' && !isNaN(value)) return value;
+            if (typeof value === 'string' && !isNaN(parseFloat(value))) return parseFloat(value);
+            return fallback;
+          };
+          
+          // Create tax event record with proper validation
+          const taxEvent = await storage.createTaxEvent({
+            userId,
+            transactionId: transaction.id,
+            eventType: taxAnalysis.eventType,
+            taxYear: taxAnalysis.taxYear,
+            symbol: taxAnalysis.symbol,
+            assetType: taxAnalysis.assetType,
+            costBasis: sanitizeNumber(taxAnalysis.costBasis),
+            proceeds: sanitizeNumber(taxAnalysis.proceeds),
+            gainLoss: sanitizeNumber(taxAnalysis.gainLoss),
+            holdingPeriod: taxAnalysis.holdingPeriod,
+            taxableAmount: sanitizeNumber(taxAnalysis.taxableAmount),
+            description: taxAnalysis.description,
+            notes: taxAnalysis.notes,
+            eventDate: transaction.transactionDate ? new Date(transaction.transactionDate) : new Date(),
+            isReviewed: 'false',
+          });
+          
+          createdEvents.push(taxEvent);
+        } catch (txError) {
+          console.error(`Error analyzing transaction ${transaction.id}:`, txError);
+          // Continue with other transactions even if one fails
+        }
+      }
+
+      res.json(createdEvents);
+    } catch (error: any) {
+      console.error("Error generating tax events:", error);
+      res.status(500).json({ message: error.message || "Failed to generate tax events" });
+    }
+  });
+
   // Rebalancing Recommendations routes
   app.get('/api/rebalancing-recommendations', isAuthenticated, async (req: any, res) => {
     try {

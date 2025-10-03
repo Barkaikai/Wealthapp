@@ -34,6 +34,13 @@ import {
   sleepLogs,
   foodLogs,
   aiSyncLogs,
+  accounts,
+  journalEntries,
+  journalLines,
+  invoices,
+  payments,
+  bankTransactions,
+  accountingAuditLogs,
   type User,
   type UpsertUser,
   type Asset,
@@ -104,9 +111,23 @@ import {
   type InsertFoodLog,
   type AISyncLog,
   type InsertAISyncLog,
+  type Account,
+  type InsertAccount,
+  type JournalEntry,
+  type InsertJournalEntry,
+  type JournalLine,
+  type InsertJournalLine,
+  type Invoice,
+  type InsertInvoice,
+  type Payment,
+  type InsertPayment,
+  type BankTransaction,
+  type InsertBankTransaction,
+  type AccountingAuditLog,
+  type InsertAccountingAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -257,6 +278,25 @@ export interface IStorage {
   createPaymentMethod(method: InsertPaymentMethod): Promise<PaymentMethod>;
   updatePaymentMethod(id: number, userId: string, method: Partial<InsertPaymentMethod>): Promise<PaymentMethod>;
   deletePaymentMethod(id: number, userId: string): Promise<void>;
+
+  // Accounting operations
+  getAccounts(userId: string): Promise<Account[]>;
+  createAccount(data: InsertAccount): Promise<Account>;
+  getJournalEntries(userId: string, limit?: number): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
+  createJournalEntry(userId: string, description: string, lines: Omit<InsertJournalLine, 'entryId'>[], clientRef?: string): Promise<JournalEntry>;
+  validateDoubleEntry(lines: { amount: number; isDebit: number }[]): boolean;
+  updateAccountBalances(lines: JournalLine[]): Promise<void>;
+  getInvoices(userId: string): Promise<Invoice[]>;
+  createInvoice(userId: string, data: Omit<InsertInvoice, 'userId'>): Promise<Invoice>;
+  getPayments(userId: string): Promise<Payment[]>;
+  recordPayment(userId: string, invoiceId: number | null, amount: number, method: string): Promise<Payment>;
+  getBankTransactions(userId: string): Promise<BankTransaction[]>;
+  createBankTransaction(userId: string, data: Omit<InsertBankTransaction, 'userId'>): Promise<BankTransaction>;
+  generateTrialBalance(userId: string): Promise<{ accountCode: string; accountName: string; accountType: string; debit: number; credit: number; balance: number }[]>;
+  generateProfitLoss(userId: string, startDate?: Date, endDate?: Date): Promise<{ revenue: { accountCode: string; accountName: string; amount: number }[]; expenses: { accountCode: string; accountName: string; amount: number }[]; netIncome: number }>;
+  generateBalanceSheet(userId: string): Promise<{ assets: { accountCode: string; accountName: string; amount: number }[]; liabilities: { accountCode: string; accountName: string; amount: number }[]; equity: { accountCode: string; accountName: string; amount: number }[]; totalAssets: number; totalLiabilities: number; totalEquity: number }>;
+  getAccountLedger(userId: string, accountCode: string): Promise<{ account: Account; entries: (JournalLine & { entry: JournalEntry })[] }>;
+  createAuditLog(log: InsertAccountingAuditLog): Promise<AccountingAuditLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1118,6 +1158,394 @@ export class DatabaseStorage implements IStorage {
       throw new Error("AI Sync Log not found");
     }
     return updatedLog;
+  }
+
+  // Accounting operations
+  async getAccounts(userId: string): Promise<Account[]> {
+    return await db.select().from(accounts)
+      .where(eq(accounts.userId, userId))
+      .orderBy(accounts.code);
+  }
+
+  async createAccount(data: InsertAccount): Promise<Account> {
+    const [account] = await db.insert(accounts).values(data).returning();
+    
+    await this.createAuditLog({
+      userId: data.userId,
+      action: 'create_account',
+      entityType: 'account',
+      entityId: account.id,
+      details: { code: account.code, name: account.name, type: account.accountType }
+    });
+    
+    return account;
+  }
+
+  async getJournalEntries(userId: string, limit?: number): Promise<(JournalEntry & { lines: JournalLine[] })[]> {
+    let query = db.select().from(journalEntries)
+      .where(eq(journalEntries.userId, userId))
+      .orderBy(desc(journalEntries.postedAt));
+    
+    if (limit) {
+      query = query.limit(limit) as any;
+    }
+    
+    const entries = await query;
+    
+    const entriesWithLines = await Promise.all(
+      entries.map(async (entry) => {
+        const lines = await db.select()
+          .from(journalLines)
+          .where(eq(journalLines.entryId, entry.id));
+        return { ...entry, lines };
+      })
+    );
+    
+    return entriesWithLines;
+  }
+
+  validateDoubleEntry(lines: { amount: number; isDebit: number }[]): boolean {
+    let debits = 0;
+    let credits = 0;
+    
+    for (const line of lines) {
+      if (line.isDebit === 1) {
+        debits += line.amount;
+      } else {
+        credits += line.amount;
+      }
+    }
+    
+    return Math.abs(debits - credits) < 0.01;
+  }
+
+  async createJournalEntry(
+    userId: string, 
+    description: string, 
+    lines: Omit<InsertJournalLine, 'entryId'>[], 
+    clientRef?: string
+  ): Promise<JournalEntry> {
+    if (!this.validateDoubleEntry(lines)) {
+      throw new Error('Double-entry validation failed: debits must equal credits');
+    }
+    
+    const [entry] = await db.insert(journalEntries).values({
+      userId,
+      description,
+      clientRef,
+      status: 'posted',
+      postedAt: new Date(),
+    }).returning();
+    
+    const insertedLines: JournalLine[] = [];
+    for (const line of lines) {
+      const [insertedLine] = await db.insert(journalLines).values({
+        ...line,
+        entryId: entry.id,
+      }).returning();
+      insertedLines.push(insertedLine);
+    }
+    
+    await this.updateAccountBalances(insertedLines);
+    
+    await this.createAuditLog({
+      userId,
+      action: 'post_journal',
+      entityType: 'journal_entry',
+      entityId: entry.id,
+      details: { description, lineCount: lines.length }
+    });
+    
+    return entry;
+  }
+
+  async updateAccountBalances(lines: JournalLine[]): Promise<void> {
+    for (const line of lines) {
+      const [account] = await db.select().from(accounts).where(eq(accounts.id, line.accountId));
+      
+      if (!account) {
+        throw new Error(`Account with ID ${line.accountId} not found`);
+      }
+      
+      let balanceChange = 0;
+      const isAssetOrExpense = account.accountType === 'asset' || account.accountType === 'expense';
+      
+      if (line.isDebit === 1) {
+        balanceChange = isAssetOrExpense ? line.amount : -line.amount;
+      } else {
+        balanceChange = isAssetOrExpense ? -line.amount : line.amount;
+      }
+      
+      await db.update(accounts)
+        .set({ 
+          balance: (account.balance || 0) + balanceChange,
+          updatedAt: new Date()
+        })
+        .where(eq(accounts.id, line.accountId));
+    }
+  }
+
+  async getInvoices(userId: string): Promise<Invoice[]> {
+    return await db.select().from(invoices)
+      .where(eq(invoices.userId, userId))
+      .orderBy(desc(invoices.issuedAt));
+  }
+
+  async createInvoice(userId: string, data: Omit<InsertInvoice, 'userId'>): Promise<Invoice> {
+    const [invoice] = await db.insert(invoices).values({
+      ...data,
+      userId,
+      status: 'issued',
+    }).returning();
+    
+    const userAccounts = await this.getAccounts(userId);
+    const arAccount = userAccounts.find(a => a.code === '1000-AR' || a.name.toLowerCase().includes('receivable'));
+    const revenueAccount = userAccounts.find(a => a.code === '4000-REVENUE' || a.accountType === 'income');
+    
+    if (!arAccount || !revenueAccount) {
+      console.warn('AR or Revenue account not found for auto-posting invoice journal entry');
+    } else {
+      const entry = await this.createJournalEntry(
+        userId,
+        `Invoice ${invoice.invoiceNumber || invoice.id} - ${invoice.customer}`,
+        [
+          { accountId: arAccount.id, amount: invoice.total, isDebit: 1, description: 'Accounts Receivable' },
+          { accountId: revenueAccount.id, amount: invoice.total, isDebit: 0, description: 'Revenue' },
+        ],
+        `invoice-${invoice.id}`
+      );
+      
+      await db.update(invoices)
+        .set({ journalEntryId: entry.id })
+        .where(eq(invoices.id, invoice.id));
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'create_invoice',
+      entityType: 'invoice',
+      entityId: invoice.id,
+      details: { customer: invoice.customer, total: invoice.total }
+    });
+    
+    return invoice;
+  }
+
+  async getPayments(userId: string): Promise<Payment[]> {
+    return await db.select().from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.paidAt));
+  }
+
+  async recordPayment(userId: string, invoiceId: number | null, amount: number, method: string): Promise<Payment> {
+    const [payment] = await db.insert(payments).values({
+      userId,
+      invoiceId,
+      amount,
+      method,
+      paidAt: new Date(),
+    }).returning();
+    
+    const userAccounts = await this.getAccounts(userId);
+    const cashAccount = userAccounts.find(a => a.code === '1010-CASH' || a.name.toLowerCase().includes('cash'));
+    const arAccount = userAccounts.find(a => a.code === '1000-AR' || a.name.toLowerCase().includes('receivable'));
+    
+    if (!cashAccount || !arAccount) {
+      console.warn('Cash or AR account not found for auto-posting payment journal entry');
+    } else {
+      const entry = await this.createJournalEntry(
+        userId,
+        `Payment received - ${method}${invoiceId ? ` (Invoice ${invoiceId})` : ''}`,
+        [
+          { accountId: cashAccount.id, amount, isDebit: 1, description: 'Cash received' },
+          { accountId: arAccount.id, amount, isDebit: 0, description: 'Accounts Receivable' },
+        ],
+        `payment-${payment.id}`
+      );
+      
+      await db.update(payments)
+        .set({ journalEntryId: entry.id })
+        .where(eq(payments.id, payment.id));
+    }
+    
+    if (invoiceId) {
+      const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+      if (invoice && invoice.status !== 'paid') {
+        await db.update(invoices)
+          .set({ status: 'paid' })
+          .where(eq(invoices.id, invoiceId));
+      }
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'record_payment',
+      entityType: 'payment',
+      entityId: payment.id,
+      details: { amount, method, invoiceId }
+    });
+    
+    return payment;
+  }
+
+  async getBankTransactions(userId: string): Promise<BankTransaction[]> {
+    return await db.select().from(bankTransactions)
+      .where(eq(bankTransactions.userId, userId))
+      .orderBy(desc(bankTransactions.postedAt));
+  }
+
+  async createBankTransaction(userId: string, data: Omit<InsertBankTransaction, 'userId'>): Promise<BankTransaction> {
+    const [transaction] = await db.insert(bankTransactions).values({
+      ...data,
+      userId,
+    }).returning();
+    
+    await this.createAuditLog({
+      userId,
+      action: 'create_bank_transaction',
+      entityType: 'bank_transaction',
+      entityId: transaction.id,
+      details: { amount: transaction.amount, description: transaction.description }
+    });
+    
+    return transaction;
+  }
+
+  async generateTrialBalance(userId: string): Promise<{ 
+    accountCode: string; 
+    accountName: string; 
+    accountType: string; 
+    debit: number; 
+    credit: number; 
+    balance: number 
+  }[]> {
+    const userAccounts = await this.getAccounts(userId);
+    
+    return userAccounts.map(account => {
+      const balance = account.balance || 0;
+      const isAssetOrExpense = account.accountType === 'asset' || account.accountType === 'expense';
+      
+      return {
+        accountCode: account.code,
+        accountName: account.name,
+        accountType: account.accountType,
+        debit: (isAssetOrExpense && balance > 0) ? balance : ((isAssetOrExpense && balance < 0) ? 0 : (balance < 0 ? -balance : 0)),
+        credit: (!isAssetOrExpense && balance > 0) ? balance : ((!isAssetOrExpense && balance < 0) ? 0 : (balance > 0 ? balance : 0)),
+        balance
+      };
+    });
+  }
+
+  async generateProfitLoss(userId: string, startDate?: Date, endDate?: Date): Promise<{ 
+    revenue: { accountCode: string; accountName: string; amount: number }[]; 
+    expenses: { accountCode: string; accountName: string; amount: number }[]; 
+    netIncome: number 
+  }> {
+    const userAccounts = await this.getAccounts(userId);
+    
+    const revenueAccounts = userAccounts.filter(a => a.accountType === 'income');
+    const expenseAccounts = userAccounts.filter(a => a.accountType === 'expense');
+    
+    const revenue = revenueAccounts.map(account => ({
+      accountCode: account.code,
+      accountName: account.name,
+      amount: account.balance || 0
+    }));
+    
+    const expenses = expenseAccounts.map(account => ({
+      accountCode: account.code,
+      accountName: account.name,
+      amount: account.balance || 0
+    }));
+    
+    const totalRevenue = revenue.reduce((sum, r) => sum + r.amount, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    return {
+      revenue,
+      expenses,
+      netIncome: totalRevenue - totalExpenses
+    };
+  }
+
+  async generateBalanceSheet(userId: string): Promise<{ 
+    assets: { accountCode: string; accountName: string; amount: number }[]; 
+    liabilities: { accountCode: string; accountName: string; amount: number }[]; 
+    equity: { accountCode: string; accountName: string; amount: number }[]; 
+    totalAssets: number; 
+    totalLiabilities: number; 
+    totalEquity: number 
+  }> {
+    const userAccounts = await this.getAccounts(userId);
+    
+    const assetAccounts = userAccounts.filter(a => a.accountType === 'asset');
+    const liabilityAccounts = userAccounts.filter(a => a.accountType === 'liability');
+    const equityAccounts = userAccounts.filter(a => a.accountType === 'equity');
+    
+    const assets = assetAccounts.map(account => ({
+      accountCode: account.code,
+      accountName: account.name,
+      amount: account.balance || 0
+    }));
+    
+    const liabilities = liabilityAccounts.map(account => ({
+      accountCode: account.code,
+      accountName: account.name,
+      amount: account.balance || 0
+    }));
+    
+    const equity = equityAccounts.map(account => ({
+      accountCode: account.code,
+      accountName: account.name,
+      amount: account.balance || 0
+    }));
+    
+    const totalAssets = assets.reduce((sum, a) => sum + a.amount, 0);
+    const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
+    const totalEquity = equity.reduce((sum, e) => sum + e.amount, 0);
+    
+    return {
+      assets,
+      liabilities,
+      equity,
+      totalAssets,
+      totalLiabilities,
+      totalEquity
+    };
+  }
+
+  async getAccountLedger(userId: string, accountCode: string): Promise<{ 
+    account: Account; 
+    entries: (JournalLine & { entry: JournalEntry })[] 
+  }> {
+    const [account] = await db.select().from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.code, accountCode)));
+    
+    if (!account) {
+      throw new Error(`Account ${accountCode} not found`);
+    }
+    
+    const lines = await db.select()
+      .from(journalLines)
+      .where(eq(journalLines.accountId, account.id))
+      .orderBy(desc(journalLines.createdAt));
+    
+    const entriesWithDetails = await Promise.all(
+      lines.map(async (line) => {
+        const [entry] = await db.select().from(journalEntries).where(eq(journalEntries.id, line.entryId));
+        return { ...line, entry };
+      })
+    );
+    
+    return {
+      account,
+      entries: entriesWithDetails
+    };
+  }
+
+  async createAuditLog(log: InsertAccountingAuditLog): Promise<AccountingAuditLog> {
+    const [auditLog] = await db.insert(accountingAuditLogs).values(log).returning();
+    return auditLog;
   }
 }
 

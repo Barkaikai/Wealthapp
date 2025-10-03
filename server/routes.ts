@@ -6,7 +6,7 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema, insertAccountSchema, insertJournalLineSchema, insertInvoiceSchema, insertBankTransactionSchema } from "@shared/schema";
 import { analyzeReceiptImage } from "./receiptOCR";
 import multer from "multer";
 import { fileStorage } from "./fileStorage";
@@ -2164,6 +2164,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching payment methods:", error);
       res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Accounting routes
+  app.get('/api/accounting/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const accounts = await storage.getAccounts(userId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      res.status(500).json({ message: "Failed to fetch accounts" });
+    }
+  });
+
+  app.post('/api/accounting/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const accountData = insertAccountSchema.parse({ ...req.body, userId });
+      const account = await storage.createAccount(accountData);
+      res.json(account);
+    } catch (error: any) {
+      console.error("Error creating account:", error);
+      res.status(400).json({ message: error.message || "Failed to create account" });
+    }
+  });
+
+  app.get('/api/accounting/journal', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const entries = await storage.getJournalEntries(userId, limit);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching journal entries:", error);
+      res.status(500).json({ message: "Failed to fetch journal entries" });
+    }
+  });
+
+  app.post('/api/accounting/journal', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { description, lines, clientRef } = req.body;
+
+      if (!description || !lines || !Array.isArray(lines)) {
+        return res.status(400).json({ message: "Invalid journal entry data" });
+      }
+
+      const validatedLines = lines.map(line => insertJournalLineSchema.parse(line));
+      
+      if (!storage.validateDoubleEntry(validatedLines)) {
+        return res.status(400).json({ message: "Double-entry validation failed: debits must equal credits" });
+      }
+
+      const entry = await storage.createJournalEntry(userId, description, validatedLines, clientRef);
+      res.json(entry);
+    } catch (error: any) {
+      console.error("Error creating journal entry:", error);
+      res.status(400).json({ message: error.message || "Failed to create journal entry" });
+    }
+  });
+
+  app.get('/api/accounting/invoices', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const invoices = await storage.getInvoices(userId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  app.post('/api/accounting/invoices', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const invoiceData = insertInvoiceSchema.parse(req.body);
+      const invoice = await storage.createInvoice(userId, invoiceData);
+      res.json(invoice);
+    } catch (error: any) {
+      console.error("Error creating invoice:", error);
+      res.status(400).json({ message: error.message || "Failed to create invoice" });
+    }
+  });
+
+  app.get('/api/accounting/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const payments = await storage.getPayments(userId);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
+  app.post('/api/accounting/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { invoiceId, amount, method } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid payment amount" });
+      }
+
+      if (!method) {
+        return res.status(400).json({ message: "Payment method is required" });
+      }
+
+      const payment = await storage.recordPayment(userId, invoiceId || null, amount, method);
+      res.json(payment);
+    } catch (error: any) {
+      console.error("Error recording payment:", error);
+      res.status(400).json({ message: error.message || "Failed to record payment" });
+    }
+  });
+
+  app.get('/api/accounting/bank-transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactions = await storage.getBankTransactions(userId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching bank transactions:", error);
+      res.status(500).json({ message: "Failed to fetch bank transactions" });
+    }
+  });
+
+  app.post('/api/accounting/bank-transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactionData = insertBankTransactionSchema.parse(req.body);
+      const transaction = await storage.createBankTransaction(userId, transactionData);
+      res.json(transaction);
+    } catch (error: any) {
+      console.error("Error creating bank transaction:", error);
+      res.status(400).json({ message: error.message || "Failed to create bank transaction" });
+    }
+  });
+
+  app.get('/api/accounting/reports/trial-balance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const trialBalance = await storage.generateTrialBalance(userId);
+      res.json(trialBalance);
+    } catch (error) {
+      console.error("Error generating trial balance:", error);
+      res.status(500).json({ message: "Failed to generate trial balance" });
+    }
+  });
+
+  app.get('/api/accounting/reports/profit-loss', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const profitLoss = await storage.generateProfitLoss(userId, startDate, endDate);
+      res.json(profitLoss);
+    } catch (error) {
+      console.error("Error generating P&L:", error);
+      res.status(500).json({ message: "Failed to generate profit & loss statement" });
+    }
+  });
+
+  app.get('/api/accounting/reports/balance-sheet', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const balanceSheet = await storage.generateBalanceSheet(userId);
+      res.json(balanceSheet);
+    } catch (error) {
+      console.error("Error generating balance sheet:", error);
+      res.status(500).json({ message: "Failed to generate balance sheet" });
+    }
+  });
+
+  app.get('/api/accounting/reports/ledger/:accountCode', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { accountCode } = req.params;
+      
+      if (!accountCode) {
+        return res.status(400).json({ message: "Account code is required" });
+      }
+
+      const ledger = await storage.getAccountLedger(userId, accountCode);
+      res.json(ledger);
+    } catch (error: any) {
+      console.error("Error fetching account ledger:", error);
+      res.status(error.message?.includes("not found") ? 404 : 500).json({ 
+        message: error.message || "Failed to fetch account ledger" 
+      });
     }
   });
 

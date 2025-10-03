@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import wealthBackground from "@assets/ChatGPT Image Oct 3, 2025, 12_12_37 AM_1759464919082.png";
+import wealthBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
 
 export default function Login() {
   useEffect(() => {

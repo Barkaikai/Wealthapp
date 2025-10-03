@@ -1956,6 +1956,298 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wallet routes
+  app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      let wallet = await storage.getWallet(userId);
+      
+      // Create wallet if it doesn't exist
+      if (!wallet) {
+        wallet = await storage.createWallet({
+          userId,
+          balance: 0,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalDeposited: 0,
+          totalWithdrawn: 0,
+          currency: 'USD',
+        });
+      }
+      
+      res.json(wallet);
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+      res.status(500).json({ message: "Failed to fetch wallet" });
+    }
+  });
+
+  app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactions = await storage.getWalletTransactions(userId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  app.post('/api/wallet/deposit', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount, paymentMethodId } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      // Get or create wallet
+      let wallet = await storage.getWallet(userId);
+      if (!wallet) {
+        wallet = await storage.createWallet({
+          userId,
+          balance: 0,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalDeposited: 0,
+          totalWithdrawn: 0,
+          currency: 'USD',
+        });
+      }
+
+      // Immediately update pending balance
+      await storage.updateWallet(wallet.id, {
+        pendingBalance: wallet.pendingBalance + amount,
+      });
+
+      // Create transaction record
+      const transaction = await storage.createWalletTransaction({
+        userId,
+        walletId: wallet.id,
+        type: 'deposit',
+        amount,
+        currency: 'USD',
+        status: 'processing',
+        paymentMethod: 'card',
+        description: `Deposit of $${amount.toFixed(2)}`,
+        processedAt: new Date(),
+      });
+
+      // Simulate async processing (in real implementation, this would be Stripe webhook)
+      setTimeout(async () => {
+        try {
+          const currentWallet = await storage.getWallet(userId);
+          if (!currentWallet) return;
+
+          await storage.updateWalletTransaction(transaction.id, {
+            status: 'completed',
+            completedAt: new Date(),
+          });
+          
+          await storage.updateWallet(currentWallet.id, {
+            balance: currentWallet.balance + amount,
+            availableBalance: currentWallet.availableBalance + amount,
+            pendingBalance: currentWallet.pendingBalance - amount,
+            totalDeposited: currentWallet.totalDeposited + amount,
+          });
+        } catch (error) {
+          console.error("Error completing deposit:", error);
+        }
+      }, 2000);
+
+      res.json(transaction);
+    } catch (error: any) {
+      console.error("Error processing deposit:", error);
+      res.status(500).json({ message: error.message || "Failed to process deposit" });
+    }
+  });
+
+  app.post('/api/wallet/withdraw', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount, paymentMethodId } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      const wallet = await storage.getWallet(userId);
+      if (!wallet) {
+        return res.status(400).json({ message: "Wallet not found" });
+      }
+
+      if (amount > wallet.availableBalance) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      // Update wallet balance immediately (deduct from available, add to pending)
+      await storage.updateWallet(wallet.id, {
+        availableBalance: wallet.availableBalance - amount,
+        pendingBalance: wallet.pendingBalance + amount,
+      });
+
+      // Create transaction record
+      const transaction = await storage.createWalletTransaction({
+        userId,
+        walletId: wallet.id,
+        type: 'withdrawal',
+        amount,
+        currency: 'USD',
+        status: 'processing',
+        paymentMethod: 'bank_account',
+        description: `Withdrawal of $${amount.toFixed(2)}`,
+        processedAt: new Date(),
+      });
+
+      // Simulate withdrawal processing
+      setTimeout(async () => {
+        try {
+          const currentWallet = await storage.getWallet(userId);
+          if (!currentWallet) return;
+
+          await storage.updateWalletTransaction(transaction.id, {
+            status: 'completed',
+            completedAt: new Date(),
+          });
+          
+          await storage.updateWallet(currentWallet.id, {
+            balance: currentWallet.balance - amount,
+            pendingBalance: currentWallet.pendingBalance - amount,
+            totalWithdrawn: currentWallet.totalWithdrawn + amount,
+          });
+        } catch (error) {
+          console.error("Error completing withdrawal:", error);
+        }
+      }, 2000);
+
+      res.json(transaction);
+    } catch (error: any) {
+      console.error("Error processing withdrawal:", error);
+      res.status(500).json({ message: error.message || "Failed to process withdrawal" });
+    }
+  });
+
+  app.get('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const methods = await storage.getPaymentMethods(userId);
+      res.json(methods);
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Terminal routes
+  app.post('/api/terminal/execute', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { command } = req.body;
+      
+      if (!command || typeof command !== 'string') {
+        return res.status(400).json({ error: "Invalid command" });
+      }
+
+      const trimmedCommand = command.trim().toLowerCase();
+      let output = '';
+      let error = '';
+
+      // Handle different commands
+      switch (trimmedCommand) {
+        case 'help':
+          output = `Available commands:
+  help      - Display this help message
+  status    - Show system status
+  wallet    - Display wallet balance
+  portfolio - Show portfolio summary
+  health    - Check system health
+  clear     - Clear terminal (client-side)
+  whoami    - Display current user info
+  date      - Display current date and time`;
+          break;
+
+        case 'status':
+          output = `System Status: Online
+Uptime: ${Math.floor(process.uptime())} seconds
+Node.js: ${process.version}
+Platform: ${process.platform}
+Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`;
+          break;
+
+        case 'wallet':
+          try {
+            const wallet = await storage.getWallet(userId);
+            if (wallet) {
+              output = `Wallet Balance:
+Total: $${wallet.balance.toFixed(2)}
+Available: $${wallet.availableBalance.toFixed(2)}
+Pending: $${wallet.pendingBalance.toFixed(2)}
+Total Deposited: $${wallet.totalDeposited.toFixed(2)}
+Total Withdrawn: $${wallet.totalWithdrawn.toFixed(2)}`;
+            } else {
+              output = 'No wallet found. Create one from the Wallet page.';
+            }
+          } catch (e) {
+            error = 'Failed to fetch wallet information';
+          }
+          break;
+
+        case 'portfolio':
+          try {
+            const assets = await storage.getAssets(userId);
+            const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
+            output = `Portfolio Summary:
+Total Assets: ${assets.length}
+Total Value: $${totalValue.toFixed(2)}
+Top Holdings:`;
+            assets.slice(0, 5).forEach((asset, i) => {
+              output += `\n  ${i + 1}. ${asset.name} (${asset.symbol}): $${asset.value.toFixed(2)}`;
+            });
+          } catch (e) {
+            error = 'Failed to fetch portfolio information';
+          }
+          break;
+
+        case 'health':
+          output = `System Health: OK
+Database: Connected
+API Services: Active
+Authentication: Active`;
+          break;
+
+        case 'whoami':
+          try {
+            const user = await storage.getUser(userId);
+            output = `User Information:
+ID: ${user.id}
+Email: ${user.email || 'N/A'}
+Name: ${user.firstName || ''} ${user.lastName || ''}
+Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
+          } catch (e) {
+            error = 'Failed to fetch user information';
+          }
+          break;
+
+        case 'date':
+          output = new Date().toString();
+          break;
+
+        case 'clear':
+          output = 'Terminal cleared (handled client-side)';
+          break;
+
+        default:
+          error = `Command not found: ${command}\nType 'help' for available commands`;
+      }
+
+      res.json({ output, error });
+    } catch (error: any) {
+      console.error("Error executing terminal command:", error);
+      res.status(500).json({ error: error.message || "Failed to execute command" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -10,6 +10,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Calculator } from "@/components/Calculator";
 import { WebSearchBar } from "@/components/WebSearchBar";
 import { ChatGPT } from "@/components/ChatGPT";
+import { TimeDate } from "@/components/TimeDate";
+import { OnlineStatus } from "@/components/OnlineStatus";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
@@ -28,8 +30,6 @@ import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
 import NotFound from "@/pages/not-found";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import type { User } from "@shared/schema";
 
 function Router() {
@@ -88,35 +88,16 @@ function AuthenticatedApp() {
           <header className="flex items-center justify-between gap-4 p-4 border-b border-border">
             <div className="flex items-center gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
-              <div className="flex items-center gap-2">
-                {user?.profileImageUrl && (
-                  <img 
-                    src={user.profileImageUrl} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                )}
-                <span className="text-sm font-medium hidden md:block">
-                  {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}
-                </span>
-              </div>
+              <TimeDate />
             </div>
             <div className="flex-1 max-w-2xl mx-auto">
               <WebSearchBar compact />
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <OnlineStatus />
               <ChatGPT />
               <Calculator />
               <ThemeToggle />
-              <Button 
-                variant="ghost" 
-                onClick={() => window.location.href = '/api/logout'}
-                data-testid="button-logout"
-                className="min-h-9"
-              >
-                <LogOut className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Logout</span>
-              </Button>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">

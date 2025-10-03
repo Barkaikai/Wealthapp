@@ -3196,6 +3196,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Initialize Discord bot
   app.post('/api/discord/initialize', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { z } = await import('zod');
       const initSchema = z.object({
         botToken: z.string().min(1),
@@ -3204,7 +3205,15 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       const { botToken } = initSchema.parse(req.body);
       const { discordBot } = await import('./discord/discordBot');
 
+      // Set storage instance
+      discordBot.setStorage(storage);
+
+      // Initialize the bot
       await discordBot.initialize(botToken);
+
+      // Load all scheduled jobs from database (for all users)
+      await discordBot.loadAllScheduledJobs();
+
       res.json({ message: 'Discord bot initialized successfully' });
     } catch (error: any) {
       console.error('[Discord] Initialize error:', error);
@@ -3323,7 +3332,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
 
       // Schedule with Discord bot
       const { discordBot } = await import('./discord/discordBot');
-      await discordBot.scheduleAIMessage(scheduledMessage.id, channelId, prompt, cronTime);
+      await discordBot.scheduleAIMessage(scheduledMessage.id, userId, channelId, prompt, cronTime);
 
       res.json({ message: 'Message scheduled successfully', schedule: scheduledMessage });
     } catch (error: any) {

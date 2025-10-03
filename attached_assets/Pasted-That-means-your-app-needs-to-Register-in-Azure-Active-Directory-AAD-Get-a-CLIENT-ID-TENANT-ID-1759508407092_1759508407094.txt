@@ -1,0 +1,118 @@
+That means your app needs to:
+
+Register in Azure Active Directory (AAD) → Get a CLIENT_ID, TENANT_ID, CLIENT_SECRET.
+
+Use OAuth 2.0 login → Let the user log in with their Microsoft account.
+
+Request permissions → For Outlook, OneDrive, Calendar, etc.
+
+Use Microsoft Graph API → Make API calls to read/write files, send emails, sync calendar, etc.
+
+🔹 Example Code (Node.js + Express + React frontend)
+1. Install packages
+npm install @microsoft/microsoft-graph-client isomorphic-fetch express msal
+
+2. Backend: server.js
+
+Handles authentication with Microsoft Identity:
+
+const express = require("express");
+const msal = require("@azure/msal-node");
+require("dotenv").config();
+
+const app = express();
+
+const msalConfig = {
+  auth: {
+    clientId: process.env.MS_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${process.env.MS_TENANT_ID}`,
+    clientSecret: process.env.MS_CLIENT_SECRET,
+  },
+};
+
+const cca = new msal.ConfidentialClientApplication(msalConfig);
+
+app.get("/auth/microsoft", (req, res) => {
+  const authUrl = cca.getAuthCodeUrl({
+    scopes: ["user.read", "mail.read", "files.read", "offline_access"],
+    redirectUri: "http://localhost:3000/auth/callback",
+  });
+  authUrl.then((url) => res.redirect(url));
+});
+
+app.get("/auth/callback", async (req, res) => {
+  try {
+    const tokenResponse = await cca.acquireTokenByCode({
+      code: req.query.code,
+      scopes: ["user.read", "mail.read", "files.read", "offline_access"],
+      redirectUri: "http://localhost:3000/auth/callback",
+    });
+    res.json(tokenResponse);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Auth failed");
+  }
+});
+
+app.listen(4000, () => console.log("Server running on http://localhost:4000"));
+
+3. Frontend: App.js (React)
+
+Simple login button to connect Microsoft account:
+
+import React from "react";
+
+function App() {
+  const loginMicrosoft = () => {
+    window.location.href = "http://localhost:4000/auth/microsoft";
+  };
+
+  return (
+    <div style={{ padding: "40px", textAlign: "center" }}>
+      <h1>Connect Microsoft Office</h1>
+      <button
+        onClick={loginMicrosoft}
+        style={{ padding: "10px 20px", fontSize: "18px" }}
+      >
+        Sign in with Microsoft
+      </button>
+    </div>
+  );
+}
+
+export default App;
+
+4. Example Graph API Call
+
+Once you have an access token, you can use it to fetch data from Microsoft services.
+
+const { Client } = require("@microsoft/microsoft-graph-client");
+
+async function getUserProfile(token) {
+  const client = Client.init({
+    authProvider: (done) => done(null, token),
+  });
+
+  const user = await client.api("/me").get();
+  console.log("User info:", user);
+}
+
+🔹 What this lets you do
+
+Read/write Outlook emails
+
+Sync OneDrive / SharePoint files
+
+Manage Word/Excel/PowerPoint online docs
+
+Access calendar events & tasks
+
+Connect Teams messages
+
+⚠️ Your Office product key is just for software activation, but to integrate with your app you need to:
+
+Create an Azure App Registration (free with a Microsoft account).
+
+Get your CLIENT_ID, TENANT_ID, CLIENT_SECRET.
+
+Plug those into the code above.

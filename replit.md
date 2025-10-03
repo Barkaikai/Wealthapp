@@ -22,7 +22,7 @@ The platform offers:
 - **Wealth Dashboard:** Portfolio visualization and analytics.
 - **Digital Accountant:** Double-entry bookkeeping with Chart of Accounts, Journal Entries, Invoices, Payments, and Financial Reports.
 - **Personal Wallet:** Integrated Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
-- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, and Tasks.
+- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation (analyzes emails/calendar/notes to suggest actionable tasks), and AI Calendar Recommendations (suggests optimal calendar events based on routines and tasks).
 - **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, and personalized AI Videos.
 - **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights and recommendations.
 - **CRM:** Manages organizations, contacts, leads, deals, and activities with full CRUD operations and accounting integration.
@@ -35,7 +35,7 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 
 ### AI Services
 - **OpenAI GPT-5:** Daily briefing generation, email automation, lifestyle recommendations, educational content.
-- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos.
+- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation (analyzes user data to suggest actionable tasks), AI Calendar Recommendations (suggests optimal scheduling based on routines and tasks).
 - **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes.
 - **OpenAI GPT-4o Vision:** OCR and analysis of images in Notepad and Receipt Manager.
 

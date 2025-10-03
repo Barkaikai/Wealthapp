@@ -414,11 +414,33 @@ export class DatabaseStorage implements IStorage {
     }
     
     // No existing user, create new one
-    const [newUser] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return newUser;
+    try {
+      const [newUser] = await db
+        .insert(users)
+        .values(userData)
+        .returning();
+      return newUser;
+    } catch (error: any) {
+      // Handle unique constraint violation (race condition or duplicate)
+      if (error.code === '23505') {
+        // Constraint violation - fetch existing user without overwriting
+        if (userData.id) {
+          const existingUser = await this.getUser(userData.id);
+          if (existingUser) return existingUser;
+        }
+        if (userData.email) {
+          const [existingUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, userData.email));
+          if (existingUser) {
+            // Just return the existing user - don't overwrite fields
+            return existingUser;
+          }
+        }
+      }
+      throw error;
+    }
   }
 
   // Asset operations

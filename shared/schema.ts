@@ -984,6 +984,7 @@ export const insertSleepLogSchema = createInsertSchema(sleepLogs).omit({
 }).extend({
   bedtime: z.coerce.date(),
   wakeTime: z.coerce.date(),
+  totalSleepMinutes: z.number().optional(), // Auto-calculated from bedtime/wakeTime if not provided
 });
 
 export type InsertSleepLog = z.infer<typeof insertSleepLogSchema>;

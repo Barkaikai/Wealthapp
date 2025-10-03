@@ -1555,3 +1555,139 @@ export const insertDiscordScheduledMessageSchema = createInsertSchema(discordSch
 
 export type InsertDiscordScheduledMessage = z.infer<typeof insertDiscordScheduledMessageSchema>;
 export type DiscordScheduledMessage = typeof discordScheduledMessages.$inferSelect;
+
+// ============================================
+// WEALTH FORGE - SOLANA MINING COIN
+// ============================================
+
+// Wealth Forge User Progress - Track XP, level, streaks, and token balance
+export const wealthForgeProgress = pgTable("wealth_forge_progress", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  solanaWallet: varchar("solana_wallet", { length: 255 }), // User's Phantom wallet address
+  nickname: varchar("nickname", { length: 100 }),
+  tokens: real("tokens").default(0).notNull(), // WFG token balance
+  xp: integer("xp").default(0).notNull(),
+  level: integer("level").default(1).notNull(),
+  currentStreak: integer("current_streak").default(0).notNull(),
+  longestStreak: integer("longest_streak").default(0).notNull(),
+  lastActiveDate: timestamp("last_active_date"),
+  totalMined: real("total_mined").default(0).notNull(), // Total tokens ever mined
+  totalSpent: real("total_spent").default(0).notNull(), // Total tokens spent on redemptions
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_progress_user_id").on(table.userId),
+  index("idx_wf_progress_wallet").on(table.solanaWallet)
+]);
+
+export const insertWealthForgeProgressSchema = createInsertSchema(wealthForgeProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWealthForgeProgress = z.infer<typeof insertWealthForgeProgressSchema>;
+export type WealthForgeProgress = typeof wealthForgeProgress.$inferSelect;
+
+// Wealth Forge Transactions - Track all token movements
+export const wealthForgeTransactions = pgTable("wealth_forge_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: varchar("type", { length: 50 }).notNull(), // mine_free, mine_paid, purchase, redeem, bonus
+  amount: real("amount").notNull(), // Positive for credits, negative for debits
+  description: text("description").notNull(),
+  solTxSignature: varchar("sol_tx_signature", { length: 255 }), // Solana transaction signature if paid
+  mintTxSignature: varchar("mint_tx_signature", { length: 255 }), // SPL token mint signature
+  metadata: jsonb("metadata").default({}), // Additional data (task completed, item redeemed, etc.)
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_txns_user_id").on(table.userId),
+  index("idx_wf_txns_type").on(table.type),
+  index("idx_wf_txns_sol_sig").on(table.solTxSignature)
+]);
+
+export const insertWealthForgeTransactionSchema = createInsertSchema(wealthForgeTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWealthForgeTransaction = z.infer<typeof insertWealthForgeTransactionSchema>;
+export type WealthForgeTransaction = typeof wealthForgeTransactions.$inferSelect;
+
+// Wealth Forge Vault Items - Items available for redemption
+export const wealthForgeVaultItems = pgTable("wealth_forge_vault_items", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  cost: real("cost").notNull(), // Token cost to redeem
+  category: varchar("category", { length: 50 }).notNull(), // template, lesson, mentor_time, premium_content
+  itemType: varchar("item_type", { length: 50 }).notNull(), // pdf, video, call, access
+  itemData: jsonb("item_data").default({}), // URL, file path, or access credentials
+  isActive: varchar("is_active", { length: 5 }).default('true'),
+  sortOrder: integer("sort_order").default(0),
+  thumbnailUrl: text("thumbnail_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_vault_category").on(table.category),
+  index("idx_wf_vault_active").on(table.isActive)
+]);
+
+export const insertWealthForgeVaultItemSchema = createInsertSchema(wealthForgeVaultItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWealthForgeVaultItem = z.infer<typeof insertWealthForgeVaultItemSchema>;
+export type WealthForgeVaultItem = typeof wealthForgeVaultItems.$inferSelect;
+
+// Wealth Forge Redemptions - Track user redemptions
+export const wealthForgeRedemptions = pgTable("wealth_forge_redemptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  vaultItemId: integer("vault_item_id").references(() => wealthForgeVaultItems.id, { onDelete: 'set null' }),
+  itemName: varchar("item_name", { length: 255 }).notNull(), // Denormalized for history
+  tokensCost: real("tokens_cost").notNull(),
+  status: varchar("status", { length: 50 }).default('pending'), // pending, delivered, cancelled
+  deliveryData: jsonb("delivery_data").default({}), // Download link, access code, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+}, (table) => [
+  index("idx_wf_redemptions_user_id").on(table.userId),
+  index("idx_wf_redemptions_vault_item").on(table.vaultItemId),
+  index("idx_wf_redemptions_status").on(table.status)
+]);
+
+export const insertWealthForgeRedemptionSchema = createInsertSchema(wealthForgeRedemptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWealthForgeRedemption = z.infer<typeof insertWealthForgeRedemptionSchema>;
+export type WealthForgeRedemption = typeof wealthForgeRedemptions.$inferSelect;
+
+// Wealth Forge Mining History - Track individual mining sessions
+export const wealthForgeMiningHistory = pgTable("wealth_forge_mining_history", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  miningType: varchar("mining_type", { length: 50 }).notNull(), // mini_game, quiz, task, daily_bonus
+  tokensEarned: real("tokens_earned").notNull(),
+  xpGained: integer("xp_gained").default(0).notNull(),
+  gameScore: integer("game_score"), // For mini-games
+  gameData: jsonb("game_data").default({}), // Game-specific data
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_mining_user_id").on(table.userId),
+  index("idx_wf_mining_type").on(table.miningType),
+  index("idx_wf_mining_created").on(table.createdAt)
+]);
+
+export const insertWealthForgeMiningHistorySchema = createInsertSchema(wealthForgeMiningHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWealthForgeMiningHistory = z.infer<typeof insertWealthForgeMiningHistorySchema>;
+export type WealthForgeMiningHistory = typeof wealthForgeMiningHistory.$inferSelect;

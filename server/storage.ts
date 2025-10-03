@@ -173,6 +173,21 @@ import {
   type InsertWealthForgeRedemption,
   type WealthForgeMiningHistory,
   type InsertWealthForgeMiningHistory,
+  subscriptionPlans,
+  userSubscriptions,
+  subscriptionEvents,
+  revenueEntries,
+  revenueReports,
+  type SubscriptionPlan,
+  type InsertSubscriptionPlan,
+  type UserSubscription,
+  type InsertUserSubscription,
+  type SubscriptionEvent,
+  type InsertSubscriptionEvent,
+  type RevenueEntry,
+  type InsertRevenueEntry,
+  type RevenueReport,
+  type InsertRevenueReport,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -396,6 +411,29 @@ export interface IStorage {
   getWealthForgeMiningHistory(userId: string, limit?: number): Promise<WealthForgeMiningHistory[]>;
   createWealthForgeMiningHistory(data: InsertWealthForgeMiningHistory): Promise<WealthForgeMiningHistory>;
   getWealthForgeLeaderboard(limit?: number): Promise<{ userId: string; nickname: string | null; solanaWallet: string | null; tokens: number; level: number; totalMined: number }[]>;
+  
+  // Subscription operations
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getActivePlan(tier: string): Promise<SubscriptionPlan | undefined>;
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  updateSubscriptionPlan(id: number, plan: Partial<InsertSubscriptionPlan>): Promise<SubscriptionPlan>;
+  
+  getUserSubscription(userId: string): Promise<UserSubscription | undefined>;
+  createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  updateUserSubscription(id: number, subscription: Partial<InsertUserSubscription>): Promise<UserSubscription>;
+  getUserSubscriptionByStripeId(stripeSubscriptionId: string): Promise<UserSubscription | undefined>;
+  
+  createSubscriptionEvent(event: InsertSubscriptionEvent): Promise<SubscriptionEvent>;
+  getSubscriptionEventByStripeId(stripeEventId: string): Promise<SubscriptionEvent | undefined>;
+  
+  // Revenue operations
+  getRevenueEntries(userId?: string, startDate?: Date, endDate?: Date): Promise<RevenueEntry[]>;
+  createRevenueEntry(entry: InsertRevenueEntry): Promise<RevenueEntry>;
+  getRevenueBySource(source: string, startDate?: Date, endDate?: Date): Promise<RevenueEntry[]>;
+  getRevenueSummary(startDate: Date, endDate: Date): Promise<{ totalUsd: number; bySource: Record<string, number> }>;
+  
+  createRevenueReport(report: InsertRevenueReport): Promise<RevenueReport>;
+  getRevenueReports(reportType?: string, limit?: number): Promise<RevenueReport[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2114,6 +2152,158 @@ export class DatabaseStorage implements IStorage {
     .limit(limit);
     
     return results;
+  }
+
+  // Subscription operations
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isActive, 'true'))
+      .orderBy(subscriptionPlans.sortOrder);
+  }
+
+  async getActivePlan(tier: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans)
+      .where(and(
+        eq(subscriptionPlans.tier, tier),
+        eq(subscriptionPlans.isActive, 'true')
+      ));
+    return plan;
+  }
+
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [created] = await db.insert(subscriptionPlans).values(plan).returning();
+    return created;
+  }
+
+  async updateSubscriptionPlan(id: number, plan: Partial<InsertSubscriptionPlan>): Promise<SubscriptionPlan> {
+    const [updated] = await db.update(subscriptionPlans)
+      .set({ ...plan, updatedAt: new Date() })
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('Subscription plan not found');
+    }
+    
+    return updated;
+  }
+
+  async getUserSubscription(userId: string): Promise<UserSubscription | undefined> {
+    const [subscription] = await db.select().from(userSubscriptions)
+      .where(eq(userSubscriptions.userId, userId))
+      .orderBy(desc(userSubscriptions.createdAt))
+      .limit(1);
+    return subscription;
+  }
+
+  async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
+    const [created] = await db.insert(userSubscriptions).values(subscription).returning();
+    return created;
+  }
+
+  async updateUserSubscription(id: number, subscription: Partial<InsertUserSubscription>): Promise<UserSubscription> {
+    const [updated] = await db.update(userSubscriptions)
+      .set({ ...subscription, updatedAt: new Date() })
+      .where(eq(userSubscriptions.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('User subscription not found');
+    }
+    
+    return updated;
+  }
+
+  async getUserSubscriptionByStripeId(stripeSubscriptionId: string): Promise<UserSubscription | undefined> {
+    const [subscription] = await db.select().from(userSubscriptions)
+      .where(eq(userSubscriptions.stripeSubscriptionId, stripeSubscriptionId));
+    return subscription;
+  }
+
+  async createSubscriptionEvent(event: InsertSubscriptionEvent): Promise<SubscriptionEvent> {
+    const [created] = await db.insert(subscriptionEvents).values(event).returning();
+    return created;
+  }
+
+  async getSubscriptionEventByStripeId(stripeEventId: string): Promise<SubscriptionEvent | undefined> {
+    const [event] = await db.select().from(subscriptionEvents)
+      .where(eq(subscriptionEvents.stripeEventId, stripeEventId));
+    return event;
+  }
+
+  // Revenue operations
+  async getRevenueEntries(userId?: string, startDate?: Date, endDate?: Date): Promise<RevenueEntry[]> {
+    const conditions = [];
+    
+    if (userId) {
+      conditions.push(eq(revenueEntries.userId, userId));
+    }
+    
+    if (startDate) {
+      conditions.push(gte(revenueEntries.occurredAt, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(revenueEntries.occurredAt, endDate));
+    }
+    
+    return await db.select().from(revenueEntries)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(revenueEntries.occurredAt));
+  }
+
+  async createRevenueEntry(entry: InsertRevenueEntry): Promise<RevenueEntry> {
+    const [created] = await db.insert(revenueEntries).values(entry).returning();
+    return created;
+  }
+
+  async getRevenueBySource(source: string, startDate?: Date, endDate?: Date): Promise<RevenueEntry[]> {
+    const conditions = [eq(revenueEntries.source, source)];
+    
+    if (startDate) {
+      conditions.push(gte(revenueEntries.occurredAt, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(revenueEntries.occurredAt, endDate));
+    }
+    
+    return await db.select().from(revenueEntries)
+      .where(and(...conditions))
+      .orderBy(desc(revenueEntries.occurredAt));
+  }
+
+  async getRevenueSummary(startDate: Date, endDate: Date): Promise<{ totalUsd: number; bySource: Record<string, number> }> {
+    const entries = await this.getRevenueEntries(undefined, startDate, endDate);
+    
+    const totalUsd = entries.reduce((sum, entry) => sum + (entry.usdValue || 0), 0);
+    const bySource: Record<string, number> = {};
+    
+    entries.forEach(entry => {
+      if (!bySource[entry.source]) {
+        bySource[entry.source] = 0;
+      }
+      bySource[entry.source] += entry.usdValue || 0;
+    });
+    
+    return { totalUsd, bySource };
+  }
+
+  async createRevenueReport(report: InsertRevenueReport): Promise<RevenueReport> {
+    const [created] = await db.insert(revenueReports).values(report).returning();
+    return created;
+  }
+
+  async getRevenueReports(reportType?: string, limit: number = 50): Promise<RevenueReport[]> {
+    const query = db.select().from(revenueReports);
+    
+    if (reportType) {
+      query.where(eq(revenueReports.reportType, reportType));
+    }
+    
+    return await query
+      .orderBy(desc(revenueReports.createdAt))
+      .limit(limit);
   }
 }
 

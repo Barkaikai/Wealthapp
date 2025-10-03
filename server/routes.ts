@@ -6,7 +6,8 @@ import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifest
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema } from "@shared/schema";
+import { analyzeReceiptImage } from "./receiptOCR";
 import multer from "multer";
 import { fileStorage } from "./fileStorage";
 import { syncAllFinancialData, syncStockPrices, syncCryptoPrices, addStockPosition, addCryptoPosition } from "./financialSync";
@@ -1779,6 +1780,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating anomaly:", error);
       res.status(400).json({ message: "Failed to update anomaly" });
+    }
+  });
+
+  // Receipt routes
+  const receiptUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit for receipt images
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/heic',
+        'image/webp',
+      ];
+      
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only image files are allowed (JPEG, PNG, HEIC, WebP).'));
+      }
+    },
+  });
+
+  app.get('/api/receipts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const status = req.query.status as string | undefined;
+      const receipts = await storage.getReceipts(userId, status);
+      res.json(receipts);
+    } catch (error) {
+      console.error("Error fetching receipts:", error);
+      res.status(500).json({ message: "Failed to fetch receipts" });
+    }
+  });
+
+  app.get('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const receipt = await storage.getReceipt(id, userId);
+      
+      if (!receipt) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+      
+      res.json(receipt);
+    } catch (error) {
+      console.error("Error fetching receipt:", error);
+      res.status(500).json({ message: "Failed to fetch receipt" });
+    }
+  });
+
+  app.post('/api/receipts/upload', isAuthenticated, receiptUpload.single('receipt'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No receipt image uploaded" });
+      }
+
+      // Convert image to base64 for GPT-4o Vision
+      const imageBase64 = req.file.buffer.toString('base64');
+
+      // Analyze receipt with GPT-4o Vision
+      console.log(`Analyzing receipt image for user ${userId}...`);
+      const analysis = await analyzeReceiptImage(imageBase64);
+      console.log(`Receipt analysis complete:`, analysis);
+
+      // Create receipt record in database
+      const receiptData = insertReceiptSchema.parse({
+        userId,
+        imageUrl: `data:${req.file.mimetype};base64,${imageBase64}`, // Store base64 for now
+        merchant: analysis.merchant,
+        amount: analysis.amount,
+        currency: analysis.currency,
+        receiptDate: analysis.receiptDate,
+        category: analysis.category,
+        rawOcrText: analysis.rawText,
+        items: analysis.items || [],
+        aiAnalysis: analysis.aiAnalysis,
+        status: 'processed',
+      });
+
+      const receipt = await storage.createReceipt(receiptData);
+      res.status(201).json(receipt);
+    } catch (error: any) {
+      console.error("Error uploading receipt:", error);
+      res.status(400).json({ message: error.message || "Failed to upload receipt" });
+    }
+  });
+
+  app.patch('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateReceipt(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating receipt:", error);
+      res.status(400).json({ message: "Failed to update receipt" });
+    }
+  });
+
+  app.delete('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      await storage.deleteReceipt(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting receipt:", error);
+      res.status(500).json({ message: "Failed to delete receipt" });
     }
   });
 

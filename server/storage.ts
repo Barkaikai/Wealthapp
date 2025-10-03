@@ -158,6 +158,21 @@ import {
   type InsertDiscordServer,
   type DiscordScheduledMessage,
   type InsertDiscordScheduledMessage,
+  wealthForgeProgress,
+  wealthForgeTransactions,
+  wealthForgeVaultItems,
+  wealthForgeRedemptions,
+  wealthForgeMiningHistory,
+  type WealthForgeProgress,
+  type InsertWealthForgeProgress,
+  type WealthForgeTransaction,
+  type InsertWealthForgeTransaction,
+  type WealthForgeVaultItem,
+  type InsertWealthForgeVaultItem,
+  type WealthForgeRedemption,
+  type InsertWealthForgeRedemption,
+  type WealthForgeMiningHistory,
+  type InsertWealthForgeMiningHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -365,6 +380,22 @@ export interface IStorage {
   createCrmActivity(data: InsertCrmActivity): Promise<CrmActivity>;
   updateCrmActivity(id: number, userId: string, data: Partial<InsertCrmActivity>): Promise<CrmActivity>;
   createCrmAuditLog(log: InsertCrmAuditLog): Promise<CrmAuditLog>;
+
+  // Wealth Forge operations
+  getWealthForgeProgress(userId: string): Promise<WealthForgeProgress | undefined>;
+  upsertWealthForgeProgress(data: InsertWealthForgeProgress): Promise<WealthForgeProgress>;
+  updateWealthForgeProgress(userId: string, data: Partial<InsertWealthForgeProgress>): Promise<WealthForgeProgress>;
+  getWealthForgeTransactions(userId: string, limit?: number): Promise<WealthForgeTransaction[]>;
+  createWealthForgeTransaction(data: InsertWealthForgeTransaction): Promise<WealthForgeTransaction>;
+  getWealthForgeVaultItems(): Promise<WealthForgeVaultItem[]>;
+  createWealthForgeVaultItem(data: InsertWealthForgeVaultItem): Promise<WealthForgeVaultItem>;
+  updateWealthForgeVaultItem(id: number, data: Partial<InsertWealthForgeVaultItem>): Promise<WealthForgeVaultItem>;
+  getWealthForgeRedemptions(userId: string): Promise<WealthForgeRedemption[]>;
+  createWealthForgeRedemption(data: InsertWealthForgeRedemption): Promise<WealthForgeRedemption>;
+  updateWealthForgeRedemption(id: number, userId: string, data: Partial<InsertWealthForgeRedemption>): Promise<WealthForgeRedemption>;
+  getWealthForgeMiningHistory(userId: string, limit?: number): Promise<WealthForgeMiningHistory[]>;
+  createWealthForgeMiningHistory(data: InsertWealthForgeMiningHistory): Promise<WealthForgeMiningHistory>;
+  getWealthForgeLeaderboard(limit?: number): Promise<{ userId: string; nickname: string | null; solanaWallet: string | null; tokens: number; level: number; totalMined: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1960,6 +1991,129 @@ export class DatabaseStorage implements IStorage {
   async createCrmAuditLog(log: InsertCrmAuditLog): Promise<CrmAuditLog> {
     const [auditLog] = await db.insert(crmAuditLogs).values(log).returning();
     return auditLog;
+  }
+
+  // Wealth Forge operations
+  async getWealthForgeProgress(userId: string): Promise<WealthForgeProgress | undefined> {
+    const [progress] = await db.select().from(wealthForgeProgress)
+      .where(eq(wealthForgeProgress.userId, userId));
+    return progress;
+  }
+
+  async upsertWealthForgeProgress(data: InsertWealthForgeProgress): Promise<WealthForgeProgress> {
+    const existing = await this.getWealthForgeProgress(data.userId);
+    
+    if (existing) {
+      const [updated] = await db.update(wealthForgeProgress)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(wealthForgeProgress.userId, data.userId))
+        .returning();
+      return updated;
+    }
+    
+    const [progress] = await db.insert(wealthForgeProgress).values(data).returning();
+    return progress;
+  }
+
+  async updateWealthForgeProgress(userId: string, data: Partial<InsertWealthForgeProgress>): Promise<WealthForgeProgress> {
+    const [progress] = await db.update(wealthForgeProgress)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(wealthForgeProgress.userId, userId))
+      .returning();
+    
+    if (!progress) {
+      throw new Error('Wealth Forge progress not found');
+    }
+    
+    return progress;
+  }
+
+  async getWealthForgeTransactions(userId: string, limit: number = 50): Promise<WealthForgeTransaction[]> {
+    return await db.select().from(wealthForgeTransactions)
+      .where(eq(wealthForgeTransactions.userId, userId))
+      .orderBy(desc(wealthForgeTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async createWealthForgeTransaction(data: InsertWealthForgeTransaction): Promise<WealthForgeTransaction> {
+    const [transaction] = await db.insert(wealthForgeTransactions).values(data).returning();
+    return transaction;
+  }
+
+  async getWealthForgeVaultItems(): Promise<WealthForgeVaultItem[]> {
+    return await db.select().from(wealthForgeVaultItems)
+      .where(eq(wealthForgeVaultItems.isActive, 'true'))
+      .orderBy(wealthForgeVaultItems.sortOrder);
+  }
+
+  async createWealthForgeVaultItem(data: InsertWealthForgeVaultItem): Promise<WealthForgeVaultItem> {
+    const [item] = await db.insert(wealthForgeVaultItems).values(data).returning();
+    return item;
+  }
+
+  async updateWealthForgeVaultItem(id: number, data: Partial<InsertWealthForgeVaultItem>): Promise<WealthForgeVaultItem> {
+    const [item] = await db.update(wealthForgeVaultItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(wealthForgeVaultItems.id, id))
+      .returning();
+    
+    if (!item) {
+      throw new Error('Vault item not found');
+    }
+    
+    return item;
+  }
+
+  async getWealthForgeRedemptions(userId: string): Promise<WealthForgeRedemption[]> {
+    return await db.select().from(wealthForgeRedemptions)
+      .where(eq(wealthForgeRedemptions.userId, userId))
+      .orderBy(desc(wealthForgeRedemptions.createdAt));
+  }
+
+  async createWealthForgeRedemption(data: InsertWealthForgeRedemption): Promise<WealthForgeRedemption> {
+    const [redemption] = await db.insert(wealthForgeRedemptions).values(data).returning();
+    return redemption;
+  }
+
+  async updateWealthForgeRedemption(id: number, userId: string, data: Partial<InsertWealthForgeRedemption>): Promise<WealthForgeRedemption> {
+    const [redemption] = await db.update(wealthForgeRedemptions)
+      .set(data)
+      .where(and(eq(wealthForgeRedemptions.id, id), eq(wealthForgeRedemptions.userId, userId)))
+      .returning();
+    
+    if (!redemption) {
+      throw new Error('Redemption not found');
+    }
+    
+    return redemption;
+  }
+
+  async getWealthForgeMiningHistory(userId: string, limit: number = 100): Promise<WealthForgeMiningHistory[]> {
+    return await db.select().from(wealthForgeMiningHistory)
+      .where(eq(wealthForgeMiningHistory.userId, userId))
+      .orderBy(desc(wealthForgeMiningHistory.createdAt))
+      .limit(limit);
+  }
+
+  async createWealthForgeMiningHistory(data: InsertWealthForgeMiningHistory): Promise<WealthForgeMiningHistory> {
+    const [history] = await db.insert(wealthForgeMiningHistory).values(data).returning();
+    return history;
+  }
+
+  async getWealthForgeLeaderboard(limit: number = 100): Promise<{ userId: string; nickname: string | null; solanaWallet: string | null; tokens: number; level: number; totalMined: number }[]> {
+    const results = await db.select({
+      userId: wealthForgeProgress.userId,
+      nickname: wealthForgeProgress.nickname,
+      solanaWallet: wealthForgeProgress.solanaWallet,
+      tokens: wealthForgeProgress.tokens,
+      level: wealthForgeProgress.level,
+      totalMined: wealthForgeProgress.totalMined,
+    })
+    .from(wealthForgeProgress)
+    .orderBy(desc(wealthForgeProgress.tokens))
+    .limit(limit);
+    
+    return results;
   }
 }
 

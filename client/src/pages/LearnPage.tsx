@@ -65,6 +65,7 @@ export default function LearnPage() {
         }
       } catch (err: any) {
         setError(err.message || "Failed to load content");
+        setIsGenerating(false);
       } finally {
         setIsLoading(false);
       }

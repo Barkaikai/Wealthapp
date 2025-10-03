@@ -48,6 +48,8 @@ export function OnlineStatus() {
           onClick={toggleStatus}
           className="relative"
           data-testid="button-online-status"
+          aria-pressed={effectiveStatus}
+          aria-label={`${effectiveStatus ? "Online" : "Offline"} Mode${manualOverride !== null ? " (Manual)" : ""}`}
         >
           {effectiveStatus ? (
             <>

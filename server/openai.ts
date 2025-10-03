@@ -503,3 +503,223 @@ Respond with JSON in this exact format:
     }
   }
 }
+
+// AI Task Generation based on emails, calendar, and user activity
+export async function generateAITasks(
+  emails: any[],
+  events: any[],
+  notes: any[],
+  userContext?: string
+): Promise<Array<{ title: string; description: string; priority: string; category: string; dueDate?: string; aiContext: string }>> {
+  const emailSummary = emails.slice(0, 10).map(e => 
+    `${e.subject} (from: ${e.from}, category: ${e.category}${e.draft ? ', has AI draft' : ''})`
+  ).join('\n');
+
+  const eventSummary = events.slice(0, 10).map(e =>
+    `${e.title} on ${new Date(e.eventDate).toLocaleDateString()}${e.priority ? ` (${e.priority} priority)` : ''}`
+  ).join('\n');
+
+  const notesSummary = notes.slice(0, 5).map(n =>
+    `${n.title}${n.tags?.length ? ` [${n.tags.join(', ')}]` : ''}`
+  ).join('\n');
+
+  const prompt = `You are an AI productivity assistant for a billionaire-level wealth automation platform. Analyze the user's recent activity and generate actionable tasks.
+
+RECENT EMAILS (last 10):
+${emailSummary || 'No recent emails'}
+
+UPCOMING EVENTS (next 10):
+${eventSummary || 'No upcoming events'}
+
+RECENT NOTES (last 5):
+${notesSummary || 'No recent notes'}
+
+${userContext ? `\nUSER CONTEXT:\n${userContext}` : ''}
+
+Based on this information, generate 3-7 high-value tasks that would help the user:
+1. Follow up on important emails
+2. Prepare for upcoming events
+3. Complete financial/business actions
+4. Address noted priorities
+
+For each task, provide:
+- title: Clear, actionable title (max 60 chars)
+- description: Specific details and context (100-200 chars)
+- priority: "high", "medium", or "low"
+- category: "finance", "work", "personal", or "health"
+- dueDate: ISO date string if time-sensitive, otherwise null
+- aiContext: Brief explanation of why this task was generated
+
+Return JSON array format:
+[
+  {
+    "title": "...",
+    "description": "...",
+    "priority": "high",
+    "category": "finance",
+    "dueDate": "2025-10-10",
+    "aiContext": "Generated from email about..."
+  }
+]`;
+
+  try {
+    console.log('Generating AI tasks...');
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+
+    if (!response.choices || !response.choices[0] || !response.choices[0].message.content) {
+      throw new Error('OpenAI API returned invalid response structure');
+    }
+
+    const result = JSON.parse(response.choices[0].message.content);
+    return result.tasks || result;
+  } catch (error: any) {
+    console.error('OpenAI API error in generateAITasks:', error);
+    throw new Error('Unable to generate AI tasks at this time. Please try again later.');
+  }
+}
+
+// AI Calendar Event Recommendations
+export async function generateCalendarRecommendations(
+  routines: any[],
+  tasks: any[],
+  existingEvents: any[],
+  userPreferences?: any
+): Promise<Array<{ title: string; description: string; suggestedDate: string; suggestedTime: string; category: string; priority: string; reason: string }>> {
+  const routineSummary = routines.slice(0, 5).map(r =>
+    `${r.name}: ${r.activities?.slice(0, 3).map((a: any) => a.name).join(', ') || 'No activities'}`
+  ).join('\n');
+
+  const taskSummary = tasks.filter((t: any) => t.status !== 'completed').slice(0, 10).map(t =>
+    `${t.title} (${t.priority} priority, ${t.category}${t.dueDate ? `, due: ${new Date(t.dueDate).toLocaleDateString()}` : ''})`
+  ).join('\n');
+
+  const eventSummary = existingEvents.slice(0, 10).map(e =>
+    `${e.title} on ${new Date(e.eventDate).toLocaleDateString()} at ${e.startTime || 'TBD'}`
+  ).join('\n');
+
+  const prompt = `You are an AI scheduling assistant for a billionaire-level wealth automation platform. Analyze the user's routines, tasks, and existing calendar to recommend new calendar events.
+
+USER ROUTINES (Templates):
+${routineSummary || 'No routines defined'}
+
+PENDING TASKS (Top 10):
+${taskSummary || 'No pending tasks'}
+
+EXISTING CALENDAR EVENTS (Next 10):
+${eventSummary || 'No events scheduled'}
+
+${userPreferences ? `\nUSER PREFERENCES:\n${JSON.stringify(userPreferences, null, 2)}` : ''}
+
+Generate 3-5 calendar event recommendations that would help the user:
+1. Schedule time for high-priority tasks
+2. Implement routine activities
+3. Fill gaps in the calendar productively
+4. Balance work, health, and personal time
+5. Optimize for peak productivity hours
+
+For each recommendation, provide:
+- title: Clear event title (max 50 chars)
+- description: Purpose and value of this event
+- suggestedDate: ISO date string (next 7-14 days)
+- suggestedTime: HH:MM format (24-hour)
+- category: "work", "finance", "health", "personal"
+- priority: "high", "medium", or "low"
+- reason: Why AI recommends this event
+
+Return JSON array format:
+[
+  {
+    "title": "...",
+    "description": "...",
+    "suggestedDate": "2025-10-05",
+    "suggestedTime": "09:00",
+    "category": "finance",
+    "priority": "high",
+    "reason": "Based on your routine..."
+  }
+]`;
+
+  try {
+    console.log('Generating calendar recommendations...');
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+
+    if (!response.choices || !response.choices[0] || !response.choices[0].message.content) {
+      throw new Error('OpenAI API returned invalid response structure');
+    }
+
+    const result = JSON.parse(response.choices[0].message.content);
+    return result.recommendations || result;
+  } catch (error: any) {
+    console.error('OpenAI API error in generateCalendarRecommendations:', error);
+    throw new Error('Unable to generate calendar recommendations at this time. Please try again later.');
+  }
+}
+
+// AI Document Organization and File Allocation
+export async function analyzeDocumentForOrganization(
+  documentName: string,
+  extractedText: string,
+  existingFolders: string[],
+  documentType?: string
+): Promise<{ suggestedFolder: string; suggestedTags: string[]; category: string; priority: string; summary: string }> {
+  const prompt = `You are an AI document organizer for a billionaire-level wealth automation platform. Analyze this document and suggest optimal organization.
+
+DOCUMENT NAME: ${documentName}
+DOCUMENT TYPE: ${documentType || 'Unknown'}
+
+EXISTING FOLDERS:
+${existingFolders.join(', ')}
+
+DOCUMENT CONTENT (first 1000 chars):
+${extractedText.substring(0, 1000)}
+
+Analyze the document and provide:
+1. suggestedFolder: Best existing folder, or suggest a new folder name if none fit
+2. suggestedTags: 3-5 relevant tags for searchability
+3. category: "financial", "legal", "personal", "business", "health", or "other"
+4. priority: "high", "medium", or "low" based on importance
+5. summary: One-sentence summary of document content
+
+Return JSON format:
+{
+  "suggestedFolder": "...",
+  "suggestedTags": ["...", "...", "..."],
+  "category": "financial",
+  "priority": "high",
+  "summary": "..."
+}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Use cheaper model for quick document organization
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+
+    if (!response.choices || !response.choices[0] || !response.choices[0].message.content) {
+      throw new Error('OpenAI API returned invalid response structure');
+    }
+
+    return JSON.parse(response.choices[0].message.content);
+  } catch (error: any) {
+    console.error('OpenAI API error in analyzeDocumentForOrganization:', error);
+    // Return sensible defaults
+    return {
+      suggestedFolder: 'default',
+      suggestedTags: [],
+      category: 'other',
+      priority: 'medium',
+      summary: 'Document uploaded successfully'
+    };
+  }
+}

@@ -2774,6 +2774,106 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
     }
   });
 
+
+  // AI Task Generation
+  app.post('/api/ai/generate-tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Fetch user data for context
+      const [emails, events, notes] = await Promise.all([
+        storage.getEmails(userId),
+        storage.getCalendarEvents(userId),
+        storage.getNotes(userId),
+      ]);
+
+      const { generateAITasks } = await import('./openai');
+      const tasks = await generateAITasks(
+        emails.slice(0, 20),
+        events.slice(0, 20),
+        notes.slice(0, 10),
+        req.body.context
+      );
+
+      // Optionally auto-create the generated tasks
+      if (req.body.autoCreate) {
+        for (const task of tasks) {
+          await storage.createTask({
+            ...task,
+            userId,
+            status: 'pending',
+            aiSuggestions: task.aiContext,
+          });
+        }
+        await storage.refreshTaskCache?.(userId);
+      }
+
+      res.json({ tasks, created: req.body.autoCreate || false });
+    } catch (error: any) {
+      console.error("Error generating AI tasks:", error);
+      res.status(500).json({ message: error.message || "Failed to generate tasks" });
+    }
+  });
+
+  // AI Calendar Recommendations
+  app.post('/api/ai/calendar-recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Fetch user data for context
+      const [routines, tasks, events] = await Promise.all([
+        storage.getRoutines(userId),
+        storage.getTasks(userId),
+        storage.getCalendarEvents(userId),
+      ]);
+
+      const { generateCalendarRecommendations } = await import('./openai');
+      const recommendations = await generateCalendarRecommendations(
+        routines,
+        tasks.filter((t: any) => t.status !== 'completed'),
+        events,
+        req.body.preferences
+      );
+
+      res.json({ recommendations });
+    } catch (error: any) {
+      console.error("Error generating calendar recommendations:", error);
+      res.status(500).json({ message: error.message || "Failed to generate recommendations" });
+    }
+  });
+
+  // AI Document Organization
+  app.post('/api/ai/organize-document', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { documentName, extractedText, documentType, documentId } = req.body;
+
+      // Get existing folders from user's documents
+      const documents = await storage.getDocuments(userId);
+      const existingFolders = [...new Set(documents.map((d: any) => d.folder).filter(Boolean))];
+
+      const { analyzeDocumentForOrganization } = await import('./openai');
+      const organization = await analyzeDocumentForOrganization(
+        documentName,
+        extractedText,
+        existingFolders,
+        documentType
+      );
+
+      // Optionally update the document with AI suggestions
+      if (documentId && req.body.autoApply) {
+        await storage.updateDocument(documentId, userId, {
+          folder: organization.suggestedFolder,
+          tags: organization.suggestedTags,
+        });
+      }
+
+      res.json({ organization, applied: req.body.autoApply || false });
+    } catch (error: any) {
+      console.error("Error organizing document:", error);
+      res.status(500).json({ message: error.message || "Failed to organize document" });
+    }
+  });
   // Catch-all for unknown API routes (must be last)
   app.use('/api/*', (req, res) => {
     res.status(404).json({ 

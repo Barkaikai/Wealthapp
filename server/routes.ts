@@ -58,6 +58,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Helper function to safely parse integer IDs
+  const parseIntId = (value: string, paramName: string = 'id'): number => {
+    const parsed = parseInt(value, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      throw new Error(`Invalid ${paramName}: must be a positive integer`);
+    }
+    return parsed;
+  };
+
   // Mount health tracking routes
   app.use('/api', healthRoutes);
 
@@ -157,19 +166,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/assets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       const asset = await storage.updateAsset(id, userId, req.body);
       res.json(asset);
     } catch (error: any) {
       console.error("Error updating asset:", error);
-      res.status(error.message?.includes("not found") ? 404 : 500).json({ message: error.message || "Failed to update asset" });
+      res.status(error.message?.includes("not found") || error.message?.includes("Invalid") ? 404 : 500).json({ message: error.message || "Failed to update asset" });
     }
   });
 
   app.delete('/api/assets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteAsset(id, userId);
       res.json({ success: true });
@@ -297,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/routines/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       const routine = await storage.updateRoutine(id, userId, req.body);
       res.json(routine);
@@ -309,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/routines/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteRoutine(id, userId);
       res.json({ success: true });
@@ -749,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/transactions/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteTransaction(id, userId);
       res.json({ success: true });
@@ -785,7 +794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/wealth-alerts/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       const alert = await storage.updateWealthAlert(id, userId, req.body);
       res.json(alert);
@@ -797,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/wealth-alerts/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteWealthAlert(id, userId);
       res.json({ success: true });
@@ -833,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/financial-goals/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       const goal = await storage.updateFinancialGoal(id, userId, req.body);
       res.json(goal);
@@ -845,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/financial-goals/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteFinancialGoal(id, userId);
       res.json({ success: true });
@@ -881,7 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/liabilities/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       const liability = await storage.updateLiability(id, userId, req.body);
       res.json(liability);
@@ -893,7 +902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/liabilities/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const userId = req.user.claims.sub;
       await storage.deleteLiability(id, userId);
       res.json({ success: true });
@@ -986,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/calendar/events/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const event = await storage.updateCalendarEvent(id, userId, req.body);
       res.json(event);
     } catch (error) {
@@ -998,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/calendar/events/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteCalendarEvent(id, userId);
       res.status(204).send();
     } catch (error) {
@@ -1034,7 +1043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const task = await storage.updateTask(id, userId, req.body);
       res.json(task);
     } catch (error) {
@@ -1046,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteTask(id, userId);
       res.status(204).send();
     } catch (error) {
@@ -1071,7 +1080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/notes/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const note = await storage.getNote(id, userId);
       
       if (!note) {
@@ -1100,7 +1109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/notes/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const note = await storage.updateNote(id, userId, req.body);
       res.json(note);
     } catch (error: any) {
@@ -1112,7 +1121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/notes/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteNote(id, userId);
       res.json({ success: true });
     } catch (error: any) {
@@ -1124,7 +1133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/notes/:id/analyze', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       
       console.log(`Note analysis requested for note ${id} by user ${userId}`);
       
@@ -1269,7 +1278,7 @@ ${processedText}`;
   app.get('/api/documents/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const document = await storage.getDocument(id, userId);
       
       if (!document) {
@@ -1291,7 +1300,7 @@ ${processedText}`;
       }
 
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const document = await storage.getDocument(id, userId);
       
       if (!document) {
@@ -1373,7 +1382,7 @@ ${processedText}`;
   app.patch('/api/documents/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const document = await storage.updateDocument(id, userId, req.body);
       res.json(document);
     } catch (error: any) {
@@ -1390,7 +1399,7 @@ ${processedText}`;
       }
 
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       
       // Get document to retrieve storage key
       const document = await storage.getDocument(id, userId);
@@ -1425,7 +1434,7 @@ ${processedText}`;
       }
 
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       
       console.log(`Document analysis requested for document ${id} by user ${userId}`);
       
@@ -1478,7 +1487,7 @@ ${processedText}`;
   app.delete('/api/health/metrics/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteHealthMetric(id, userId);
       res.status(204).send();
     } catch (error) {
@@ -1514,7 +1523,7 @@ ${processedText}`;
   app.patch('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const wallet = await storage.updateWalletConnection(id, userId, req.body);
       res.json(wallet);
     } catch (error) {
@@ -1526,7 +1535,7 @@ ${processedText}`;
   app.delete('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteWalletConnection(id, userId);
       res.status(204).send();
     } catch (error) {
@@ -1716,7 +1725,7 @@ ${processedText}`;
   app.patch('/api/trading-recommendations/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const updated = await storage.updateTradingRecommendation(id, userId, req.body);
       res.json(updated);
     } catch (error) {
@@ -1753,7 +1762,7 @@ ${processedText}`;
   app.patch('/api/tax-events/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const updated = await storage.updateTaxEvent(id, userId, req.body);
       res.json(updated);
     } catch (error) {
@@ -1861,7 +1870,7 @@ ${processedText}`;
   app.patch('/api/rebalancing-recommendations/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const updated = await storage.updateRebalancingRecommendation(id, userId, req.body);
       res.json(updated);
     } catch (error) {
@@ -1915,7 +1924,7 @@ ${processedText}`;
   app.patch('/api/anomalies/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const updated = await storage.updateAnomalyDetection(id, userId, req.body);
       res.json(updated);
     } catch (error) {
@@ -1962,7 +1971,7 @@ ${processedText}`;
   app.get('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const receipt = await storage.getReceipt(id, userId);
       
       if (!receipt) {
@@ -2018,7 +2027,7 @@ ${processedText}`;
   app.patch('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       
       // Coerce receiptDate to Date if it's a string
       const updateData = { ...req.body };
@@ -2037,7 +2046,7 @@ ${processedText}`;
   app.delete('/api/receipts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       await storage.deleteReceipt(id, userId);
       res.json({ success: true });
     } catch (error) {
@@ -2625,7 +2634,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.get('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const contact = await storage.getCrmContact(id, userId);
       
       if (!contact) {
@@ -2656,7 +2665,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.patch('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const contact = await storage.updateCrmContact(id, userId, req.body);
       res.json(contact);
     } catch (error: any) {
@@ -2693,7 +2702,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.patch('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const lead = await storage.updateCrmLead(id, userId, req.body);
       res.json(lead);
     } catch (error: any) {
@@ -2730,7 +2739,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.patch('/api/crm/deals/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const deal = await storage.updateCrmDeal(id, userId, req.body);
       res.json(deal);
     } catch (error: any) {
@@ -2769,7 +2778,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.patch('/api/crm/activities/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id);
+      const id = parseIntId(req.params.id);
       const activity = await storage.updateCrmActivity(id, userId, req.body);
       res.json(activity);
     } catch (error: any) {
@@ -3191,7 +3200,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.delete('/api/nft/wallet/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const walletId = parseInt(req.params.id);
+      const walletId = parseIntId(req.params.id, 'walletId');
       
       // Would delete via storage
       res.json({ message: 'Wallet disconnected successfully' });
@@ -3372,7 +3381,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.delete('/api/discord/scheduled/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const scheduleId = parseInt(req.params.id);
+      const scheduleId = parseIntId(req.params.id, 'scheduleId');
       
       // Cancel in Discord bot
       const { discordBot } = await import('./discord/discordBot');
@@ -3582,7 +3591,8 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get leaderboard
   app.get('/api/wealth-forge/leaderboard', isAuthenticated, async (req: any, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 100;
+      const limitParam = req.query.limit as string;
+      const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 100, 1), 100) : 100;
       const leaderboard = await storage.getWealthForgeLeaderboard(limit);
       res.json(leaderboard);
     } catch (error: any) {

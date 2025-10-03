@@ -325,13 +325,64 @@ Respond with JSON in this exact format:
   "contentMarkdown": "..."
 }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" },
-  });
+  // Try OpenAI GPT-5 first (primary provider)
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      timeout: 30000, // 30 second timeout for this specific call
+    });
 
-  return JSON.parse(response.choices[0].message.content!);
+    return JSON.parse(response.choices[0].message.content!);
+  } catch (primaryError: any) {
+    const errorType = primaryError.constructor.name;
+    const isTimeout = errorType === 'APIConnectionTimeoutError' || primaryError.message?.includes('timeout');
+    const isNetworkError = primaryError.code === 'ENOTFOUND' || primaryError.code === 'ETIMEDOUT';
+    
+    console.error(`[Learn] OpenAI GPT-5 failed (${errorType}):`, primaryError.message);
+    
+    // Try OpenAI GPT-4o as first fallback (faster, cheaper)
+    try {
+      console.log('[Learn] Attempting fallback to GPT-4o...');
+      const fallbackResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        timeout: 25000, // Shorter timeout for fallback
+      });
+
+      return JSON.parse(fallbackResponse.choices[0].message.content!);
+    } catch (secondaryError: any) {
+      console.error('[Learn] GPT-4o fallback failed:', secondaryError.message);
+      
+      // Try GPT-4o-mini as final fallback (fastest, most reliable)
+      try {
+        console.log('[Learn] Attempting final fallback to GPT-4o-mini...');
+        const miniResponse = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          timeout: 20000, // Even shorter timeout for mini
+        });
+
+        return JSON.parse(miniResponse.choices[0].message.content!);
+      } catch (finalError: any) {
+        console.error('[Learn] All AI providers failed. Last error:', finalError.message);
+        
+        // Provide specific error messages based on error type
+        if (isTimeout || isNetworkError) {
+          throw new Error('AI service is taking longer than expected. Please check your internet connection and try again.');
+        } else if (primaryError.status === 429) {
+          throw new Error('AI service is experiencing high demand. Please try again in a few minutes.');
+        } else if (primaryError.status === 401) {
+          throw new Error('AI service authentication failed. Please contact support.');
+        } else {
+          throw new Error('AI content generation is temporarily unavailable. Please try again in a moment.');
+        }
+      }
+    }
+  }
 }
 
 export async function generateVideoRecommendations(briefing: any): Promise<Array<{

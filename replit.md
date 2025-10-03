@@ -54,9 +54,10 @@ Production optimizations include database indexing, boot-time environment variab
 
 **Design Theme:** Coinbase-inspired blue theme (hsl 221 83% 53%) throughout the platform with clean, modern UI components. Wealth-themed background images on landing and login pages providing luxury aesthetic. Settings page includes comprehensive configuration across 6 tabs (Account, Security, Notifications, Appearance, Diagnostics, About).
 
-**UI Consolidation (October 2025):** Major consolidation of application features to improve navigation and user experience. The sidebar now contains 8 streamlined sections:
+**UI Consolidation (October 2025):** Major consolidation of application features to improve navigation and user experience. The sidebar now contains 9 streamlined sections:
 - **Daily Briefing:** AI-powered daily reports and portfolio overview
 - **Wealth Dashboard:** Portfolio visualization and analytics
+- **Digital Accountant:** Comprehensive double-entry bookkeeping system with 5 tabs - Chart of Accounts, Journal Entries (with real-time balance validation), Invoices (auto-posts AR/Revenue), Payments (auto-posts Cash/AR), and Financial Reports (Trial Balance, P&L, Balance Sheet, Account Ledger)
 - **Personal Wallet:** Integrated tabs for Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect)
 - **Productivity Hub:** Consolidated workspace with 6 tabs - Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, and Tasks
 - **AI Intelligence:** Unified AI hub with 3 tabs - Intelligence Hub (portfolio reports, trading recommendations, tax events, rebalancing, anomaly detection), Terminal (command-line interface), and AI Videos (personalized YouTube recommendations)
@@ -67,6 +68,12 @@ Production optimizations include database indexing, boot-time environment variab
 **View Mode Switcher:** Footer includes mobile/desktop view switcher with global state management (ViewModeProvider context), allowing users to toggle between mobile and desktop layouts. View preference persists via localStorage.
 
 **Routine Builder AI Integration:** Success leader templates (Jeff Bezos Morning, Elon Musk Schedule, Tim Cook Routine) are now clickable and connect to AI (GPT-4o) for generating personalized daily reports. The AI analyzes template-specific principles (deep work, time-blocking, early rise patterns) and user's existing routines to provide 300-400 word detailed analysis, actionable recommendations, and key focus areas.
+
+**Digital Accountant System:** Full double-entry bookkeeping implementation with automated GL posting. Database schema includes accounts (chart of accounts with asset/liability/equity/income/expense types), journal_entries (headers), journal_lines (debit/credit details), invoices (AR), payments, bank_transactions, reconciliations, and accounting_audit_logs. Backend enforces double-entry validation (debits must equal credits), auto-posts journal entries for invoices (DR: AR, CR: Revenue) and payments (DR: Cash, CR: AR), updates account balances automatically, and maintains complete audit trail. Frontend provides comprehensive UI with Chart of Accounts management, Journal Entry creation with real-time balance validation, Invoice and Payment tracking with auto-GL posting, and Financial Reports (Trial Balance, Profit & Loss, Balance Sheet, Account Ledger). All forms use shared Zod schemas with zodResolver for type safety.
+
+**Digital Calendar:** Comprehensive calendar component with Month/Week/Day view tabs. Displays all calendar events with expandable details. Accessible via clickable time/date display in header or dedicated calendar button. Month view shows events on date cells, Week view displays events in columns, Day view shows detailed event information. Navigation includes Previous/Next/Today buttons. Integrates with existing calendar events API endpoint.
+
+**Luxury Backgrounds:** Wealth-themed background images applied throughout the entire authenticated application with subtle dark gradient overlay, providing premium aesthetic while maintaining UI readability. Fixed positioning with proper z-indexing ensures backgrounds don't interfere with interactive elements.
 
 ## External Dependencies
 

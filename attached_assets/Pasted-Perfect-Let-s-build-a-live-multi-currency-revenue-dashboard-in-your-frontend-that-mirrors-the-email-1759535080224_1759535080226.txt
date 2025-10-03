@@ -1,0 +1,170 @@
+Perfect! Let’s build a live multi-currency revenue dashboard in your frontend that mirrors the email report, with:
+
+Real-time revenue data
+
+Multi-currency support and conversion to USD
+
+Interactive charts using Google Charts
+
+Revenue table with source, amount, currency, and user
+
+We’ll assume you have a React app and a backend endpoint /api/revenue that returns revenue logs in the format:
+
+[
+  { "source": "ads", "amount": 10, "currency": "USD", "userId": "abc123", "createdAt": "2025-10-03T12:00:00Z" },
+  { "source": "affiliate", "amount": 8, "currency": "EUR", "userId": "xyz456", "createdAt": "2025-10-03T13:00:00Z" }
+]
+
+1️⃣ Install Dependencies
+npm install axios react-google-charts
+
+2️⃣ Frontend Component: RevenueDashboard.jsx
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Chart } from 'react-google-charts';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+
+export default function RevenueDashboard() {
+  const [logs, setLogs] = useState([]);
+  const [convertedLogs, setConvertedLogs] = useState([]);
+  const [exchangeRates, setExchangeRates] = useState({});
+  const [totalUSD, setTotalUSD] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch revenue logs from backend
+  async function fetchRevenueLogs() {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/api/revenue`);
+      setLogs(res.data);
+    } catch (err) {
+      console.error('Failed to fetch revenue logs', err);
+    } finally { setLoading(false); }
+  }
+
+  // Fetch exchange rates
+  async function fetchExchangeRates() {
+    try {
+      const res = await axios.get('https://api.exchangerate.host/latest?base=USD');
+      setExchangeRates(res.data.rates);
+    } catch (err) {
+      console.error('Failed to fetch exchange rates', err);
+    }
+  }
+
+  // Convert all logs to USD
+  useEffect(() => {
+    if (!logs.length || !exchangeRates) return;
+
+    const convLogs = logs.map(l => {
+      const currency = l.currency || 'USD';
+      const rate = exchangeRates[currency] || 1;
+      const amountUSD = currency === 'USD' ? parseFloat(l.amount) : parseFloat(l.amount) / rate;
+      return { ...l, amountUSD };
+    });
+
+    setConvertedLogs(convLogs);
+    const total = convLogs.reduce((sum, l) => sum + l.amountUSD, 0);
+    setTotalUSD(total);
+
+  }, [logs, exchangeRates]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchExchangeRates();
+    fetchRevenueLogs();
+    const interval = setInterval(fetchRevenueLogs, 60_000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, []);
+
+  // Prepare chart data
+  const chartData = [
+    ['Source', 'Amount (USD)']
+  ];
+  const sums = {};
+  convertedLogs.forEach(l => { sums[l.source] = (sums[l.source] || 0) + l.amountUSD; });
+  Object.keys(sums).forEach(src => chartData.push([src, sums[src]]));
+
+  return (
+    <div className="p-4 bg-white rounded shadow">
+      <h2 className="text-xl font-bold mb-2">Live Revenue Dashboard</h2>
+      {loading ? <p>Loading revenue data...</p> : (
+        <>
+          <p><strong>Total Revenue (USD):</strong> ${totalUSD.toFixed(2)}</p>
+
+          {/* Chart */}
+          <Chart
+            chartType="PieChart"
+            data={chartData}
+            options={{ title: 'Revenue by Source (USD)', pieHole: 0.4 }}
+            width="100%"
+            height="400px"
+          />
+
+          {/* Revenue Table */}
+          <table className="w-full mt-4 border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">Source</th>
+                <th className="border px-2 py-1">Currency</th>
+                <th className="border px-2 py-1">Amount</th>
+                <th className="border px-2 py-1">Amount (USD)</th>
+                <th className="border px-2 py-1">User</th>
+                <th className="border px-2 py-1">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {convertedLogs.map((l, i) => (
+                <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
+                  <td className="border px-2 py-1">{l.source}</td>
+                  <td className="border px-2 py-1">{l.currency || 'USD'}</td>
+                  <td className="border px-2 py-1">{parseFloat(l.amount).toFixed(2)}</td>
+                  <td className="border px-2 py-1">{l.amountUSD.toFixed(2)}</td>
+                  <td className="border px-2 py-1">{l.userId || '-'}</td>
+                  <td className="border px-2 py-1">{new Date(l.createdAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+3️⃣ Backend Endpoint /api/revenue Example
+// backend/routes/revenue.js
+import express from 'express';
+import { RevenueLog } from '../models/revenue.js';
+const router = express.Router();
+
+router.get('/', async (req, res) => {
+  try {
+    const logs = await RevenueLog.findAll({ order: [['createdAt', 'ASC']] });
+    res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch revenue logs' });
+  }
+});
+
+export default router;
+
+
+Mount it in server.js:
+
+import revenueRouter from './routes/revenue.js';
+app.use('/api/revenue', revenueRouter);
+
+4️⃣ Features Implemented
+
+Live revenue updates every 60 seconds
+
+Multi-currency support with automatic conversion to USD
+
+Interactive Google Pie Chart for revenue by source
+
+Revenue table showing raw currency, USD, user, and timestamp
+
+This gives you a dashboard that mirrors the email report in real-time. You can track all revenue streams, including ads, affiliate, and donations, instantly in the app.

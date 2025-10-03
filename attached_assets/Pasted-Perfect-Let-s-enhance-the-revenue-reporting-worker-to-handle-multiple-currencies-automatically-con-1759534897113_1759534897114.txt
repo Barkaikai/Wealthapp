@@ -1,0 +1,197 @@
+Perfect! Let’s enhance the revenue reporting worker to handle multiple currencies, automatically convert to USD, and generate charts and CSV in USD.
+
+We’ll use a free API like exchangerate.host to fetch real-time exchange rates.
+
+1️⃣ Install Dependencies
+
+If not already installed:
+
+npm install node-cron nodemailer json2csv axios
+
+2️⃣ Updated Worker: backend/worker/revenueSummaryMultiCurrency.js
+import cron from 'node-cron';
+import nodemailer from 'nodemailer';
+import { Parser as Json2CsvParser } from 'json2csv';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import { RevenueLog } from '../models/revenue.js';
+import { Op } from 'sequelize';
+
+dotenv.config();
+
+// --------------------
+// Config
+// --------------------
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
+
+const reportRecipient = process.env.REPORT_EMAIL;
+const EXCHANGE_API = 'https://api.exchangerate.host/latest?base=USD';
+
+// --------------------
+// Fetch exchange rates
+// --------------------
+let exchangeRatesCache = null;
+async function fetchExchangeRates() {
+  try {
+    const res = await axios.get(EXCHANGE_API);
+    exchangeRatesCache = res.data.rates;
+    return exchangeRatesCache;
+  } catch (err) {
+    console.error('Failed to fetch exchange rates', err);
+    return exchangeRatesCache || {};
+  }
+}
+
+// --------------------
+// Fetch revenue logs
+// --------------------
+async function fetchRevenueLogs(startDate, endDate) {
+  return await RevenueLog.findAll({
+    where: { createdAt: { [Op.gte]: startDate, [Op.lte]: endDate } },
+    order: [['createdAt', 'ASC']],
+  });
+}
+
+// --------------------
+// Convert all revenues to USD
+// --------------------
+async function convertToUSD(logs) {
+  const rates = await fetchExchangeRates();
+  return logs.map(l => {
+    const currency = l.currency || 'USD'; // store currency in RevenueLog
+    const rate = rates[currency] || 1;
+    const amountUSD = currency === 'USD' ? parseFloat(l.amountUSD) : parseFloat(l.amountUSD) / rate;
+    return { ...l.dataValues, amountUSD };
+  });
+}
+
+// --------------------
+// Generate CSV
+// --------------------
+function generateCSV(logs) {
+  const fields = ['source', 'currency', 'amountUSD', 'userId', 'createdAt'];
+  const parser = new Json2CsvParser({ fields });
+  return parser.parse(logs.map(l => ({
+    source: l.source,
+    currency: l.currency || 'USD',
+    amountUSD: l.amountUSD.toFixed(2),
+    userId: l.userId || '',
+    createdAt: l.createdAt.toISOString()
+  })));
+}
+
+// --------------------
+// Generate HTML report
+// --------------------
+function generateHTMLReport(logs, totalUSD, periodLabel) {
+  const chartData = [['Source', 'Amount']];
+  const sums = {};
+  logs.forEach(l => { sums[l.source] = (sums[l.source] || 0) + parseFloat(l.amountUSD); });
+  Object.keys(sums).forEach(src => chartData.push([src, sums[src]]));
+
+  return `
+    <h2>${periodLabel} Revenue Report (USD)</h2>
+    <p><strong>Total Revenue:</strong> $${totalUSD.toFixed(2)}</p>
+    <div id="chart_div" style="width: 100%; height: 400px;"></div>
+    <table border="1" cellpadding="5" cellspacing="0" style="margin-top:20px;">
+      <thead>
+        <tr><th>Source</th><th>Currency</th><th>Amount (USD)</th><th>User</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        ${logs.map(l => `<tr>
+          <td>${l.source}</td>
+          <td>${l.currency || 'USD'}</td>
+          <td>${parseFloat(l.amountUSD).toFixed(2)}</td>
+          <td>${l.userId || '-'}</td>
+          <td>${l.createdAt.toLocaleString()}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+        const data = google.visualization.arrayToDataTable(${JSON.stringify(chartData)});
+        const options = { title: 'Revenue by Source (USD)', pieHole: 0.4 };
+        const chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+  `;
+}
+
+// --------------------
+// Send Email
+// --------------------
+async function sendEmail(logs, totalUSD, periodLabel) {
+  const csv = generateCSV(logs);
+  await transporter.sendMail({
+    from: `"Revenue Bot" <${process.env.EMAIL_USER}>`,
+    to: reportRecipient,
+    subject: `${periodLabel} Revenue Report - ${new Date().toLocaleDateString()}`,
+    html: generateHTMLReport(logs, totalUSD, periodLabel),
+    attachments: [
+      { filename: `revenue_${new Date().toISOString().split('T')[0]}.csv`, content: csv }
+    ]
+  });
+  console.log(`${periodLabel} revenue email sent! Total USD: $${totalUSD.toFixed(2)}`);
+}
+
+// --------------------
+// Cron Jobs
+// --------------------
+
+// Daily report at 23:59
+cron.schedule('59 23 * * *', async () => {
+  try {
+    const start = new Date(); start.setHours(0,0,0,0);
+    const end = new Date();
+    let logs = await fetchRevenueLogs(start, end);
+    logs = await convertToUSD(logs);
+    const totalUSD = logs.reduce((sum, l) => sum + parseFloat(l.amountUSD), 0);
+    await sendEmail(logs, totalUSD, 'Daily');
+  } catch (e) { console.error('Failed daily report:', e); }
+});
+
+// Mid-day report at 12:00
+cron.schedule('0 12 * * *', async () => {
+  try {
+    const start = new Date(); start.setHours(0,0,0,0);
+    const now = new Date();
+    let logs = await fetchRevenueLogs(start, now);
+    logs = await convertToUSD(logs);
+    const totalUSD = logs.reduce((sum, l) => sum + parseFloat(l.amountUSD), 0);
+    await sendEmail(logs, totalUSD, 'Mid-day');
+  } catch (e) { console.error('Failed mid-day report:', e); }
+});
+
+3️⃣ Notes
+
+Multi-Currency Support
+
+Each RevenueLog should now include a currency field (like "USD", "EUR", "GBP", etc.).
+
+Amounts are automatically converted to USD for charting and CSV.
+
+Exchange Rates
+
+Uses https://api.exchangerate.host (free, no API key) for real-time rates.
+
+Caches rates during runtime for multiple conversions.
+
+Email
+
+HTML email includes Google Charts pie chart.
+
+CSV attachment includes USD amounts and original currency.
+
+Cron Jobs
+
+Daily at 23:59
+
+Mid-day at 12:00

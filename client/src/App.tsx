@@ -15,7 +15,11 @@ import { OnlineStatus } from "@/components/OnlineStatus";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ViewModeProvider } from "@/components/ViewModeProvider";
 import { ViewModeSwitcher } from "@/components/ViewModeSwitcher";
+import { DigitalCalendar } from "@/components/DigitalCalendar";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import DailyBriefing from "@/pages/DailyBriefing";
@@ -28,6 +32,7 @@ import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
 import Wallet from "@/pages/Wallet";
+import DigitalAccountant from "@/pages/DigitalAccountant";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -62,6 +67,7 @@ function Router() {
           <Route path="/notepad" component={ProductivityHubConsolidated} />
           <Route path="/health" component={HealthMonitoring} />
           <Route path="/ai-intelligence" component={AIIntelligence} />
+          <Route path="/accountant" component={DigitalAccountant} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />
@@ -74,6 +80,8 @@ function Router() {
 
 function AuthenticatedApp() {
   const { user } = useAuth() as { user: User };
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -87,13 +95,21 @@ function AuthenticatedApp() {
           <header className="flex items-center justify-between gap-4 p-4 border-b border-border">
             <div className="flex items-center gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
-              <TimeDate />
+              <TimeDate onClick={() => setCalendarOpen(true)} />
             </div>
             <div className="flex-1 max-w-2xl mx-auto">
               <WebSearchBar compact />
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <OnlineStatus />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setCalendarOpen(true)}
+                data-testid="button-open-calendar"
+              >
+                <CalendarDays className="h-5 w-5" />
+              </Button>
               <ChatGPT />
               <Calculator />
               <ThemeToggle />
@@ -110,6 +126,7 @@ function AuthenticatedApp() {
           </footer>
         </div>
       </div>
+      <DigitalCalendar open={calendarOpen} onOpenChange={setCalendarOpen} />
     </SidebarProvider>
   );
 }

@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export function TimeDate() {
+interface TimeDateProps {
+  onClick?: () => void;
+}
+
+export function TimeDate({ onClick }: TimeDateProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -30,8 +35,8 @@ export function TimeDate() {
     });
   };
 
-  return (
-    <div className="flex items-center gap-2 text-sm" data-testid="time-date-display">
+  const content = (
+    <div className="flex items-center gap-2 text-sm">
       <Clock className="h-4 w-4 text-primary" />
       <div className="flex flex-col leading-tight">
         <span className="font-semibold" data-testid="current-time">{formatTime(currentTime)}</span>
@@ -39,4 +44,19 @@ export function TimeDate() {
       </div>
     </div>
   );
+
+  if (onClick) {
+    return (
+      <Button
+        variant="ghost"
+        className="h-auto p-2 hover-elevate"
+        onClick={onClick}
+        data-testid="button-time-date"
+      >
+        {content}
+      </Button>
+    );
+  }
+
+  return <div data-testid="time-date-display">{content}</div>;
 }

@@ -22,6 +22,7 @@ import Web3Wallets from "@/pages/Web3Wallets";
 import EmailManager from "@/pages/EmailManager";
 import RoutineBuilder from "@/pages/RoutineBuilder";
 import Notepad from "@/pages/Notepad";
+import AIIntelligence from "@/pages/AIIntelligence";
 import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
@@ -59,6 +60,7 @@ function Router() {
           <Route path="/email" component={EmailManager} />
           <Route path="/routine" component={RoutineBuilder} />
           <Route path="/notepad" component={Notepad} />
+          <Route path="/ai-intelligence" component={AIIntelligence} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />

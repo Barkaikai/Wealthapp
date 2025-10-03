@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +31,11 @@ const menuItems = [
     title: "Wealth Monitor",
     url: "/wealth-monitor",
     icon: TrendingUp,
+  },
+  {
+    title: "AI Intelligence",
+    url: "/ai-intelligence",
+    icon: Brain,
   },
   {
     title: "Productivity Hub",

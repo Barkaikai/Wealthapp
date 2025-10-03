@@ -1,0 +1,300 @@
+Perfect! Here’s a full, ready-to-drop implementation of everything you requested. I’ve structured it so you can copy each file into your repo and wire them together immediately.
+
+1️⃣ backend/models.referrals.js
+// backend/models.referrals.js
+import { DataTypes } from 'sequelize';
+import crypto from 'crypto';
+
+export function defineReferralModels(sequelize) {
+  const Referral = sequelize.define('Referral', {
+    code: { type: DataTypes.STRING, unique: true },
+    wallet: { type: DataTypes.STRING, allowNull: false },
+    nickname: { type: DataTypes.STRING, allowNull: true },
+    description: { type: DataTypes.STRING, allowNull: true },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    rewardType: { type: DataTypes.STRING, defaultValue: 'token' },
+    rewardValue: { type: DataTypes.INTEGER, defaultValue: 5 }
+  });
+
+  const ReferralClick = sequelize.define('ReferralClick', {
+    code: { type: DataTypes.STRING },
+    ip: { type: DataTypes.STRING },
+    ua: { type: DataTypes.STRING },
+    referrerUrl: { type: DataTypes.STRING },
+    walletSeen: { type: DataTypes.STRING },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  const ReferralConversion = sequelize.define('ReferralConversion', {
+    code: { type: DataTypes.STRING },
+    referredWallet: { type: DataTypes.STRING },
+    action: { type: DataTypes.STRING },
+    amount: { type: DataTypes.BIGINT },
+    mintLogId: { type: DataTypes.INTEGER, allowNull: true },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  const ReferralReward = sequelize.define('ReferralReward', {
+    code: { type: DataTypes.STRING },
+    referrerWallet: { type: DataTypes.STRING },
+    referredWallet: { type: DataTypes.STRING },
+    amountTokens: { type: DataTypes.BIGINT },
+    paid: { type: DataTypes.BOOLEAN, defaultValue: false },
+    paidAt: { type: DataTypes.DATE, allowNull: true },
+    note: { type: DataTypes.STRING },
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  });
+
+  Referral.generateCode = function(prefix='WF') {
+    const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
+    return `${prefix}${rand}`;
+  };
+
+  return { Referral, ReferralClick, ReferralConversion, ReferralReward };
+}
+
+2️⃣ backend/routes/referral.js
+// backend/routes/referral.js
+import express from 'express';
+import { Referral, ReferralClick, ReferralConversion, ReferralReward } from '../models.referrals.js';
+import qrcode from 'qrcode';
+
+const router = express.Router();
+
+// Create referral code
+router.post('/create', async (req, res) => {
+  const { wallet, nickname, description, rewardType, rewardValue } = req.body;
+  if (!wallet) return res.status(400).json({ error: 'wallet required' });
+  const code = Referral.generateCode('WFG');
+  const ref = await Referral.create({ code, wallet, nickname, description, rewardType, rewardValue });
+  const shareLink = `${process.env.FRONTEND_BASE_URL || 'http://localhost:3000'}/r/${code}`;
+  const qrDataUrl = await qrcode.toDataURL(shareLink);
+  res.json({ success: true, code, shareLink, qrDataUrl, ref });
+});
+
+// Redirect & track clicks
+router.get('/r/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const ref = await Referral.findOne({ where: { code, active: true } });
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ua = req.get('User-Agent') || '';
+    const walletSeen = req.query.wallet || null;
+    await ReferralClick.create({ code, ip, ua, referrerUrl: req.get('Referrer') || req.query.ref || null, walletSeen });
+    const target = `${process.env.FRONTEND_BASE_URL || 'http://localhost:3000'}/onboard?ref=${code}`;
+    res.redirect(302, target);
+  } catch (err) {
+    console.error(err);
+    res.redirect(302, process.env.FRONTEND_BASE_URL || 'http://localhost:3000');
+  }
+});
+
+// Record conversion
+router.post('/conversion', async (req, res) => {
+  try {
+    const { code, referredWallet, action, amountSmallest, mintLogId } = req.body;
+    if (!code || !referredWallet || !action) return res.status(400).json({ error: 'missing' });
+    const ref = await Referral.findOne({ where: { code, active: true } });
+    if (!ref) return res.status(404).json({ error: 'invalid-code' });
+    if (ref.wallet === referredWallet) return res.status(400).json({ error: 'self-referral-not-allowed' });
+    const prior = await ReferralConversion.findOne({ where: { code, referredWallet } });
+    if (prior) return res.status(400).json({ error: 'already-converted' });
+    const conv = await ReferralConversion.create({ code, referredWallet, action, amount: amountSmallest || 0, mintLogId });
+
+    let rewardTokens = 0n;
+    if (ref.rewardType === 'token') {
+      const decimals = Number(process.env.MINT_DECIMALS || 6);
+      rewardTokens = BigInt(ref.rewardValue) * BigInt(10 ** decimals);
+    }
+
+    await ReferralReward.create({
+      code,
+      referrerWallet: ref.wallet,
+      referredWallet,
+      amountTokens: rewardTokens.toString(),
+      paid: false,
+      note: `Reward for ${action}`,
+    });
+
+    res.json({ success: true, conv });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Stats
+router.get('/stats/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { wallet } = req.query;
+    const ref = await Referral.findOne({ where: { code } });
+    if (!ref) return res.status(404).json({ error: 'not-found' });
+    if (wallet && wallet !== ref.wallet) return res.status(403).json({ error: 'forbidden' });
+
+    const clicks = await ReferralClick.count({ where: { code } });
+    const conversions = await ReferralConversion.count({ where: { code } });
+    const rewards = await ReferralReward.findAll({ where: { code } });
+
+    res.json({ code, wallet: ref.wallet, clicks, conversions, rewards });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
+
+3️⃣ backend/worker/referral_payout_worker.js
+import cron from 'node-cron';
+import { ReferralReward } from '../models.referrals.js';
+import { mintTo, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com', 'confirmed');
+const ownerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(process.env.OWNER_KEYPAIR_PATH))));
+const MINT_ADDRESS = new PublicKey(process.env.MINT_ADDRESS);
+const MINT_DECIMALS = Number(process.env.MINT_DECIMALS || 6);
+
+async function processPending() {
+  const pending = await ReferralReward.findAll({ where: { paid: false }, limit: 20 });
+  for (const r of pending) {
+    try {
+      const amount = BigInt(r.amountTokens);
+      if (amount <= 0n) {
+        r.paid = true; r.paidAt = new Date(); await r.save(); continue;
+      }
+      const destATA = await getOrCreateAssociatedTokenAccount(connection, ownerKeypair, MINT_ADDRESS, new PublicKey(r.referrerWallet));
+      const sig = await mintTo(connection, ownerKeypair, MINT_ADDRESS, destATA.address, ownerKeypair, amount);
+      r.paid = true; r.paidAt = new Date(); r.note = (r.note || '') + `; minted tx:${sig}`;
+      await r.save();
+      console.log('Paid referral', r.id, 'tx', sig);
+    } catch (e) {
+      console.error('Failed to pay referral', r.id, e);
+    }
+  }
+}
+
+cron.schedule('*/5 * * * *', async () => {
+  console.log('Referral payout worker running', new Date().toISOString());
+  await processPending();
+});
+
+4️⃣ frontend/src/components/ReferralPanel.jsx
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode.react';
+import axios from 'axios';
+
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+
+export default function ReferralPanel({ wallet }) {
+  const [ref, setRef] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!wallet) return;
+    // fetch stats if desired (implement GET /api/referral/my if needed)
+  }, [wallet]);
+
+  async function createRef() {
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/referral/create`, { wallet, nickname: '', description: '', rewardType: 'token', rewardValue: 5 });
+      setRef(res.data);
+    } catch (e) {
+      alert('Failed to create referral: '+(e.response?.data?.error||e.message));
+    } finally { setLoading(false); }
+  }
+
+  function copyLink() {
+    if (!ref?.shareLink) return alert('No link yet');
+    navigator.clipboard.writeText(ref.shareLink);
+    alert('Copied share link');
+  }
+
+  function openShare() {
+    const link = ref?.shareLink;
+    if (navigator.share && link) {
+      navigator.share({ title: 'Join WealthForge', text: 'Earn WFG tokens with me!', url: link }).catch(()=>{});
+    } else {
+      copyLink();
+    }
+  }
+
+  return (
+    <div className="p-4 bg-white rounded shadow">
+      <h4 className="font-semibold">Referral Program</h4>
+      {!wallet ? <div className="text-xs text-gray-500">Connect your wallet to create referral links.</div> : (
+        <>
+          {!ref ? (
+            <div className="mt-3">
+              <div>Create a referral link to invite others and earn rewards.</div>
+              <button onClick={createRef} disabled={loading} className="mt-2 px-3 py-2 bg-yellow-400 rounded">Create Link</button>
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <div className="text-sm">Your code: <strong>{ref.code}</strong></div>
+              <div>Share link:</div>
+              <div className="flex gap-2 items-center">
+                <input className="flex-1 border rounded p-1 text-sm" value={ref.shareLink} readOnly />
+                <button onClick={copyLink} className="px-2 py-1 border rounded">Copy</button>
+                <button onClick={openShare} className="px-2 py-1 bg-green-500 text-white rounded">Share</button>
+              </div>
+              <div className="mt-2"><QRCode value={ref.shareLink} size={96} /></div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+5️⃣ Patch for /api/mine
+
+Inside your /api/mine handler, after successful minting:
+
+const { referralCode } = req.body;
+if (referralCode) {
+  try {
+    // create conversion
+    const ref = await Referral.findOne({ where: { code: referralCode } });
+    if (ref && ref.wallet !== userPubkey) {
+      const mintLogId = mintLogEntry.id; // your MintLog record
+      await ReferralConversion.create({
+        code: referralCode,
+        referredWallet: userPubkey,
+        action: paymentTxSig ? 'purchase' : 'mint',
+        amount: paymentDelta || 0,
+        mintLogId
+      });
+      const rewardTokens = BigInt(ref.rewardValue || 0) * BigInt(10 ** MINT_DECIMALS);
+      await ReferralReward.create({
+        code: referralCode,
+        referrerWallet: ref.wallet,
+        referredWallet: userPubkey,
+        amountTokens: rewardTokens.toString(),
+        paid: false,
+        note: 'Auto-created on conversion'
+      });
+    }
+  } catch(e) {
+    console.error('Referral recording failed:', e);
+  }
+}
+
+
+This setup gives you:
+
+DB models ready for referral clicks, conversions, and rewards.
+
+Backend routes to create, track, and reward referrals.
+
+Worker to mint/payout pending referral rewards.
+
+Frontend panel to manage referral codes, links, and stats.
+
+Integration in /api/mine for automatic conversion/reward recording.

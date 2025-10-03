@@ -74,7 +74,8 @@ export default function AIIntelligence() {
 
   const generatePortfolioReport = useMutation({
     mutationFn: async (reportType: string) => {
-      return await apiRequest("POST", "/api/portfolio-reports/generate", { reportType });
+      const response = await apiRequest("POST", "/api/portfolio-reports/generate", { reportType });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio-reports"] });
@@ -94,7 +95,8 @@ export default function AIIntelligence() {
 
   const generateTradingRecommendations = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/trading-recommendations/generate", {});
+      const response = await apiRequest("POST", "/api/trading-recommendations/generate", {});
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trading-recommendations"] });
@@ -114,7 +116,8 @@ export default function AIIntelligence() {
 
   const generateRebalancing = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/rebalancing-recommendations/generate", { targetAllocation: {} });
+      const response = await apiRequest("POST", "/api/rebalancing-recommendations/generate", { targetAllocation: {} });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rebalancing-recommendations"] });
@@ -134,7 +137,8 @@ export default function AIIntelligence() {
 
   const detectAnomalies = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/anomalies/detect", {});
+      const response = await apiRequest("POST", "/api/anomalies/detect", {});
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/anomalies"] });
@@ -154,7 +158,8 @@ export default function AIIntelligence() {
 
   const updateRecommendationStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return await apiRequest("PATCH", `/api/trading-recommendations/${id}`, { status });
+      const response = await apiRequest("PATCH", `/api/trading-recommendations/${id}`, { status });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trading-recommendations"] });
@@ -167,7 +172,8 @@ export default function AIIntelligence() {
 
   const updateAnomalyStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return await apiRequest("PATCH", `/api/anomalies/${id}`, { status });
+      const response = await apiRequest("PATCH", `/api/anomalies/${id}`, { status });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/anomalies"] });
@@ -286,7 +292,8 @@ export default function AIIntelligence() {
 
   const generateVideosMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('POST', '/api/videos/generate');
+      const response = await apiRequest('POST', '/api/videos/generate');
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos/recommendations'] });

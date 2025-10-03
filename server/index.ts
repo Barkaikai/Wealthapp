@@ -75,6 +75,41 @@ if (process.env.CSRF_SECRET) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Environment validation at boot
+function validateEnvironment() {
+  const required = ['DATABASE_URL', 'SESSION_SECRET'];
+  const optional = {
+    'OPENAI_API_KEY': 'AI features (briefings, chat, learn, document analysis)',
+    'TAVILY_API_KEY': 'Web search functionality',
+    'ALPHA_VANTAGE_API_KEY': 'Stock price data',
+    'COINGECKO_API_KEY': 'Cryptocurrency price data',
+    'CSRF_SECRET': 'CSRF protection',
+  };
+
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    log(`❌ CRITICAL: Missing required environment variables: ${missing.join(', ')}`);
+    log(`Application may not function correctly. Please configure these variables.`);
+  }
+
+  const missingOptional = Object.keys(optional).filter(key => !process.env[key]);
+  
+  if (missingOptional.length > 0) {
+    log(`⚠️  Optional services disabled due to missing environment variables:`);
+    missingOptional.forEach(key => {
+      log(`   - ${key}: ${optional[key as keyof typeof optional]}`);
+    });
+  }
+
+  const configured = Object.keys(optional).filter(key => process.env[key]);
+  if (configured.length > 0) {
+    log(`✓ Optional services configured: ${configured.join(', ')}`);
+  }
+}
+
+validateEnvironment();
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

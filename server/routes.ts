@@ -1114,6 +1114,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/notes/:id/analyze', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      
+      console.log(`Note analysis requested for note ${id} by user ${userId}`);
+      
+      // Get the note
+      const note = await storage.getNote(id, userId);
+      if (!note) {
+        return res.status(404).json({ message: 'Note not found or access denied' });
+      }
+
+      // Check if content is sufficient for analysis
+      if (note.content.trim().length < 10) {
+        return res.status(400).json({ message: 'Note content is too short for meaningful analysis' });
+      }
+
+      // Prepare text for analysis (with truncation if needed)
+      const MAX_TEXT_LENGTH = 6000;
+      let processedText = note.content;
+      let tokenWarning: string | undefined;
+
+      if (note.content.length > MAX_TEXT_LENGTH) {
+        processedText = note.content.substring(0, MAX_TEXT_LENGTH);
+        const truncatedChars = note.content.length - MAX_TEXT_LENGTH;
+        tokenWarning = `Note: Text was truncated. Original length: ${note.content.length} characters. Analyzed first ${MAX_TEXT_LENGTH} characters (${truncatedChars} characters truncated to optimize costs).`;
+        console.log(tokenWarning);
+      }
+
+      // Create AI analysis prompt
+      const analysisPrompt = `You are an AI note analyst. Analyze the following note and provide structured insights in JSON format.
+
+Your response must be valid JSON with the following structure:
+{
+  "summary": "A concise 2-3 sentence summary of the main content",
+  "keyPoints": ["Point 1", "Point 2", "Point 3"],
+  "actionItems": ["Action 1", "Action 2"],
+  "sentiment": "positive" | "negative" | "neutral",
+  "categories": ["category1", "category2"]
+}
+
+Guidelines:
+- summary: Capture the essence of the note in 2-3 clear sentences
+- keyPoints: Extract 3-5 most important points or insights (array of strings)
+- actionItems: Identify any tasks, to-dos, or action items mentioned (array of strings, empty if none)
+- sentiment: Overall tone of the note (must be one of: positive, negative, neutral)
+- categories: Relevant categories like "finance", "health", "personal", "business", "legal", etc. (array of strings)
+
+Note title: ${note.title}
+Note content:
+${processedText}`;
+
+      // Call OpenAI API
+      console.log('Starting AI analysis with GPT-4o-mini...');
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a precise note analyst. Always respond with valid JSON matching the requested structure."
+          },
+          {
+            role: "user",
+            content: analysisPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 2000,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      const analysis = JSON.parse(content);
+
+      // Add token warning if applicable
+      if (tokenWarning) {
+        analysis.summary = `${analysis.summary}\n\n${tokenWarning}`;
+      }
+
+      // Validate the result structure
+      if (!analysis.summary || !analysis.keyPoints || !analysis.sentiment || !analysis.categories) {
+        throw new Error('Invalid analysis response from AI');
+      }
+
+      console.log('AI analysis completed successfully');
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Error analyzing note:", error);
+      
+      // Return appropriate status codes
+      if (error.message?.includes("not found") || error.message?.includes("access denied")) {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message?.includes("too short")) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(500).json({ message: error.message || "Failed to analyze note" });
+    }
+  });
+
   // Configure multer for document uploads
   const upload = multer({
     storage: multer.memoryStorage(),

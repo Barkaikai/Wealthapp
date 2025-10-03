@@ -144,7 +144,7 @@ export class HealthSyncService {
     }
     
     if (healthData.exercise?.length) {
-      const totalMinutes = healthData.steps.reduce((sum, r) => sum + r.steps, 0);
+      const totalMinutes = healthData.exercise.reduce((sum, r) => sum + (r.durationMinutes || 0), 0);
       const avgMinutes = Math.round(totalMinutes / healthData.exercise.length);
       summary.push(`Exercise: ${healthData.exercise.length} sessions, ${totalMinutes} total minutes, ${avgMinutes} avg/session`);
     }

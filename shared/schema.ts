@@ -880,6 +880,9 @@ export const insertExerciseRecordSchema = createInsertSchema(exerciseRecords).om
 }).extend({
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
+  durationMinutes: z.coerce.number().positive().transform(val => Math.round(val)),
+  avgHeartRate: z.coerce.number().positive().transform(val => Math.round(val)).optional().nullable(),
+  maxHeartRate: z.coerce.number().positive().transform(val => Math.round(val)).optional().nullable(),
 });
 
 export type InsertExerciseRecord = z.infer<typeof insertExerciseRecordSchema>;

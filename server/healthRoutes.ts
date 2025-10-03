@@ -71,9 +71,25 @@ router.get('/health/exercise', isAuthenticated, async (req: any, res) => {
 router.post('/health/exercise', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
-    const validated = insertExerciseRecordSchema.parse({ ...req.body, userId });
+    let data = { ...req.body, userId };
     
-    // Calculate duration if times are provided
+    // Handle activityType alias (accept both exerciseType and activityType)
+    if (data.exerciseType && !data.activityType) {
+      data.activityType = data.exerciseType;
+      delete data.exerciseType;
+    }
+    
+    // Generate startTime/endTime if not provided but durationMinutes and date are
+    if (!data.startTime && !data.endTime && data.durationMinutes) {
+      const endTime = data.date ? new Date(data.date) : new Date();
+      const durationMs = Math.round(data.durationMinutes) * 60000;
+      data.endTime = endTime.toISOString();
+      data.startTime = new Date(endTime.getTime() - durationMs).toISOString();
+    }
+    
+    const validated = insertExerciseRecordSchema.parse(data);
+    
+    // Calculate duration if times are provided but duration is not
     if (validated.startTime && validated.endTime && !validated.durationMinutes) {
       const durationMs = new Date(validated.endTime).getTime() - new Date(validated.startTime).getTime();
       validated.durationMinutes = Math.round(durationMs / 60000);

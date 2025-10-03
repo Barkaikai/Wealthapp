@@ -20,7 +20,11 @@ The backend is an Express.js with TypeScript REST API. Authentication uses Repli
 
 ### Data Storage
 
-PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The schema includes tables for users, sessions, assets, events, routines, emails, briefings, transactions (asset trades), wallet_transactions (deposits/withdrawals), wallets, payment_methods, wealth alerts, financial goals, liabilities, calendar events, tasks, health metrics, wallet connections, voice commands, notes, documents, receipts, and AI Intelligence tables for portfolio reports, trading recommendations, tax events, rebalancing, and anomaly detections. All user-centric tables link to `users.id` with cascade delete and include `createdAt`/`updatedAt` timestamps. Indices are added to all `userId` columns for performance.
+PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The schema includes tables for users, sessions, assets, events, routines, emails, briefings, transactions (asset trades), wallet_transactions (deposits/withdrawals), wallets, payment_methods, wealth alerts, financial goals, liabilities, calendar events, tasks, health metrics, wallet connections, voice commands, notes, documents, receipts, and AI Intelligence tables for portfolio reports, trading recommendations, tax events, rebalancing, and anomaly detections. 
+
+**Comprehensive Health Tracking:** Seven specialized tables support detailed health monitoring: stepRecords (daily steps, distance, calories), exerciseRecords (cycling, running, gym sessions with duration and intensity), vitalsRecords (heart rate, blood pressure, SpO2, temperature, weight, BMI), mindfulnessSessions (meditation, breathing exercises, mood tracking), sleepLogs (bedtime, wake time, quality, sleep phases), foodLogs (meals with nutritional data), and aiSyncLogs (AI analysis history, health scores, insights, recommendations). All health data includes syncedAt timestamps for AI synchronization tracking.
+
+All user-centric tables link to `users.id` with cascade delete and include `createdAt`/`updatedAt` timestamps. Indices are added to all `userId` columns for performance.
 
 ### System Design Choices
 
@@ -44,6 +48,8 @@ The platform features continuous background health monitoring with diagnostic hi
 
 **Terminal Interface:** Command-line interface for advanced users providing system information and direct data access. Supports commands including help, status, wallet (balance display), portfolio (asset summary), health (system status), whoami (user info), and date. Features command history navigation, error handling, and real-time output display with terminal aesthetics.
 
+**Health Tracking & AI Sync:** Comprehensive health monitoring system tracking steps, exercise (cycling, running, strength training), vitals (heart rate, blood pressure, SpO2, temperature, weight, BMI), mindfulness sessions (meditation, breathing, mood), sleep patterns, and nutrition. AI Health Sync service powered by GPT-4o analyzes all health data, generates personalized insights and recommendations, calculates health scores (0-100), and tracks synchronization history. Backend provides RESTful endpoints for all health data types with automatic AI sync triggers. Server time endpoint (/api/time/server) ensures accurate UTC timestamp synchronization across all health tracking features.
+
 Production optimizations include database indexing, boot-time environment variable validation (critical and optional services), enhanced API security hardening for search/ChatGPT endpoints, and React Query optimizations (staleTime: Infinity, smart retries, disabled window refetching). API resilience ensures graceful handling of external API failures for stock/crypto additions, allowing manual input and subsequent synchronization.
 
 **Design Theme:** Coinbase-inspired blue theme (hsl 221 83% 53%) throughout the platform with clean, modern UI components. Wealth-themed background images on landing and login pages providing luxury aesthetic. Settings page includes comprehensive configuration across 6 tabs (Account, Security, Notifications, Appearance, Diagnostics, About).
@@ -53,9 +59,9 @@ Production optimizations include database indexing, boot-time environment variab
 ### AI Services
 
 - **OpenAI GPT-5:** Daily briefing generation, email automation, lifestyle recommendations, educational content.
-- **OpenAI GPT-4o:** AI Intelligence Hub (portfolio reports, trading recommendations, tax analysis, rebalancing, anomaly detection), ChatGPT assistant.
+- **OpenAI GPT-4o:** AI Intelligence Hub (portfolio reports, trading recommendations, tax analysis, rebalancing, anomaly detection), ChatGPT assistant, AI Health Sync (health data analysis, personalized insights, health score calculation).
 - **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes.
-- **OpenAI GPT-4o Vision:** OCR and analysis of images in the Notepad system.
+- **OpenAI GPT-4o Vision:** OCR and analysis of images in the Notepad system, Receipt Manager.
 
 ### Search Services
 

@@ -38,6 +38,10 @@ export default function ProductivityHub() {
   const { toast } = useToast();
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [aiTasksDialogOpen, setAiTasksDialogOpen] = useState(false);
+  const [aiCalendarDialogOpen, setAiCalendarDialogOpen] = useState(false);
+  const [aiGeneratedTasks, setAiGeneratedTasks] = useState<any[]>([]);
+  const [aiCalendarRecommendations, setAiCalendarRecommendations] = useState<any[]>([]);
 
   const { data: events = [] } = useQuery<CalendarEvent[]>({
     queryKey: ['/api/calendar/events'],
@@ -73,6 +77,44 @@ export default function ProductivityHub() {
     },
   });
 
+  const generateAITasksMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/ai/generate-tasks', { context: 'User productivity optimization' });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setAiGeneratedTasks(data.tasks);
+      setAiTasksDialogOpen(true);
+      toast({ title: "AI Tasks Generated", description: `Generated ${data.tasks.length} task suggestions` });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "AI Generation Failed", 
+        description: error.message || "Failed to generate tasks",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const generateCalendarRecommendationsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/ai/calendar-recommendations', {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setAiCalendarRecommendations(data.recommendations);
+      setAiCalendarDialogOpen(true);
+      toast({ title: "AI Recommendations", description: `Generated ${data.recommendations.length} calendar suggestions` });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "AI Generation Failed", 
+        description: error.message || "Failed to generate recommendations",
+        variant: "destructive" 
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -95,14 +137,24 @@ export default function ProductivityHub() {
         <TabsContent value="calendar" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Calendar Events</h2>
-            <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-add-event">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Event
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => generateCalendarRecommendationsMutation.mutate()}
+                disabled={generateCalendarRecommendationsMutation.isPending}
+                data-testid="button-ai-calendar"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {generateCalendarRecommendationsMutation.isPending ? "Generating..." : "AI Recommendations"}
+              </Button>
+              <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-event">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Event
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create Event</DialogTitle>
                 </DialogHeader>
@@ -145,6 +197,7 @@ export default function ProductivityHub() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <div className="grid gap-4">
@@ -179,14 +232,24 @@ export default function ProductivityHub() {
         <TabsContent value="tasks" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Tasks & To-Do</h2>
-            <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-add-task">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Task
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => generateAITasksMutation.mutate()}
+                disabled={generateAITasksMutation.isPending}
+                data-testid="button-ai-tasks"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {generateAITasksMutation.isPending ? "Generating..." : "AI Generate Tasks"}
+              </Button>
+              <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-task">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Task
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create Task</DialogTitle>
                 </DialogHeader>
@@ -248,6 +311,7 @@ export default function ProductivityHub() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <div className="grid gap-4">
@@ -302,6 +366,130 @@ export default function ProductivityHub() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* AI Generated Tasks Dialog */}
+      <Dialog open={aiTasksDialogOpen} onOpenChange={setAiTasksDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Generated Tasks
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {aiGeneratedTasks.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No tasks generated</p>
+            ) : (
+              aiGeneratedTasks.map((task, idx) => (
+                <Card key={idx} className="hover-elevate" data-testid={`ai-task-${idx}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <CardTitle className="text-base">{task.title}</CardTitle>
+                        <CardDescription className="text-xs mt-1">{task.description}</CardDescription>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          task.priority === 'high' ? 'bg-orange-500 text-white' :
+                          task.priority === 'medium' ? 'bg-yellow-500 text-white' :
+                          'bg-green-500 text-white'
+                        }`}>{task.priority}</span>
+                        {task.category && <span className="text-xs text-muted-foreground">{task.category}</span>}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-muted-foreground mb-2">{task.aiContext}</p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        createTaskMutation.mutate({
+                          title: task.title,
+                          description: task.description,
+                          priority: task.priority,
+                          category: task.category,
+                          dueDate: task.dueDate,
+                          status: 'pending',
+                          aiSuggestions: task.aiContext,
+                        });
+                        setAiTasksDialogOpen(false);
+                      }}
+                      data-testid={`button-create-ai-task-${idx}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Create Task
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Calendar Recommendations Dialog */}
+      <Dialog open={aiCalendarDialogOpen} onOpenChange={setAiCalendarDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Calendar Recommendations
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {aiCalendarRecommendations.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No recommendations generated</p>
+            ) : (
+              aiCalendarRecommendations.map((rec, idx) => (
+                <Card key={idx} className="hover-elevate" data-testid={`ai-calendar-${idx}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <CardTitle className="text-base">{rec.title}</CardTitle>
+                        <CardDescription className="text-xs mt-1">{rec.description}</CardDescription>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          rec.priority === 'high' ? 'bg-orange-500 text-white' :
+                          rec.priority === 'medium' ? 'bg-yellow-500 text-white' :
+                          'bg-green-500 text-white'
+                        }`}>{rec.priority}</span>
+                        <span className="text-xs text-muted-foreground">{rec.category}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-xs space-y-1 mb-2">
+                      <p><strong>Suggested:</strong> {format(new Date(rec.suggestedDate), 'PPP')} at {rec.suggestedTime}</p>
+                      <p className="text-muted-foreground">{rec.reason}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const startDateTime = new Date(`${rec.suggestedDate}T${rec.suggestedTime}`);
+                        const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+                        createEventMutation.mutate({
+                          title: rec.title,
+                          description: rec.description,
+                          startTime: startDateTime.toISOString(),
+                          endTime: endDateTime.toISOString(),
+                          isAllDay: 'false',
+                          source: 'ai_recommendation',
+                        });
+                        setAiCalendarDialogOpen(false);
+                      }}
+                      data-testid={`button-create-ai-event-${idx}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add to Calendar
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

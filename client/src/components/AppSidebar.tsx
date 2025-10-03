@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +44,11 @@ const menuItems = [
     title: "Digital Accountant",
     url: "/accountant",
     icon: Calculator,
+  },
+  {
+    title: "CRM",
+    url: "/crm",
+    icon: Users,
   },
   {
     title: "Health Monitoring",

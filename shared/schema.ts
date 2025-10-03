@@ -1056,3 +1056,200 @@ export const insertAISyncLogSchema = createInsertSchema(aiSyncLogs).omit({
 
 export type InsertAISyncLog = z.infer<typeof insertAISyncLogSchema>;
 export type AISyncLog = typeof aiSyncLogs.$inferSelect;
+
+// ===== DIGITAL ACCOUNTANT TABLES =====
+
+// Chart of Accounts
+export const accounts = pgTable("accounts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  code: varchar("code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  accountType: varchar("account_type", { length: 50 }).notNull(), // 'asset', 'liability', 'equity', 'income', 'expense'
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  isReconcilable: integer("is_reconcilable").default(0), // 0 = false, 1 = true
+  balance: real("balance").default(0), // Running balance
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_accounts_user_id").on(table.userId),
+  index("idx_accounts_code").on(table.code)
+]);
+
+export const insertAccountSchema = createInsertSchema(accounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAccount = z.infer<typeof insertAccountSchema>;
+export type Account = typeof accounts.$inferSelect;
+
+// Journal Entries (Header)
+export const journalEntries = pgTable("journal_entries", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  postedAt: timestamp("posted_at").notNull().defaultNow(),
+  description: text("description"),
+  clientRef: varchar("client_ref", { length: 255 }), // Idempotency key
+  status: varchar("status", { length: 50 }).default('posted'), // 'draft', 'posted', 'void'
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_journal_entries_user_id").on(table.userId)]);
+
+export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  postedAt: z.coerce.date().optional(),
+});
+
+export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+export type JournalEntry = typeof journalEntries.$inferSelect;
+
+// Journal Lines (Details - Debits & Credits)
+export const journalLines = pgTable("journal_lines", {
+  id: serial("id").primaryKey(),
+  entryId: integer("entry_id").notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
+  accountId: integer("account_id").notNull().references(() => accounts.id),
+  amount: real("amount").notNull(), // Positive number
+  isDebit: integer("is_debit").notNull(), // 1 = debit, 0 = credit
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_journal_lines_entry_id").on(table.entryId),
+  index("idx_journal_lines_account_id").on(table.accountId)
+]);
+
+export const insertJournalLineSchema = createInsertSchema(journalLines).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertJournalLine = z.infer<typeof insertJournalLineSchema>;
+export type JournalLine = typeof journalLines.$inferSelect;
+
+// Invoices (AR)
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clientRef: varchar("client_ref", { length: 255 }),
+  invoiceNumber: varchar("invoice_number", { length: 100 }),
+  customer: varchar("customer", { length: 255 }).notNull(),
+  total: real("total").notNull(),
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  issuedAt: timestamp("issued_at").notNull().defaultNow(),
+  dueAt: timestamp("due_at"),
+  status: varchar("status", { length: 50 }).default('draft'), // 'draft', 'issued', 'paid', 'partially_paid', 'overdue'
+  journalEntryId: integer("journal_entry_id").references(() => journalEntries.id),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_invoices_user_id").on(table.userId)]);
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  issuedAt: z.coerce.date().optional(),
+  dueAt: z.coerce.date().optional(),
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+// Payments
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clientRef: varchar("client_ref", { length: 255 }),
+  invoiceId: integer("invoice_id").references(() => invoices.id),
+  amount: real("amount").notNull(),
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  paidAt: timestamp("paid_at").notNull().defaultNow(),
+  method: varchar("method", { length: 255 }), // 'wire', 'card', 'cash', 'check'
+  journalEntryId: integer("journal_entry_id").references(() => journalEntries.id),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_payments_user_id").on(table.userId)]);
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  paidAt: z.coerce.date().optional(),
+});
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+// Bank Transactions (for reconciliation)
+export const bankTransactions = pgTable("bank_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bankRef: varchar("bank_ref", { length: 255 }), // External reference from bank/Plaid
+  amount: real("amount").notNull(),
+  currency: varchar("currency", { length: 8 }).default('USD'),
+  postedAt: timestamp("posted_at").notNull().defaultNow(),
+  description: text("description"),
+  matched: integer("matched").default(0), // 0 = unmatched, 1 = matched
+  matchedToId: integer("matched_to_id"), // ID of matched payment or journal entry
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_bank_transactions_user_id").on(table.userId)]);
+
+export const insertBankTransactionSchema = createInsertSchema(bankTransactions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  postedAt: z.coerce.date().optional(),
+});
+
+export type InsertBankTransaction = z.infer<typeof insertBankTransactionSchema>;
+export type BankTransaction = typeof bankTransactions.$inferSelect;
+
+// Reconciliations
+export const reconciliations = pgTable("reconciliations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  accountId: integer("account_id").notNull().references(() => accounts.id),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  finishedAt: timestamp("finished_at"),
+  status: varchar("status", { length: 50 }).default('in_progress'), // 'in_progress', 'completed'
+  statementBalance: real("statement_balance"),
+  bookBalance: real("book_balance"),
+  difference: real("difference"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_reconciliations_user_id").on(table.userId)]);
+
+export const insertReconciliationSchema = createInsertSchema(reconciliations).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  startedAt: z.coerce.date().optional(),
+  finishedAt: z.coerce.date().optional(),
+});
+
+export type InsertReconciliation = z.infer<typeof insertReconciliationSchema>;
+export type Reconciliation = typeof reconciliations.$inferSelect;
+
+// Audit Logs for accounting actions
+export const accountingAuditLogs = pgTable("accounting_audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar("action", { length: 255 }).notNull(), // 'create_account', 'post_journal', 'create_invoice', etc.
+  entityType: varchar("entity_type", { length: 100 }), // 'account', 'journal_entry', 'invoice', etc.
+  entityId: integer("entity_id"),
+  details: jsonb("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_accounting_audit_logs_user_id").on(table.userId)]);
+
+export const insertAccountingAuditLogSchema = createInsertSchema(accountingAuditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAccountingAuditLog = z.infer<typeof insertAccountingAuditLogSchema>;
+export type AccountingAuditLog = typeof accountingAuditLogs.$inferSelect;

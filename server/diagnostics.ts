@@ -34,6 +34,8 @@ export async function runFullDiagnostics(): Promise<DiagnosticReport> {
     gmailResult,
     sessionResult,
     dbUrlResult,
+    memoryResult,
+    processResult,
   ] = await Promise.all([
     checkDatabase(),
     checkOpenAI(),
@@ -42,6 +44,8 @@ export async function runFullDiagnostics(): Promise<DiagnosticReport> {
     checkGmailOAuth(),
     checkSessionSecret(),
     checkDatabaseUrl(),
+    checkMemoryUsage(),
+    checkProcessHealth(),
   ]);
 
   const results = [
@@ -52,6 +56,8 @@ export async function runFullDiagnostics(): Promise<DiagnosticReport> {
     gmailResult,
     sessionResult,
     dbUrlResult,
+    memoryResult,
+    processResult,
   ];
 
   const summary = {
@@ -282,6 +288,92 @@ async function checkDatabaseUrl(): Promise<DiagnosticResult> {
       status: "error",
       message: "Database URL is not configured",
       details: "DATABASE_URL environment variable is missing",
+    };
+  }
+}
+
+async function checkMemoryUsage(): Promise<DiagnosticResult> {
+  try {
+    const memUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+    const rssMB = Math.round(memUsage.rss / 1024 / 1024);
+    const heapUsagePercent = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+
+    let status: "success" | "warning" | "error" = "success";
+    let message = `Memory usage: ${heapUsedMB}MB / ${heapTotalMB}MB (${heapUsagePercent}%)`;
+
+    // Trigger garbage collection if available and heap usage is high
+    if (heapUsagePercent > 85 && global.gc) {
+      try {
+        global.gc();
+        message += " - GC triggered";
+      } catch (e) {
+        // GC failed, continue anyway
+      }
+    }
+
+    if (heapUsagePercent > 90) {
+      status = "error";
+      message = `Critical: ${message} - Memory critically high`;
+    } else if (heapUsagePercent > 75) {
+      status = "warning";
+      message = `Warning: ${message} - Memory usage high`;
+    }
+
+    return {
+      category: "Performance",
+      name: "Memory Usage",
+      status,
+      message,
+      details: `Heap: ${heapUsedMB}MB / ${heapTotalMB}MB | RSS: ${rssMB}MB | External: ${Math.round(memUsage.external / 1024 / 1024)}MB`,
+    };
+  } catch (error: any) {
+    return {
+      category: "Performance",
+      name: "Memory Usage",
+      status: "error",
+      message: "Failed to check memory usage",
+      details: error.message,
+    };
+  }
+}
+
+async function checkProcessHealth(): Promise<DiagnosticResult> {
+  try {
+    const uptimeSeconds = Math.floor(process.uptime());
+    const uptimeMinutes = Math.floor(uptimeSeconds / 60);
+    const uptimeHours = Math.floor(uptimeMinutes / 60);
+    const uptimeDays = Math.floor(uptimeHours / 24);
+
+    let uptimeStr = "";
+    if (uptimeDays > 0) {
+      uptimeStr = `${uptimeDays}d ${uptimeHours % 24}h`;
+    } else if (uptimeHours > 0) {
+      uptimeStr = `${uptimeHours}h ${uptimeMinutes % 60}m`;
+    } else {
+      uptimeStr = `${uptimeMinutes}m ${uptimeSeconds % 60}s`;
+    }
+
+    const pid = process.pid;
+    const nodeVersion = process.version;
+    const platform = process.platform;
+    const arch = process.arch;
+
+    return {
+      category: "System",
+      name: "Process Health",
+      status: "success",
+      message: `Process healthy - Uptime: ${uptimeStr}`,
+      details: `PID: ${pid} | Node: ${nodeVersion} | Platform: ${platform}-${arch}`,
+    };
+  } catch (error: any) {
+    return {
+      category: "System",
+      name: "Process Health",
+      status: "error",
+      message: "Failed to check process health",
+      details: error.message,
     };
   }
 }

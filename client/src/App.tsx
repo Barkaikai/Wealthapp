@@ -29,6 +29,7 @@ import ReceiptManager from "@/pages/ReceiptManager";
 import Guide from "@/pages/Guide";
 import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
+import Videos from "@/pages/Videos";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -63,6 +64,7 @@ function Router() {
           <Route path="/notepad" component={Notepad} />
           <Route path="/ai-intelligence" component={AIIntelligence} />
           <Route path="/receipts" component={ReceiptManager} />
+          <Route path="/videos" component={Videos} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />

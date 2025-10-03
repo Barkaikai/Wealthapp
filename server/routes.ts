@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle } from "./openai";
+import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle, generateVideoRecommendations } from "./openai";
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
@@ -1902,6 +1902,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting receipt:", error);
       res.status(500).json({ message: "Failed to delete receipt" });
+    }
+  });
+
+  // Video recommendation routes
+  app.get('/api/videos/recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get cached recommendations from user's session or generate new ones
+      const cachedRecommendations = (req as any).session?.videoRecommendations;
+      
+      if (cachedRecommendations) {
+        return res.json(cachedRecommendations);
+      }
+      
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching video recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch video recommendations" });
+    }
+  });
+
+  app.post('/api/videos/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get the latest briefing
+      const briefing = await storage.getLatestBriefing(userId);
+      
+      if (!briefing) {
+        return res.status(400).json({ message: "No briefing found. Please generate a daily briefing first." });
+      }
+
+      console.log(`Generating video recommendations for user ${userId} based on briefing ${briefing.id}`);
+      
+      // Generate video recommendations using GPT-4o
+      const recommendations = await generateVideoRecommendations(briefing);
+      
+      console.log(`Generated ${recommendations.length} video recommendations`);
+      
+      // Store in session for caching
+      (req as any).session.videoRecommendations = recommendations;
+      
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error generating video recommendations:", error);
+      res.status(500).json({ message: error.message || "Failed to generate video recommendations" });
     }
   });
 

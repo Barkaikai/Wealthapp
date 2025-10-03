@@ -333,3 +333,50 @@ Respond with JSON in this exact format:
 
   return JSON.parse(response.choices[0].message.content!);
 }
+
+export async function generateVideoRecommendations(briefing: any): Promise<Array<{
+  title: string;
+  description: string;
+  searchQuery: string;
+  youtubeUrl: string;
+}>> {
+  const prompt = `Based on this daily briefing, generate 6 personalized YouTube video recommendations that would be valuable for this person:
+
+Briefing Summary:
+Highlights: ${briefing.highlights?.join('; ') || 'None'}
+Risks: ${briefing.risks?.join('; ') || 'None'}
+Actions: ${briefing.actions?.join('; ') || 'None'}
+
+Create video recommendations that:
+- Are educational and relevant to the briefing content
+- Cover topics like wealth management, financial markets, productivity, health, technology, or lifestyle
+- Would help address the risks or support the actions mentioned
+- Are practical and actionable
+
+For each video recommendation, provide:
+1. title: A descriptive title for what kind of video would be helpful
+2. description: Why this video would be valuable based on the briefing
+3. searchQuery: A YouTube search query to find this type of content
+4. youtubeUrl: A direct YouTube search URL with the query
+
+Respond with JSON in this format:
+{
+  "recommendations": [
+    {
+      "title": "...",
+      "description": "...",
+      "searchQuery": "...",
+      "youtubeUrl": "https://www.youtube.com/results?search_query=..."
+    }
+  ]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
+  });
+
+  const result = JSON.parse(response.choices[0].message.content!);
+  return result.recommendations;
+}

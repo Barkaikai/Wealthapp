@@ -27,7 +27,16 @@ export function OnlineStatus() {
   const effectiveStatus = manualOverride !== null ? manualOverride : isOnline;
 
   const toggleStatus = () => {
-    setManualOverride(!effectiveStatus);
+    if (manualOverride === null) {
+      // First click: set to opposite of current status
+      setManualOverride(!isOnline);
+    } else if (manualOverride === !isOnline) {
+      // Second click: set to same as current status
+      setManualOverride(isOnline);
+    } else {
+      // Third click: reset to automatic mode
+      setManualOverride(null);
+    }
   };
 
   return (
@@ -54,8 +63,8 @@ export function OnlineStatus() {
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>{effectiveStatus ? "Online" : "Offline"} Mode</p>
-        <p className="text-xs text-muted-foreground">Click to toggle</p>
+        <p>{effectiveStatus ? "Online" : "Offline"} Mode {manualOverride !== null && "(Manual)"}</p>
+        <p className="text-xs text-muted-foreground">Click to cycle modes</p>
       </TooltipContent>
     </Tooltip>
   );

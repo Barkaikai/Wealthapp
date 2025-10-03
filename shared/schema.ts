@@ -726,3 +726,98 @@ export const insertReceiptSchema = createInsertSchema(receipts).omit({
 
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
 export type Receipt = typeof receipts.$inferSelect;
+
+// Wallet - User's personal wallet/account balance
+export const wallets = pgTable("wallets", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  balance: real("balance").notNull().default(0), // Current balance in USD
+  availableBalance: real("available_balance").notNull().default(0), // Available to withdraw
+  pendingBalance: real("pending_balance").notNull().default(0), // Pending deposits
+  totalDeposited: real("total_deposited").notNull().default(0), // Lifetime deposits
+  totalWithdrawn: real("total_withdrawn").notNull().default(0), // Lifetime withdrawals
+  currency: text("currency").notNull().default('USD'),
+  stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
+  stripeAccountId: text("stripe_account_id"), // Stripe Connect account for payouts
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_wallets_user_id").on(table.userId)]);
+
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type Wallet = typeof wallets.$inferSelect;
+
+// Wallet Transactions - Deposits, withdrawals, transfers
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  walletId: integer("wallet_id").notNull().references(() => wallets.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // 'deposit', 'withdrawal', 'transfer', 'fee', 'refund'
+  amount: real("amount").notNull(),
+  currency: text("currency").notNull().default('USD'),
+  status: text("status").notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed', 'cancelled'
+  paymentMethod: text("payment_method"), // 'card', 'bank_account', 'google_pay', 'apple_pay', 'wire'
+  paymentMethodDetails: text("payment_method_details"), // Last 4 digits, bank name, etc
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
+  stripePayoutId: text("stripe_payout_id"), // Stripe payout ID for withdrawals
+  bankAccountId: text("bank_account_id"), // Reference to connected bank account
+  description: text("description"),
+  metadata: jsonb("metadata"), // Additional data (processor response, etc)
+  failureReason: text("failure_reason"), // Error message if failed
+  processedAt: timestamp("processed_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_wallet_transactions_user_id").on(table.userId),
+  index("idx_wallet_transactions_wallet_id").on(table.walletId),
+  index("idx_wallet_transactions_status").on(table.status),
+]);
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  processedAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+
+// Payment Methods - Saved cards, bank accounts, etc
+export const paymentMethods = pgTable("payment_methods", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // 'card', 'bank_account', 'google_pay', 'apple_pay'
+  provider: text("provider").notNull().default('stripe'), // 'stripe', 'plaid'
+  stripePaymentMethodId: text("stripe_payment_method_id"), // Stripe payment method ID
+  plaidAccessToken: text("plaid_access_token"), // Plaid access token (encrypted)
+  plaidAccountId: text("plaid_account_id"), // Plaid account ID
+  last4: text("last4"), // Last 4 digits of card/account
+  brand: text("brand"), // 'visa', 'mastercard', 'amex', 'bank'
+  bankName: text("bank_name"), // Name of bank
+  accountType: text("account_type"), // 'checking', 'savings'
+  isDefault: text("is_default").notNull().default('false'),
+  isVerified: text("is_verified").notNull().default('false'),
+  nickname: text("nickname"), // User-friendly name
+  expiryMonth: integer("expiry_month"), // For cards
+  expiryYear: integer("expiry_year"), // For cards
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_payment_methods_user_id").on(table.userId)]);
+
+export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
+export type PaymentMethod = typeof paymentMethods.$inferSelect;

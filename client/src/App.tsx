@@ -15,6 +15,7 @@ import { OnlineStatus } from "@/components/OnlineStatus";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
 import DailyBriefing from "@/pages/DailyBriefing";
 import WealthDashboard from "@/pages/WealthDashboard";
 import WealthMonitor from "@/pages/WealthMonitor";
@@ -50,10 +51,14 @@ function Router() {
   return (
     <Switch>
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/login" component={Login} />
+        </>
       ) : (
         <>
           <Route path="/" component={DailyBriefing} />
+          <Route path="/login" component={Login} />
           <Route path="/wealth" component={WealthDashboard} />
           <Route path="/wealth-monitor" component={WealthMonitor} />
           <Route path="/productivity" component={ProductivityHub} />

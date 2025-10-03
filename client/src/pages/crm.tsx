@@ -353,10 +353,7 @@ function CreateOrganizationDialog() {
 
   const mutation = useMutation({
     mutationFn: async (data: { name: string; industry?: string; website?: string }) => {
-      return await apiRequest('/api/crm/organizations', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/crm/organizations', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/organizations'] });
@@ -443,10 +440,7 @@ function CreateContactDialog({ organizations }: { organizations: CrmOrganization
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/crm/contacts', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/crm/contacts', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/contacts'] });
@@ -574,10 +568,7 @@ function CreateLeadDialog({ contacts, organizations }: { contacts: CrmContact[];
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/crm/leads', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/crm/leads', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
@@ -716,10 +707,7 @@ function CreateDealDialog({ contacts, organizations }: { contacts: CrmContact[];
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/crm/deals', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/crm/deals', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/deals'] });
@@ -850,10 +838,7 @@ function CreateActivityDialog({ contacts, deals }: { contacts: CrmContact[]; dea
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/crm/activities', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/crm/activities', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/activities'] });

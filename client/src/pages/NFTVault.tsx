@@ -61,19 +61,15 @@ export default function NFTVault() {
     },
   });
 
-  const [syncedNFTs, setSyncedNFTs] = useState<NFT[]>([]);
-
   const syncNFTsMutation = useMutation({
     mutationFn: async (params: { walletId: number; chain: string; address: string }) => {
       return await apiRequest('POST', '/api/nft/sync', params);
     },
     onSuccess: (data: any) => {
-      if (data.nfts && Array.isArray(data.nfts)) {
-        setSyncedNFTs(prev => [...prev, ...data.nfts]);
-      }
+      queryClient.invalidateQueries({ queryKey: ['/api/nft/assets'] });
       toast({
         title: "NFTs Synced",
-        description: `Successfully synced ${data.count || 0} NFTs from ${data.nfts?.[0]?.chain || 'blockchain'}.`,
+        description: `Successfully synced and stored ${data.count || 0} NFTs from ${data.nfts?.[0]?.chain || 'blockchain'}.`,
       });
     },
     onError: (error: any) => {
@@ -121,12 +117,9 @@ export default function NFTVault() {
     });
   };
 
-  // Combine synced NFTs with NFTs from database
-  const allNFTs = [...(nftsData.nfts || []), ...syncedNFTs];
-  
   const filteredNFTs = selectedChain === 'all' 
-    ? allNFTs 
-    : allNFTs.filter(nft => nft.chain === selectedChain);
+    ? nftsData.nfts 
+    : nftsData.nfts.filter(nft => nft.chain === selectedChain);
 
   return (
     <div className="container mx-auto p-6 space-y-6" data-testid="page-nft-vault">

@@ -3109,18 +3109,50 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         nfts = await hederaProvider.getNFTsByOwner(validated.address);
       }
 
-      // TODO: Persist NFTs to database
-      // NOTE: Full implementation requires adding methods to storage interface:
-      // - storage.createNftCollection() for collections
-      // - storage.createNftAsset() for individual NFTs
-      // - storage.getNftsByUserId() to fetch stored NFTs
-      // For now, we return the fetched data directly from blockchain
+      // Persist NFTs to database
+      let persistedCount = 0;
+      for (const nft of nfts) {
+        try {
+          // Create or get collection
+          const collectionData = {
+            userId,
+            chain: nft.chain,
+            contractAddress: nft.contractAddress,
+            collectionName: nft.collectionName || 'Unknown Collection',
+            totalSupply: nft.totalSupply ? String(nft.totalSupply) : null,
+            metadata: JSON.stringify({
+              symbol: nft.symbol,
+              description: nft.description,
+            }),
+          };
+          
+          const collection = await storage.createNftCollection(collectionData);
+
+          // Create NFT asset
+          const assetData = {
+            userId,
+            walletId: validated.walletId || null,
+            collectionId: collection.id,
+            chain: nft.chain,
+            contractAddress: nft.contractAddress,
+            tokenId: nft.tokenId,
+            name: nft.name || `Token #${nft.tokenId}`,
+            description: nft.description || null,
+            imageUrl: nft.imageUrl || null,
+            metadata: JSON.stringify(nft.metadata || {}),
+          };
+
+          await storage.createNftAsset(assetData);
+          persistedCount++;
+        } catch (err) {
+          console.error(`[NFT] Failed to persist NFT ${nft.tokenId}:`, err);
+        }
+      }
 
       res.json({ 
-        message: `Synced ${nfts.length} NFTs from ${validated.chain}`, 
-        count: nfts.length,
-        nfts: nfts, // Return all NFTs (will be cached by frontend)
-        note: 'NFT persistence to database is pending storage interface implementation'
+        message: `Synced and stored ${persistedCount} NFTs from ${validated.chain}`, 
+        count: persistedCount,
+        nfts: nfts,
       });
     } catch (error: any) {
       console.error('[NFT] Sync error:', error);
@@ -3135,9 +3167,8 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.get('/api/nft/assets', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      // Would fetch from database via storage
-      // For now, return empty array (implementation pending)
-      res.json({ nfts: [] });
+      const nfts = await storage.getNftAssets(userId);
+      res.json({ nfts });
     } catch (error: any) {
       console.error('[NFT] Get assets error:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch NFTs' });

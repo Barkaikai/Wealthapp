@@ -744,6 +744,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNftCollection(collection: InsertNftCollection): Promise<NftCollection> {
+    // Check if collection already exists
+    const [existing] = await db
+      .select()
+      .from(nftCollections)
+      .where(
+        and(
+          eq(nftCollections.userId, collection.userId),
+          eq(nftCollections.chain, collection.chain),
+          eq(nftCollections.contractAddress, collection.contractAddress)
+        )
+      );
+    
+    if (existing) {
+      return existing;
+    }
+
     const [newCollection] = await db.insert(nftCollections).values(collection).returning();
     return newCollection;
   }
@@ -753,6 +769,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNftAsset(asset: InsertNftAsset): Promise<NftAsset> {
+    // Check if asset already exists
+    const [existing] = await db
+      .select()
+      .from(nftAssets)
+      .where(
+        and(
+          eq(nftAssets.userId, asset.userId),
+          eq(nftAssets.contractAddress, asset.contractAddress),
+          eq(nftAssets.tokenId, asset.tokenId)
+        )
+      );
+    
+    if (existing) {
+      // Update existing asset with latest data
+      const [updated] = await db
+        .update(nftAssets)
+        .set({ ...asset, updatedAt: new Date() })
+        .where(eq(nftAssets.id, existing.id))
+        .returning();
+      return updated;
+    }
+
     const [newAsset] = await db.insert(nftAssets).values(asset).returning();
     return newAsset;
   }

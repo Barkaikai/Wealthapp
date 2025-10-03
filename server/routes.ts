@@ -2252,6 +2252,14 @@ Account Created: ${new Date(user.createdAt).toLocaleDateString()}`;
     }
   });
 
+  // Catch-all for unknown API routes (must be last)
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ 
+      message: "API endpoint not found",
+      path: req.path 
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

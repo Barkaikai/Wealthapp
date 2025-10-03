@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useServiceWorker } from "@/hooks/useServiceWorker";
 
 const menuItems = [
   {
@@ -83,6 +84,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { updateAvailable, updateApp } = useServiceWorker();
 
   return (
     <Sidebar collapsible="icon">
@@ -107,7 +109,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-border">
+      <SidebarFooter className="p-4 border-t border-border space-y-2">
+        {updateAvailable && (
+          <Button
+            variant="default"
+            onClick={updateApp}
+            data-testid="button-update-app"
+            className="w-full justify-start"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            <span>Update Available</span>
+          </Button>
+        )}
         <Button
           variant="ghost"
           onClick={() => window.location.href = '/api/logout'}

@@ -254,6 +254,7 @@ export interface IStorage {
   getDiscordServers(userId: string): Promise<DiscordServer[]>;
   createDiscordServer(server: InsertDiscordServer): Promise<DiscordServer>;
   getDiscordScheduledMessages(userId: string): Promise<DiscordScheduledMessage[]>;
+  getAllActiveDiscordScheduledMessages(): Promise<DiscordScheduledMessage[]>;
   createDiscordScheduledMessage(message: InsertDiscordScheduledMessage): Promise<DiscordScheduledMessage>;
   updateDiscordScheduledMessage(id: number, userId: string, message: Partial<InsertDiscordScheduledMessage>): Promise<DiscordScheduledMessage>;
   deleteDiscordScheduledMessage(id: number, userId: string): Promise<void>;
@@ -866,6 +867,10 @@ export class DatabaseStorage implements IStorage {
 
   async getDiscordScheduledMessages(userId: string): Promise<DiscordScheduledMessage[]> {
     return await db.select().from(discordScheduledMessages).where(eq(discordScheduledMessages.userId, userId)).orderBy(desc(discordScheduledMessages.createdAt));
+  }
+
+  async getAllActiveDiscordScheduledMessages(): Promise<DiscordScheduledMessage[]> {
+    return await db.select().from(discordScheduledMessages).where(eq(discordScheduledMessages.isActive, 'true')).orderBy(desc(discordScheduledMessages.createdAt));
   }
 
   async createDiscordScheduledMessage(message: InsertDiscordScheduledMessage): Promise<DiscordScheduledMessage> {

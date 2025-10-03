@@ -1,17 +1,43 @@
 import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
 import OpenAI from 'openai';
 import cron from 'node-cron';
+import type { IStorage } from '../storage';
 
 class DiscordBotService {
   private client: Client | null = null;
   private openai: OpenAI | null = null;
   private scheduledJobs: Map<number, cron.ScheduledTask> = new Map();
+  private storage: IStorage | null = null;
 
   constructor() {
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
+    }
+  }
+
+  setStorage(storage: IStorage): void {
+    this.storage = storage;
+  }
+
+  async loadAllScheduledJobs(): Promise<void> {
+    if (!this.storage) {
+      console.warn('[Discord] Storage not set, skipping scheduled jobs load');
+      return;
+    }
+
+    try {
+      // Load all active scheduled messages from storage
+      const allScheduledMessages = await this.storage.getAllActiveDiscordScheduledMessages();
+
+      for (const msg of allScheduledMessages) {
+        await this.scheduleAIMessage(msg.id, msg.userId, msg.channelId, msg.prompt, msg.cronTime, false);
+      }
+
+      console.log(`[Discord] Loaded ${allScheduledMessages.length} scheduled jobs for all users`);
+    } catch (err) {
+      console.error('[Discord] Error loading scheduled jobs:', err);
     }
   }
 
@@ -124,7 +150,7 @@ class DiscordBotService {
     return { content: aiMessage };
   }
 
-  async scheduleAIMessage(scheduleId: number, channelId: string, prompt: string, cronTime: string): Promise<void> {
+  async scheduleAIMessage(scheduleId: number, userId: string, channelId: string, prompt: string, cronTime: string, saveToDb: boolean = true): Promise<void> {
     if (!this.client) {
       throw new Error('Discord bot not initialized');
     }
@@ -139,6 +165,25 @@ class DiscordBotService {
       try {
         await this.sendAIMessage(channelId, prompt);
         console.log(`[Discord] Scheduled message sent to ${channelId}`);
+        
+        // Update run time in database
+        if (this.storage) {
+          try {
+            const now = new Date();
+            // Calculate next run time based on cron expression
+            const parser = await import('cron-parser');
+            const interval = parser.parseExpression(cronTime);
+            const nextRunAt = interval.next().toDate();
+            
+            await this.storage.updateDiscordScheduledMessage(scheduleId, userId, {
+              lastRunAt: now,
+              nextRunAt: nextRunAt,
+            });
+            console.log(`[Discord] Updated run times for job ${scheduleId}`);
+          } catch (err) {
+            console.error('[Discord] Failed to update run times:', err);
+          }
+        }
       } catch (err) {
         console.error('[Discord] Scheduled message error:', err);
       }

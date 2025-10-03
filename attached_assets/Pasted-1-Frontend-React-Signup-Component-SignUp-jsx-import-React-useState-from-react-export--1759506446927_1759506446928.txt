@@ -1,0 +1,223 @@
+1) Frontend: React Signup Component
+// SignUp.jsx
+
+import React, { useState } from 'react';
+
+export default function SignUp({ onSignupSuccess }) {
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [error, setError] = useState('');
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+    // Basic client-side validation
+    if (!form.fullName || !form.email || !form.phone || !form.password) {
+      setError("All fields are required");
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          email: form.email,
+          phone: form.phone,
+          password: form.password
+        })
+      });
+      const body = await resp.json();
+      if (!resp.ok) {
+        throw new Error(body.error || 'Signup failed');
+      }
+      onSignupSuccess && onSignupSuccess(body);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 400, margin: 'auto', padding: 20 }}>
+      <h2>Sign Up</h2>
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <label>
+          Full Name<br />
+          <input
+            type="text"
+            name="fullName"
+            value={form.fullName}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
+        <label>
+          Email<br />
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
+        <label>
+          Phone Number<br />
+          <input
+            type="text"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
+        <label>
+          Password<br />
+          <input
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
+        <label>
+          Confirm Password<br />
+          <input
+            type="password"
+            name="confirmPassword"
+            value={form.confirmPassword}
+            onChange={handleChange}
+          />
+        </label>
+        <br /><br />
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+  );
+}
+
+
+Add routing (if using React Router) so /signup leads to this component.
+
+2) Backend: Node.js / Express Signup Endpoint
+// server.js or auth.js
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
+const { check, validationResult } = require('express-validator');
+
+// Placeholder “database” for demo — replace with real DB (MongoDB, Postgres, etc.)
+const users = []; // each user: { id, fullName, email, phone, passwordHash }
+
+const router = express.Router();
+router.use(bodyParser.json());
+
+router.post(
+  '/signup',
+  [
+    check('fullName').isLength({ min: 1 }).withMessage('Name is required'),
+    check('email').isEmail().withMessage('Valid email required'),
+    check('phone').isMobilePhone().withMessage('Valid phone required'),
+    check('password').isLength({ min: 6 }).withMessage('Password must be ≥ 6 characters'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    const { fullName, email, phone, password } = req.body;
+
+    // Check existing user
+    if (users.find(u => u.email === email)) {
+      return res.status(400).json({ error: 'Email already in use' });
+    }
+    if (users.find(u => u.phone === phone)) {
+      return res.status(400).json({ error: 'Phone already in use' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create user entry
+    const newUser = {
+      id: users.length + 1,
+      fullName,
+      email,
+      phone,
+      passwordHash
+    };
+    users.push(newUser);
+
+    // Return minimal user info (omit passwordHash)
+    const userPublic = {
+      id: newUser.id,
+      fullName: newUser.fullName,
+      email: newUser.email,
+      phone: newUser.phone
+    };
+    res.status(201).json({ user: userPublic });
+  }
+);
+
+module.exports = router;
+
+
+Then in your main server.js:
+
+const express = require('express');
+const authRouter = require('./auth'); // path where signup code is
+
+const app = express();
+app.use('/api', authRouter);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+3) Integrate into your Replit app
+
+Add the SignUp.jsx to your frontend.
+
+Add or mount the signup route in your router.
+
+Add the backend signup endpoint.
+
+Make sure your app’s fetch requests point to correct path (e.g. /api/signup).
+
+On signup success, you can redirect user to login or initial onboarding.
+
+4) Further enhancements & security
+
+Send verification email (with token) so user must confirm inbox.
+
+Rate limit signup attempts.
+
+Validate input server-side thoroughly.
+
+Use SSL / HTTPS for all traffic.
+
+In production, use a real database instead of the in-memory users array.
+
+Store passwords only as salted hash.
+
+Optionally also ask for other fields (address, role, metadata) if needed

@@ -5,10 +5,12 @@ export function useServiceWorker() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    if ('serviceWorker' in navigator) {
+      // Register service worker in both dev and prod for offline functionality
       navigator.serviceWorker
-        .register('/service-worker.js')
+        .register('/service-worker.js', { scope: '/' })
         .then((reg) => {
+          console.log('[SW] Service worker registered successfully');
           setRegistration(reg);
 
           reg.addEventListener('updatefound', () => {
@@ -22,13 +24,16 @@ export function useServiceWorker() {
             }
           });
 
+          // Check for updates periodically
           setInterval(() => {
             reg.update();
           }, 60000);
         })
-        .catch(() => {
-          // Service worker registration failed, app will work without offline support
+        .catch((error) => {
+          console.error('[SW] Service worker registration failed:', error);
         });
+    } else {
+      console.warn('[SW] Service workers not supported in this browser');
     }
   }, []);
 

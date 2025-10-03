@@ -71,6 +71,15 @@ export function useOfflineSync() {
 
     window.addEventListener('online', handleOnline);
     
+    // Register background sync if supported
+    if ('serviceWorker' in navigator && 'sync' in (window as any).ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then((registration) => {
+        return (registration as any).sync.register('sync-mutations');
+      }).catch((error) => {
+        console.warn('[useOfflineSync] Background sync registration failed:', error);
+      });
+    }
+    
     // If already online, try to sync on mount
     if (navigator.onLine) {
       handleOnline();

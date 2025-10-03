@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import wealthBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
+import wealthBackground from "@assets/stock_images/luxury_villa_mansion_fbfa6520.jpg";
 
 export default function Login() {
   useEffect(() => {

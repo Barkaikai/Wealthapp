@@ -1,0 +1,576 @@
+Great — below is a clean, ready-to-paste code bundle that implements the fixes you described and closes the gaps you couldn’t. I kept each file small, focused, and well-commented so you can drop them into your repo and wire them up.
+
+What you’ll get
+
+upsertUser (safe DB upsert, no DELETE)
+
+Discord persistent scheduler (save/load jobs from DB + node-cron + cron-parser)
+
+AI failover wrapper (progressive timeouts + provider cascade)
+
+Hardened NFT endpoint (graceful errors & HTTP 503 reporting)
+
+Background monitor / self-heal (memory, DB, API checks + GC)
+
+Service worker + offline mutation queue skeleton (IndexedDB)
+
+Small CSS fix for SidebarTrigger accessibility
+
+SQL migration to make notes.user_id resilient (optional safety)
+
+Quick install notes (before pasting files)
+
+Add these environment variables in your Replit secrets / production env:
+
+DATABASE_URL        # Postgres connection string
+REDIS_URL           # Redis (optional - used for cache/locks)
+DISCORD_BOT_TOKEN   # if using Discord module
+OPENAI_API_KEY      # primary AI key
+OPENAI_FALLBACK_KEY # fallback AI key (optional)
+ALTERNATE_AI_KEY    # optional: Cohere/Anthropic/etc.
+
+
+Install Node deps (backend):
+
+npm install pg node-cron cron-parser axios node-fetch ioredis openai
+
+
+Place code into your server directory and import/register the modules in your main server.js.
+
+1) Safe upsertUser (Postgres / pg)
+
+File: /server/db/upsertUser.js
+
+// upsertUser.js
+// Safe upsert that avoids DELETE to prevent FK violations.
+// Uses pg Pool (DATABASE_URL)
+
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+/**
+ * Upsert user record safely (no DELETE).
+ * Use primary key `id` or unique `external_id`.
+ */
+async function upsertUser(user) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Choose conflict target: if you have external_id as unique, use that; else use id.
+    // Example uses external_id (e.g. OAuth provider id) as conflict key if present.
+    const conflictKey = user.external_id ? 'external_id' : 'id';
+
+    const sql = `
+      INSERT INTO users (id, external_id, email, name, avatar, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      ON CONFLICT (${conflictKey})
+      DO UPDATE SET
+        email = EXCLUDED.email,
+        name = EXCLUDED.name,
+        avatar = EXCLUDED.avatar,
+        updated_at = NOW()
+      RETURNING *;
+    `;
+    const values = [
+      user.id || null,
+      user.external_id || null,
+      user.email || null,
+      user.name || null,
+      user.avatar || null
+    ];
+
+    const res = await client.query(sql, values);
+    await client.query('COMMIT');
+    return res.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[upsertUser] error:', err);
+    // surface foreign key violations clearly
+    if (err.code === '23503') {
+      throw new Error('Foreign key violation - dependent records exist. Avoid deleting users; use upsert instead.');
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { upsertUser };
+
+2) Discord persistent scheduler
+
+Files:
+
+/server/discord/scheduler.js
+
+/server/discord/discordBot.js (small extract showing loading)
+
+/server/discord/scheduler.js
+// scheduler.js
+// Handles storing/loading scheduled jobs from DB and scheduling them with node-cron
+
+const cron = require('node-cron');
+const cronParser = require('cron-parser');
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// in-memory registry so we can cancel jobs on reload
+const scheduledTasks = new Map();
+
+/**
+ * Save schedule row to DB (insert or update)
+ * schedule = { id?, user_id, channel_id, prompt, cron_expr, is_active, next_run_at, last_run_at }
+ */
+async function saveSchedule(schedule) {
+  const client = await pool.connect();
+  try {
+    const sql = `
+      INSERT INTO discord_scheduled_messages (id, user_id, channel_id, prompt, cron_expr, is_active, next_run_at, last_run_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (id)
+      DO UPDATE SET
+        user_id = EXCLUDED.user_id,
+        channel_id = EXCLUDED.channel_id,
+        prompt = EXCLUDED.prompt,
+        cron_expr = EXCLUDED.cron_expr,
+        is_active = EXCLUDED.is_active,
+        next_run_at = EXCLUDED.next_run_at,
+        last_run_at = EXCLUDED.last_run_at
+      RETURNING *;
+    `;
+    const vals = [
+      schedule.id || null,
+      schedule.user_id,
+      schedule.channel_id,
+      schedule.prompt,
+      schedule.cron_expr,
+      schedule.is_active ?? true,
+      schedule.next_run_at || null,
+      schedule.last_run_at || null
+    ];
+    const res = await client.query(sql, vals);
+    return res.rows[0];
+  } finally {
+    client.release();
+  }
+}
+
+async function getAllActiveSchedules() {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`SELECT * FROM discord_scheduled_messages WHERE is_active = 'true' OR is_active = TRUE`);
+    return res.rows || [];
+  } finally {
+    client.release();
+  }
+}
+
+function computeNextRun(cronExpr, fromDate = new Date()) {
+  try {
+    const it = cronParser.parseExpression(cronExpr, { currentDate: fromDate });
+    return it.next().toDate();
+  } catch (err) {
+    console.warn('[computeNextRun] invalid cron:', cronExpr, err.message);
+    return null;
+  }
+}
+
+/**
+ * schedule runner fn: `runFn(schedule)` should perform the job (send AI message)
+ */
+async function scheduleJob(schedule, runFn) {
+  // cancel previous if exists
+  if (scheduledTasks.has(schedule.id)) {
+    const job = scheduledTasks.get(schedule.id);
+    job.stop();
+    scheduledTasks.delete(schedule.id);
+  }
+
+  // Validate cron expression
+  if (!cron.validate(schedule.cron_expr)) {
+    console.warn('[scheduleJob] invalid cron:', schedule.cron_expr);
+    return;
+  }
+
+  const task = cron.schedule(schedule.cron_expr, async () => {
+    try {
+      await runFn(schedule);
+      // update last_run_at and next_run_at in DB
+      const lastRun = new Date();
+      const nextRun = computeNextRun(schedule.cron_expr, lastRun);
+      await saveSchedule({ ...schedule, last_run_at: lastRun, next_run_at: nextRun });
+    } catch (err) {
+      console.error('[scheduleTask] job error', err);
+    }
+  }, { scheduled: schedule.is_active === 'true' || schedule.is_active === true });
+
+  scheduledTasks.set(schedule.id, task);
+}
+
+/**
+ * Initialize scheduler on server start: load all schedules, schedule them
+ */
+async function initScheduler(runFn) {
+  const rows = await getAllActiveSchedules();
+  for (const r of rows) {
+    await scheduleJob(r, runFn);
+  }
+  console.log(`[scheduler] loaded ${rows.length} scheduled Discord jobs`);
+}
+
+module.exports = { saveSchedule, getAllActiveSchedules, scheduleJob, initScheduler, computeNextRun };
+
+/server/discord/discordBot.js (snippet showing initialization + runFn)
+// discordBot.js (extract)
+const { Client, GatewayIntentBits } = require('discord.js');
+const { initScheduler, saveSchedule } = require('./scheduler');
+// openai or ai wrapper to generate messages
+const ai = require('../ai/aiClient'); // below we provide aiClient
+
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+client.once('ready', () => {
+  console.log('Discord bot ready', client.user?.tag);
+  // Initialize scheduler to load persistent jobs and run them using runScheduledJob
+  initScheduler(runScheduledJob).catch(console.error);
+});
+
+async function runScheduledJob(schedule) {
+  // schedule: DB row with channel_id, prompt, user_id
+  try {
+    const aiPrompt = schedule.prompt;
+    const aiText = await ai.generateWithFailover(aiPrompt); // returns generated text
+    const channel = await client.channels.fetch(schedule.channel_id);
+    if (!channel || !channel.isTextBased()) {
+      console.warn('Channel not found or not text', schedule.channel_id);
+      return;
+    }
+    const sent = await channel.send(aiText);
+    console.log('Sent scheduled message', sent.id, 'for schedule', schedule.id);
+  } catch (err) {
+    console.error('[runScheduledJob] error:', err);
+  }
+}
+
+// expose saveScheduleToDB wrapper to routes when scheduling from HTTP
+async function scheduleAndPersist(schedule) {
+  const saved = await saveSchedule(schedule);
+  await scheduleJob(saved, runScheduledJob);
+  return saved;
+}
+
+module.exports = { client, scheduleAndPersist };
+
+
+Wire scheduleAndPersist into your API route that previously scheduled jobs.
+
+3) AI failover wrapper
+
+File: /server/ai/aiClient.js
+
+// aiClient.js
+// Multi-tier failover: tries primary provider, then fallback(s) with progressive timeouts
+const axios = require('axios');
+const { Configuration, OpenAIApi } = require('openai');
+
+const primary = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
+const fallbackKey = process.env.OPENAI_FALLBACK_KEY; // optional
+
+async function callOpenAIWithTimeout(prompt, timeoutMs = 7000, model = 'gpt-4o') {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await primary.createChatCompletion({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 800
+    }, { signal: controller.signal });
+    return resp.data.choices[0].message.content;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+async function callFallbackOpenAI(prompt, timeoutMs = 4000, model = 'gpt-4o-mini') {
+  if (!fallbackKey) throw new Error('No fallback key present');
+  const config = new Configuration({ apiKey: fallbackKey });
+  const client = new OpenAIApi(config);
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await client.createChatCompletion({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 600
+    }, { signal: controller.signal });
+    return resp.data.choices[0].message.content;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * generateWithFailover(prompt)
+ * tries primary -> fallback(s) and returns text or throws error with clear reason
+ */
+async function generateWithFailover(prompt) {
+  // Strategy: short timeouts so failover is fast
+  try {
+    return await callOpenAIWithTimeout(prompt, 7000, process.env.OPENAI_MODEL || 'gpt-4o');
+  } catch (errPrimary) {
+    console.warn('[AI] primary failed:', errPrimary.message || errPrimary);
+    // try fallback
+    try {
+      return await callOpenAIWithTimeout(prompt, 4000, 'gpt-4o-mini');
+    } catch (err2) {
+      console.warn('[AI] fallback1 failed:', err2.message || err2);
+      // try alternate key fallback (if provided)
+      if (fallbackKey) {
+        try {
+          return await callFallbackOpenAI(prompt, 3000, 'gpt-4o-mini');
+        } catch (err3) {
+          console.error('[AI] fallback2 failed:', err3.message || err3);
+          throw new Error('AI generation failed on all providers. Please try again later.');
+        }
+      } else {
+        throw new Error('AI generation failed on primary providers. Please try again later.');
+      }
+    }
+  }
+}
+
+module.exports = { generateWithFailover };
+
+4) Hardened NFT endpoint
+
+File: /server/routes/nft.js
+
+// nft.js
+const express = require('express');
+const router = express.Router();
+const axios = require('axios');
+
+/**
+ * /api/nft/wallet/:address
+ * Returns { nfts: [], warning?: string } with proper status codes
+ */
+router.get('/wallet/:address', async (req, res) => {
+  const owner = req.params.address;
+  try {
+    // call your indexer/provider (Alchemy/Moralis)
+    const url = `${process.env.ALCHEMY_API_URL}/getNFTs?owner=${owner}`;
+    const resp = await axios.get(url, { timeout: 8000 });
+    const nfts = (resp.data?.ownedNfts || []).map(n => ({
+      contract: n.contract?.address,
+      tokenId: n.id?.tokenId,
+      name: n.metadata?.name || n.title,
+      description: n.metadata?.description,
+      image: n.metadata?.image || n.media?.[0]?.gateway,
+      raw: n
+    }));
+    return res.json({ nfts });
+  } catch (err) {
+    console.error('[NFT] fetch error:', err?.message || err);
+    // If provider is down or request timed out -> 503
+    if (err.code === 'ECONNABORTED' || err.response?.status >= 500) {
+      return res.status(503).json({ nfts: [], error: 'NFT provider unavailable', code: 'SERVICE_UNAVAILABLE' });
+    }
+    // For other errors return empty list but 200 for graceful UX
+    return res.status(200).json({ nfts: [], warning: 'No NFTs found or temporary error' });
+  }
+});
+
+module.exports = router;
+
+5) Background monitor & self-heal (improved)
+
+File: /server/monitor/healthMonitor.js
+
+// healthMonitor.js
+const os = require('os');
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+let history = [];
+
+async function checkMemoryAndGC() {
+  const memUsedMB = process.memoryUsage().heapUsed / 1024 / 1024;
+  if (memUsedMB > (process.env.MEMORY_THRESHOLD_MB || 600)) {
+    console.warn('[health] High memory:', memUsedMB.toFixed(2), 'MB -> attempting GC');
+    if (global.gc) global.gc();
+    // re-sample
+    const after = process.memoryUsage().heapUsed / 1024 / 1024;
+    return { memUsedMB, memAfterMB: after };
+  }
+  return { memUsedMB, memAfterMB: memUsedMB };
+}
+
+async function checkDB() {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    return { ok: true };
+  } catch (err) {
+    console.error('[health] DB check failed', err.message || err);
+    return { ok: false, error: err.message };
+  }
+}
+
+async function snapshot() {
+  const time = new Date().toISOString();
+  const mem = await checkMemoryAndGC();
+  const db = await checkDB();
+  const entry = { ts: time, mem, db };
+  history.push(entry);
+  if (history.length > 200) history.shift();
+  // auto-fix example: if DB down -> try reconnect once, then alert
+  if (!db.ok) {
+    // attempt a reconnect (simple)
+    try { await pool.end(); } catch (_) {}
+    try { await pool.connect(); console.log('[health] DB reconnected'); } catch (err) { console.error('[health] DB reconnect failed'); }
+  }
+  return entry;
+}
+
+function start(interval = 30_000) {
+  console.log('[health] monitor started, interval', interval);
+  setInterval(() => snapshot().catch(console.error), interval);
+}
+
+module.exports = { start, snapshot, history };
+
+
+Wire healthMonitor.start() at server startup. This gives you stored history and simple auto-reconnect logic.
+
+6) Service worker + offline mutation queue skeleton (client)
+
+File: /client/sw.js (register from your app shell)
+
+// sw.js (very simple skeleton - expand for caching strategies)
+
+const CACHE_NAME = 'wealth-app-v1';
+const ASSETS = ['/','/index.html','/static/js/bundle.js'];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(self.clients.claim());
+});
+
+// fetch: network-first for API routes, cache-first for assets
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) {
+    // network-first with fallback to cache
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  } else {
+    event.respondWith(caches.match(event.request).then(r => r || fetch(event.request)));
+  }
+});
+
+// Offline mutation queue: postMessage driven. In client, write to IndexedDB and postMessage to service worker to sync later.
+// Implementation detail: use localForage or idb-keyval for robust IndexedDB wrappers.
+
+
+Client code to register and push mutations to IndexedDB (skeleton):
+
+// client/src/offlineQueue.js (simplified)
+import { openDB } from 'idb';
+
+export async function enqueueMutation(mutation) {
+  const db = await openDB('offline-mutations', 1, {
+    upgrade(db) { db.createObjectStore('mutations', { keyPath: 'id', autoIncrement: true }); }
+  });
+  await db.add('mutations', { ...mutation, createdAt: Date.now(), status: 'pending' });
+}
+
+export async function flushQueue() {
+  const db = await openDB('offline-mutations', 1);
+  const all = await db.getAll('mutations');
+  for (const m of all) {
+    try {
+      // send to server
+      await fetch('/api/offline/mutate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(m.payload) });
+      await db.delete('mutations', m.id);
+    } catch (err) {
+      console.warn('flush failed', err);
+      // keep it for next sync
+    }
+  }
+}
+
+
+Call flushQueue() on navigator.onLine events to sync.
+
+7) Accessibility CSS tweak (SidebarTrigger)
+
+File: /client/src/styles/accessibility.css
+
+/* Ensure touch targets at least 44px */
+.sidebar-trigger, .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+8) Optional DB migration (notes FK) — run once if you want safer deletes
+
+File: migrations/2025-10-03-notes-fk-setnull.sql
+
+-- Make notes.user_id set NULL on user delete (safer)
+ALTER TABLE notes DROP CONSTRAINT IF EXISTS notes_user_id_fkey;
+
+ALTER TABLE notes
+  ADD CONSTRAINT notes_user_id_fkey
+  FOREIGN KEY (user_id)
+  REFERENCES users (id)
+  ON DELETE SET NULL;
+
+
+Run this in a controlled manner (backup DB first).
+
+How to wire these into your app (summary)
+
+Add the NPM packages listed earlier.
+
+Add upsertUser.js into your DB utilities and replace the existing upsert user call used in authentication.
+
+Import and start health monitor at server startup:
+
+const health = require('./monitor/healthMonitor');
+health.start(30_000);
+
+
+Add Discord scheduler files and ensure discordBot.js calls initScheduler(runScheduledJob) once client is ready. Ensure your scheduling route uses scheduleAndPersist() to save + start job.
+
+Replace AI calls with aiClient.generateWithFailover(prompt) where appropriate.
+
+Replace your NFT wallet route with the hardened /routes/nft.js (or adapt logic).
+
+Add service worker registration in client app shell and include client/src/offlineQueue.js for offline mutation handling.
+
+Apply CSS accessibility file and ensure it is imported globally.
+
+(Optional) Apply DB migration if you want ON DELETE SET NULL.
+
+Final notes & testing checklist
+
+Test login flow for user with existing notes (should not crash).
+
+Test scheduling: create schedule via API, restart server, ensure job runs after restart.
+
+Test AI generation: force a slow primary provider and ensure failover kicks in quickly.
+
+Test NFT endpoint when provider is down — should return 503 and empty array.
+
+Test health monitor: artificially inflate memory or kill DB to observe reconnect behavior & history.
+
+Test offline: create offline mutation, go online, verify flushQueue syncs.

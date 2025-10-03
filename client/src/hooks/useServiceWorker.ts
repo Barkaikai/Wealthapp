@@ -5,7 +5,7 @@ export function useServiceWorker() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
       navigator.serviceWorker
         .register('/service-worker.js')
         .then((reg) => {
@@ -26,8 +26,8 @@ export function useServiceWorker() {
             reg.update();
           }, 60000);
         })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
+        .catch(() => {
+          // Service worker registration failed, app will work without offline support
         });
     }
   }, []);

@@ -22,9 +22,7 @@ export default function Videos() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/videos/generate', {
-        method: 'POST',
-      });
+      return await apiRequest('POST', '/api/videos/generate');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos/recommendations'] });

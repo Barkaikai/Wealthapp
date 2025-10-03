@@ -23,9 +23,10 @@ The platform offers:
 - **Digital Accountant:** Double-entry bookkeeping with Chart of Accounts, Journal Entries, Invoices, Payments, and Financial Reports.
 - **Personal Wallet:** Integrated Fiat Wallet (deposits, withdrawals, payment methods) and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
 - **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation (analyzes emails/calendar/notes to suggest actionable tasks), and AI Calendar Recommendations (suggests optimal calendar events based on routines and tasks).
-- **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, and personalized AI Videos.
+- **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration with parallel provider querying and response scoring.
 - **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights and recommendations.
 - **CRM:** Manages organizations, contacts, leads, deals, and activities with full CRUD operations and accounting integration.
+- **Microsoft Integration:** OAuth-based connection to Microsoft Office 365, Outlook, OneDrive, and Calendar with Graph API access.
 - **Header Tools:** Live time/date, online/offline status, advanced calculator (64-digit precision, Basic, Scientific, Expression modes), web search, and ChatGPT assistant.
 
 ### System Design Choices
@@ -35,9 +36,11 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 
 ### AI Services
 - **OpenAI GPT-5:** Daily briefing generation, email automation, lifestyle recommendations, educational content.
-- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation (analyzes user data to suggest actionable tasks), AI Calendar Recommendations (suggests optimal scheduling based on routines and tasks).
-- **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes.
+- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation (analyzes user data to suggest actionable tasks), AI Calendar Recommendations (suggests optimal scheduling based on routines and tasks), Multi-Agent orchestrator primary provider.
+- **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes, Multi-Agent responses and critiques.
 - **OpenAI GPT-4o Vision:** OCR and analysis of images in Notepad and Receipt Manager.
+- **Anthropic Claude 3.5 Sonnet:** (Optional) Secondary AI provider for Multi-Agent system with debate and critique capabilities.
+- **Cohere:** (Optional) Tertiary AI provider for diverse response generation.
 
 ### Search Services
 - **Tavily API:** Real-time web search.
@@ -54,5 +57,8 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 ### Third-Party Services
 - **Replit Auth (OIDC):** User authentication.
 - **Replit Connectors:** Secure credential management.
+- **Microsoft Azure AD:** OAuth 2.0 authentication for Office 365 integration.
+- **Microsoft Graph API:** Access to Outlook emails, OneDrive files, Calendar events.
+- **Redis (Upstash or self-hosted):** Caching layer for Multi-Agent AI short-term memory and performance optimization.
 - **Google Fonts:** Typography (Inter, JetBrains Mono).
 - **Recharts:** Financial data visualization.

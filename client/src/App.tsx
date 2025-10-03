@@ -35,6 +35,7 @@ import Settings from "@/pages/Settings";
 import LearnPage from "@/pages/LearnPage";
 import Wallet from "@/pages/Wallet";
 import DigitalAccountant from "@/pages/DigitalAccountant";
+import CRMPage from "@/pages/crm";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -70,6 +71,7 @@ function Router() {
           <Route path="/health" component={HealthMonitoring} />
           <Route path="/ai-intelligence" component={AIIntelligence} />
           <Route path="/accountant" component={DigitalAccountant} />
+          <Route path="/crm" component={CRMPage} />
           <Route path="/guide" component={Guide} />
           <Route path="/settings" component={Settings} />
           <Route path="/learn/:slug" component={LearnPage} />

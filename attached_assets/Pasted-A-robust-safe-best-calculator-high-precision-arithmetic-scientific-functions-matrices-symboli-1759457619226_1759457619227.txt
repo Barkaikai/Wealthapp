@@ -1,0 +1,318 @@
+A robust, safe “best” calculator (high-precision arithmetic, scientific functions, matrices, symbolic simplification, expression evaluation without using eval).
+
+A quantum-calculation bridge using Qiskit (runs on a local simulator or IBM Q backends if you configure an account) for experiments like small quantum circuits, expectation values, and basic quantum algorithms — useful for experimentation and for feeding the app’s AI with quantum-derived results.
+
+Below I provide ready-to-use code (Python) with:
+
+calculator.py — high-precision, safe expression evaluator + matrix ops + finance helper functions.
+
+quantum.py — small wrapper around Qiskit with simulation fallback.
+
+app.py — Flask API endpoints so your frontend / AI can call /calculate and /quantum.
+
+Installation and usage notes (including security & limitations).
+
+You can drop these into your Replit (or any Python project). I made the API small and self-contained so it’s easy to plug into your existing app.
+
+1) Install dependencies
+
+Run in your project environment:
+
+# basic math, symbolic, high precision
+pip install flask sympy mpmath numpy
+
+# safer expression evaluator
+pip install asteval
+
+# optional: Qiskit for quantum experiments
+pip install qiskit  # optional: remove if you don't want quantum support
+
+
+On some hosts (Replit) you may need extra steps for Qiskit. Qiskit is optional — the calculator will work without it. If you do want access to real IBM quantum backends later, see the Qiskit docs and create an IBMQ account.
+
+2) calculator.py — robust calculator module
+# calculator.py
+from sympy import sympify, Symbol, Matrix, N, simplify
+from mpmath import mp
+import numpy as np
+from asteval import Interpreter
+
+# set mpmath precision (digits)
+mp.dps = 50  # change for higher precision if you want
+
+# safe-expression interpreter using asteval
+_safe_symbols = {
+    # math constants
+    'pi': mp.pi,
+    'e': mp.e,
+}
+
+# add common numeric functions to the safe namespace
+_safe_funcs = [
+    'sin','cos','tan','asin','acos','atan',
+    'log','ln','sqrt','exp','abs','floor','ceil'
+]
+
+# create asteval interpreter with limited symbols
+aeval = Interpreter(usersyms={}, err_writer=None)
+for name in _safe_funcs:
+    # map to mpmath functions where available
+    try:
+        aeval.symtable[name] = getattr(mp, name)
+    except Exception:
+        pass
+for k,v in _safe_symbols.items():
+    aeval.symtable[k] = v
+
+def evaluate_numeric(expr: str, precision_digits:int = 50):
+    """Evaluate numeric expressions safely with high precision.
+       Supports mpmath functions provided above, and sympy numeric fallback."""
+    mp.dps = precision_digits
+    # try asteval first (fast & safe)
+    try:
+        res = aeval(expr)
+        if aeval.error:
+            # if asteval failed, fallback to sympy
+            raise Exception("asteval failed")
+        # convert mpmath numbers to python numeric or string
+        return str(res)
+    except Exception:
+        try:
+            # safer sympy parse and numeric evaluation
+            sym = sympify(expr)
+            val = N(sym, precision_digits)
+            return str(val)
+        except Exception as e:
+            return {"error":"could not evaluate expression", "detail":str(e)}
+
+def simplify_expression(expr: str):
+    try:
+        sym = sympify(expr)
+        s = simplify(sym)
+        return str(s)
+    except Exception as e:
+        return {"error":"could not simplify", "detail":str(e)}
+
+def matrix_operations(op: str, a, b=None):
+    """Perform matrix operations using numpy/sympy.
+       op: 'add','mul','inv','det','eigen'"""
+    try:
+        A = np.array(a, dtype=float)
+        if op == 'add':
+            B = np.array(b, dtype=float)
+            return (A + B).tolist()
+        if op == 'mul':
+            B = np.array(b, dtype=float)
+            return (A.dot(B)).tolist()
+        if op == 'inv':
+            return np.linalg.inv(A).tolist()
+        if op == 'det':
+            return float(np.linalg.det(A))
+        if op == 'eigen':
+            vals, vecs = np.linalg.eig(A)
+            return {"values": vals.tolist(), "vectors": vecs.tolist()}
+    except Exception as e:
+        return {"error":"matrix op failed", "detail":str(e)}
+
+# finance helpers
+def currency_round(amount, places=2):
+    return round(float(amount), places)
+
+def compound_interest(principal, rate, times_per_year, years):
+    # rate as decimal, e.g., 0.05
+    p = float(principal)
+    r = float(rate)
+    n = float(times_per_year)
+    t = float(years)
+    return p * (1 + r/n)**(n*t)
+
+
+Highlights
+
+Uses asteval (safer than eval) to evaluate common math expressions with mpmath precision.
+
+Falls back to sympy parsing when needed.
+
+Matrix ops via numpy.
+
+Finance helpers for rounding and compound interest.
+
+Adjustable mp.dps for more precision.
+
+3) quantum.py — quantum wrapper (Qiskit)
+
+Note: this will work if qiskit is installed. If not installed, the endpoints will return an instructive message.
+
+# quantum.py
+try:
+    from qiskit import QuantumCircuit, Aer, transpile, execute
+    from qiskit.providers.aer import AerSimulator
+    from qiskit.visualization import array_to_latex
+    QISKIT_AVAILABLE = True
+except Exception as e:
+    QISKIT_AVAILABLE = False
+
+def run_simple_bell():
+    """Create and run a Bell pair, return measurement counts."""
+    if not QISKIT_AVAILABLE:
+        return {"error":"qiskit not installed. Install via `pip install qiskit` to use quantum functions."}
+    qc = QuantumCircuit(2,2)
+    qc.h(0)
+    qc.cx(0,1)
+    qc.measure([0,1],[0,1])
+    simulator = AerSimulator()
+    t_qc = transpile(qc, simulator)
+    job = simulator.run(t_qc, shots=1024)
+    result = job.result()
+    counts = result.get_counts()
+    return {"counts": counts, "circuit": qc.qasm()}
+
+def run_custom_circuit(qasm: str, shots=1024):
+    if not QISKIT_AVAILABLE:
+        return {"error":"qiskit not installed."}
+    try:
+        qc = QuantumCircuit.from_qasm_str(qasm)
+        simulator = AerSimulator()
+        t_qc = transpile(qc, simulator)
+        job = simulator.run(t_qc, shots=shots)
+        result = job.result()
+        return {"counts": result.get_counts()}
+    except Exception as e:
+        return {"error":"failed to run qasm", "detail": str(e)}
+
+def expectation_pauli_z_on_state(num_qubits=1):
+    """Example: prepare |+> and compute expectation of Z on first qubit."""
+    if not QISKIT_AVAILABLE:
+        return {"error":"qiskit not installed."}
+    qc = QuantumCircuit(num_qubits)
+    qc.h(0)  # prepare superposition for qubit 0
+    # compute expectation by running in statevector simulator
+    simulator = Aer.get_backend('statevector_simulator')
+    result = execute(qc, simulator).result()
+    state = result.get_statevector()
+    # expectation of Z on qubit 0
+    # Z expectation = sum |amp_i|^2 * parity
+    import numpy as np
+    exp = 0.0
+    for idx, amp in enumerate(state):
+        prob = (np.abs(amp)**2)
+        bit0 = (idx >> 0) & 1
+        z = 1 if bit0 == 0 else -1
+        exp += prob * z
+    return {"expectation_z_qubit0": float(exp)}
+
+
+Notes
+
+run_simple_bell() demonstrates a measurable output (counts) — handy for visualization and feeding the app’s AI.
+
+run_custom_circuit() accepts QASM strings to run arbitrary small circuits.
+
+expectation_pauli_z_on_state() uses the statevector simulator to compute an expectation value (useful for quantum-informed features).
+
+Security / Practical
+
+Quantum results from simulator are deterministic and safe. If you want to run on real IBM hardware, you’ll need to configure IBMQ credentials and handle queuing delays.
+
+4) app.py — Flask API to glue them together
+# app.py
+from flask import Flask, request, jsonify
+from calculator import evaluate_numeric, simplify_expression, matrix_operations, compound_interest
+from quantum import run_simple_bell, run_custom_circuit, expectation_pauli_z_on_state
+
+app = Flask(__name__)
+
+@app.route('/calculate', methods=['POST'])
+def calculate():
+    data = request.json or {}
+    expr = data.get('expr')
+    precision = int(data.get('precision', 50))
+    if not expr:
+        return jsonify({"error":"no expression provided"}), 400
+    result = evaluate_numeric(expr, precision_digits=precision)
+    return jsonify({"expr": expr, "result": result})
+
+@app.route('/simplify', methods=['POST'])
+def simplify():
+    expr = (request.json or {}).get('expr')
+    if not expr:
+        return jsonify({"error":"no expression provided"}), 400
+    return jsonify({"simplified": simplify_expression(expr)})
+
+@app.route('/matrix', methods=['POST'])
+def matrix_api():
+    data = request.json or {}
+    op = data.get('op')
+    a = data.get('a')
+    b = data.get('b')
+    if not op or not a:
+        return jsonify({"error":"op and a are required"}), 400
+    return jsonify({"result": matrix_operations(op, a, b)})
+
+@app.route('/finance/compound', methods=['POST'])
+def finance_compound():
+    d = request.json or {}
+    p = d.get('principal')
+    r = d.get('rate')
+    n = d.get('times_per_year', 1)
+    t = d.get('years', 1)
+    if None in (p, r):
+        return jsonify({"error":"principal and rate required"}), 400
+    return jsonify({"result": compound_interest(p, r, n, t)})
+
+# Quantum endpoints
+@app.route('/quantum/bell', methods=['GET'])
+def quantum_bell():
+    return jsonify(run_simple_bell())
+
+@app.route('/quantum/run', methods=['POST'])
+def quantum_run():
+    q = request.json or {}
+    qasm = q.get('qasm')
+    shots = int(q.get('shots', 1024))
+    if not qasm:
+        return jsonify({"error":"qasm required"}), 400
+    return jsonify(run_custom_circuit(qasm, shots=shots))
+
+@app.route('/quantum/expect_z', methods=['GET'])
+def quantum_expect_z():
+    return jsonify(expectation_pauli_z_on_state())
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=3000)
+
+5) Example usage (curl)
+
+Numeric calc:
+
+curl -s -X POST http://localhost:3000/calculate -H "Content-Type: application/json" \
+  -d '{"expr":"sqrt(2)**2 + cos(pi)","precision":60}'
+
+
+Matrix:
+
+curl -s -X POST http://localhost:3000/matrix -H "Content-Type: application/json" \
+  -d '{"op":"mul", "a":[[1,2],[3,4]], "b":[[5,6],[7,8]]}'
+
+
+Quantum Bell:
+
+curl http://localhost:3000/quantum/bell
+
+6) Integrate with your AI
+
+After you get a result (numeric or quantum), store the raw result and metadata (expr, precision, timestamp, quantum_circuit, counts) in your DB.
+
+Feed these records into the AI module in your app (e.g., pass extracted numeric results or quantum counts to your categorization or decision models). The API design above returns JSON, so integration is straightforward.
+
+For expense/finance calculations, prefer using mp.dps high-precision numeric results to avoid floating point rounding problems.
+
+7) Limitations & security notes
+
+Do not use eval() on user input. This implementation uses asteval and sympy for safer parsing.
+
+asteval is safer than eval, but still restrict what you expose in aeval.symtable. I only register math functions — do not add OS or network calls there.
+
+Qiskit results are simulated locally by default. Real quantum hardware requires IBMQ credentials and job queuing.
+
+Quantum advantage for typical finance/expense calculations does not exist today — quantum part is for experimentation, research, and interesting features (e.g., anomaly detection with quantum kernels in research settings), not guaranteed faster results for common calculations.

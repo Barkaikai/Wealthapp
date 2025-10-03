@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -17,7 +17,8 @@ import { ViewModeProvider } from "@/components/ViewModeProvider";
 import { ViewModeSwitcher } from "@/components/ViewModeSwitcher";
 import { DigitalCalendar } from "@/components/DigitalCalendar";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import luxuryBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
@@ -79,6 +80,19 @@ function Router() {
   );
 }
 
+function MobileSidebarHandler() {
+  const { setOpenMobile, isMobile } = useSidebar();
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [location, isMobile, setOpenMobile]);
+
+  return null;
+}
+
 function AuthenticatedApp() {
   const { user } = useAuth() as { user: User };
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -89,7 +103,8 @@ function AuthenticatedApp() {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <SidebarProvider style={style as React.CSSProperties} defaultOpen={true}>
+      <MobileSidebarHandler />
       <div className="flex h-screen w-full relative">
         {/* Luxury Background Image */}
         <div 
@@ -102,21 +117,22 @@ function AuthenticatedApp() {
         
         <AppSidebar />
         <div className="flex flex-col flex-1 relative z-10">
-          <header className="flex items-center justify-between gap-4 p-4 border-b border-border bg-background/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3 flex-shrink-0">
+          <header className="flex items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 border-b border-border bg-background/80 backdrop-blur-sm">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-9 !w-9" />
               <TimeDate onClick={() => setCalendarOpen(true)} />
             </div>
-            <div className="flex-1 max-w-2xl mx-auto">
+            <div className="hidden md:flex flex-1 max-w-2xl mx-auto">
               <WebSearchBar compact />
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <OnlineStatus />
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => setCalendarOpen(true)}
                 data-testid="button-open-calendar"
+                className="hidden sm:flex"
               >
                 <CalendarDays className="h-5 w-5" />
               </Button>

@@ -1,0 +1,469 @@
+crm/models.py
+# crm/models.py
+from sqlalchemy import (
+    Column, Integer, String, DateTime, ForeignKey, Text, Float, Boolean, JSON
+)
+from sqlalchemy.orm import relationship, declarative_base
+import datetime
+
+Base = declarative_base()
+
+def now():
+    return datetime.datetime.utcnow()
+
+class User(Base):
+    __tablename__ = "crm_users"
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False)
+    name = Column(String(255))
+    hashed_password = Column(String(255))
+    role = Column(String(50), default="user")
+    created_at = Column(DateTime, default=now)
+
+class Organization(Base):
+    __tablename__ = "crm_orgs"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    website = Column(String(400))
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=now)
+
+class Contact(Base):
+    __tablename__ = "crm_contacts"
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey("crm_orgs.id"), nullable=True)
+    first_name = Column(String(120))
+    last_name = Column(String(120))
+    email = Column(String(255))
+    phone = Column(String(80))
+    role = Column(String(120))  # e.g., CFO, Investor
+    kyc_status = Column(String(50), default="unknown")  # unknown/pending/verified
+    portfolio_id = Column(String(255), nullable=True)  # link to wealth account
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=now)
+    org = relationship("Organization")
+
+class Lead(Base):
+    __tablename__ = "crm_leads"
+    id = Column(Integer, primary_key=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=True)
+    source = Column(String(255))   # e.g., "website", "referral", "email"
+    status = Column(String(50), default="new")  # new, contacted, qualified, lost
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=now)
+    contact = relationship("Contact")
+
+class Deal(Base):
+    __tablename__ = "crm_deals"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255))
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id"))
+    org_id = Column(Integer, ForeignKey("crm_orgs.id"), nullable=True)
+    amount = Column(Float, default=0.0)
+    currency = Column(String(8), default="USD")
+    stage = Column(String(100), default="prospect")  # prospect, proposal, negotiation, won, lost
+    probability = Column(Float, default=0.1)  # 0-1
+    close_date = Column(DateTime, nullable=True)
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=now)
+    contact = relationship("Contact")
+    org = relationship("Organization")
+
+class Activity(Base):
+    __tablename__ = "crm_activities"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("crm_users.id"), nullable=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=True)
+    deal_id = Column(Integer, ForeignKey("crm_deals.id"), nullable=True)
+    type = Column(String(50))  # call, email, meeting, task
+    subject = Column(String(255))
+    body = Column(Text)
+    due_at = Column(DateTime, nullable=True)
+    completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
+    contact = relationship("Contact")
+    deal = relationship("Deal")
+
+class AuditLog(Base):
+    __tablename__ = "crm_audit"
+    id = Column(Integer, primary_key=True)
+    action = Column(String(255))
+    user_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=now)
+    details = Column(JSON, default={})
+
+crm/schemas.py
+# crm/schemas.py
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+
+class OrgIn(BaseModel):
+    name: str
+    website: Optional[str] = None
+
+class ContactIn(BaseModel):
+    org_id: Optional[int] = None
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[EmailStr]
+    phone: Optional[str]
+    role: Optional[str]
+    portfolio_id: Optional[str]
+    metadata: Optional[dict] = {}
+
+class LeadIn(BaseModel):
+    contact_id: Optional[int] = None
+    source: Optional[str] = "website"
+    notes: Optional[str] = ""
+
+class DealIn(BaseModel):
+    title: str
+    contact_id: int
+    amount: float = 0.0
+    currency: str = "USD"
+    stage: Optional[str] = "prospect"
+    probability: Optional[float] = 0.1
+
+class ActivityIn(BaseModel):
+    user_id: Optional[int] = None
+    contact_id: Optional[int] = None
+    deal_id: Optional[int] = None
+    type: str
+    subject: str
+    body: Optional[str] = ""
+    due_at: Optional[datetime] = None
+
+crm/crud.py (core operations + audit)
+# crm/crud.py
+from sqlalchemy.orm import Session
+from . import models, schemas
+import datetime
+
+def create_org(db: Session, payload: schemas.OrgIn, user_id=None):
+    org = models.Organization(name=payload.name, website=payload.website)
+    db.add(org); db.commit(); db.refresh(org)
+    log(db, "create_org", user_id, {"org_id": org.id})
+    return org
+
+def create_contact(db: Session, payload: schemas.ContactIn, user_id=None):
+    c = models.Contact(
+        org_id=payload.org_id,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        email=payload.email,
+        phone=payload.phone,
+        role=payload.role,
+        portfolio_id=payload.portfolio_id,
+        metadata=payload.metadata or {}
+    )
+    db.add(c); db.commit(); db.refresh(c)
+    log(db, "create_contact", user_id, {"contact_id": c.id})
+    return c
+
+def create_lead(db: Session, payload: schemas.LeadIn, user_id=None):
+    l = models.Lead(contact_id=payload.contact_id, source=payload.source, notes=payload.notes)
+    db.add(l); db.commit(); db.refresh(l)
+    log(db, "create_lead", user_id, {"lead_id": l.id})
+    return l
+
+def create_deal(db: Session, payload: schemas.DealIn, user_id=None):
+    d = models.Deal(
+        title=payload.title, contact_id=payload.contact_id,
+        amount=payload.amount, currency=payload.currency,
+        stage=payload.stage, probability=payload.probability
+    )
+    db.add(d); db.commit(); db.refresh(d)
+    log(db, "create_deal", user_id, {"deal_id": d.id})
+    return d
+
+def create_activity(db: Session, payload: schemas.ActivityIn, user_id=None):
+    a = models.Activity(
+        user_id=payload.user_id,
+        contact_id=payload.contact_id,
+        deal_id=payload.deal_id,
+        type=payload.type,
+        subject=payload.subject,
+        body=payload.body,
+        due_at=payload.due_at
+    )
+    db.add(a); db.commit(); db.refresh(a)
+    log(db, "create_activity", user_id, {"activity_id": a.id})
+    return a
+
+def list_contacts(db: Session, q: str = None, limit=50, offset=0):
+    qs = db.query(models.Contact)
+    if q:
+        like = f"%{q}%"
+        qs = qs.filter((models.Contact.first_name.ilike(like)) | (models.Contact.last_name.ilike(like)) | (models.Contact.email.ilike(like)))
+    return qs.order_by(models.Contact.created_at.desc()).limit(limit).offset(offset).all()
+
+def get_contact(db: Session, contact_id: int):
+    return db.query(models.Contact).filter(models.Contact.id==contact_id).first()
+
+def log(db: Session, action: str, user_id: int, details: dict):
+    al = models.AuditLog(action=action, user_id=user_id, details=details)
+    db.add(al); db.commit()
+
+crm/api.py (FastAPI routes)
+# crm/api.py
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+from . import models, schemas, crud
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./crm.db")
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
+SessionLocal = sessionmaker(bind=engine)
+models.Base.metadata.create_all(bind=engine)
+
+router = APIRouter()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@router.post("/orgs")
+def create_org(payload: schemas.OrgIn, db=Depends(get_db), background: BackgroundTasks=None):
+    return crud.create_org(db, payload, user_id=None)
+
+@router.post("/contacts")
+def create_contact(payload: schemas.ContactIn, db=Depends(get_db)):
+    return crud.create_contact(db, payload, user_id=None)
+
+@router.get("/contacts")
+def list_contacts(q: str = None, limit: int = 50, offset: int = 0, db=Depends(get_db)):
+    return crud.list_contacts(db, q=q, limit=limit, offset=offset)
+
+@router.get("/contacts/{contact_id}")
+def get_contact(contact_id: int, db=Depends(get_db)):
+    c = crud.get_contact(db, contact_id)
+    if not c: raise HTTPException(404, "contact not found")
+    return c
+
+@router.post("/leads")
+def create_lead(payload: schemas.LeadIn, db=Depends(get_db)):
+    return crud.create_lead(db, payload, user_id=None)
+
+@router.post("/deals")
+def create_deal(payload: schemas.DealIn, db=Depends(get_db)):
+    return crud.create_deal(db, payload, user_id=None)
+
+@router.post("/activities")
+def create_activity(payload: schemas.ActivityIn, db=Depends(get_db), background: BackgroundTasks=None):
+    a = crud.create_activity(db, payload, user_id=None)
+    # schedule async AI sync hook or email send if needed
+    if background:
+        background.add_task(async_sync_to_ai, a.id)
+    return a
+
+# placeholder: push activity to AI analysis
+def async_sync_to_ai(activity_id: int):
+    # implement your AI endpoint call here
+    print("AI sync activity:", activity_id)
+
+Frontend — React (simplified)
+
+Create crm-frontend/ inside your app, or add to your existing React frontend.
+
+crm-frontend/src/api.js
+const BASE = process.env.REACT_APP_CRM_API || "http://localhost:8000/crm";
+
+export async function listContacts(q) {
+  const url = new URL(`${BASE}/contacts`);
+  if (q) url.searchParams.set("q", q);
+  const r = await fetch(url.toString());
+  return r.json();
+}
+
+export async function createContact(payload) {
+  const r = await fetch(`${BASE}/contacts`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  return r.json();
+}
+
+crm-frontend/src/ContactsList.jsx
+import React, {useEffect, useState} from "react";
+import { listContacts } from "./api";
+
+export default function ContactsList(){
+  const [contacts, setContacts] = useState([]);
+  const [q, setQ] = useState("");
+
+  useEffect(()=> {
+    load();
+  }, []);
+
+  async function load(){
+    const data = await listContacts();
+    setContacts(data);
+  }
+
+  async function onSearch(e){
+    e.preventDefault();
+    const data = await listContacts(q);
+    setContacts(data);
+  }
+
+  return (
+    <div style={{padding:20}}>
+      <h2>Contacts</h2>
+      <form onSubmit={onSearch}>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="search"/>
+        <button>Search</button>
+      </form>
+      <ul>
+        {contacts.map(c => (
+          <li key={c.id}>{c.first_name} {c.last_name} — {c.email}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+crm-frontend/src/AddContact.jsx
+import React, {useState} from "react";
+import { createContact } from "./api";
+
+export default function AddContact({onAdded}){
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [email, setEmail] = useState("");
+
+  async function submit(e){
+    e.preventDefault();
+    const payload = { first_name: first, last_name: last, email };
+    const res = await createContact(payload);
+    onAdded && onAdded(res);
+    setFirst(""); setLast(""); setEmail("");
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <input placeholder="First" value={first} onChange={e=>setFirst(e.target.value)} />
+      <input placeholder="Last" value={last} onChange={e=>setLast(e.target.value)} />
+      <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+      <button>Add</button>
+    </form>
+  );
+}
+
+
+You can plug these small components into your existing React app UI.
+
+Email integration & secure sync notes
+
+Endpoints are provided to store email-related Activity objects. For Gmail/Outlook:
+
+Use OAuth2 flow to get access tokens for the user.
+
+Store refresh tokens encrypted and schedule background jobs to pull messages via Gmail API (or Graph API).
+
+When an email from/to a contact arrives, create an Activity with type: "email", subject, body snippet and attachments metadata.
+
+For security: encrypt tokens at rest (KMS or env key), use HTTPS for all API traffic.
+
+AI & Workflow hooks
+
+create_activity uses a BackgroundTasks hook to call async_sync_to_ai(activity_id) — replace that function with an HTTP call to your AI microservice (the one you already asked to build earlier). Use the raw contact, activity, and portfolio context for better insights.
+
+Add a /webhooks endpoint to accept external triggers (bank events, trade signals, portfolio alerts) and convert those into Activities or Deals automatically.
+
+Integration steps (how to plug into daily-brief app)
+
+Drop files into your repo
+
+Create /crm folder and add models.py, schemas.py, crud.py, api.py.
+
+Add crm router to your main FastAPI app:
+
+# in your main app file
+from crm.api import router as crm_router
+app.include_router(crm_router, prefix="/crm")
+
+
+Install dependencies
+
+pip install fastapi uvicorn sqlalchemy pydantic
+
+
+Run DB migrations
+
+For development (SQLite): the code will auto-create tables. For production, use Alembic and Postgres.
+
+Example:
+
+export DATABASE_URL="sqlite:///./crm.db"
+python -c "from crm import models; from sqlalchemy import create_engine; engine=create_engine('sqlite:///./crm.db'); models.Base.metadata.create_all(bind=engine); print('done')"
+
+
+Start backend
+
+uvicorn main:app --reload --port 8000
+
+
+(If your main app is already running at a different host/port, mount CRM router as above.)
+
+Add frontend
+
+Add crm-frontend folder or add components to your existing React app.
+
+Configure REACT_APP_CRM_API to point to https://<your-backend>/crm.
+
+npm start the frontend or build into existing app.
+
+Wire auth
+
+This skeleton does not include full auth. If you already have user sessions, reuse your user IDs when creating activities and calls to crud (pass user_id).
+
+Email / OAuth
+
+Add an OAuth endpoint to obtain Gmail/Outlook credentials and store tokens in User.metadata encrypted.
+
+Background worker fetches new messages and creates Activity entries: type="email".
+
+AI sync
+
+Update async_sync_to_ai in crm/api.py to post new events to your AI endpoint (batching recommended).
+
+Deployment & Replit guidance
+
+If you want a single Replit project with your main app + CRM:
+
+Add the crm directory to the project.
+
+Add a replit.nix that includes Python & Node if you run frontend there.
+
+On Replit, run the backend with uvicorn main:app --host 0.0.0.0 --port 8080 (or Replit default).
+
+For the React frontend you can run it as a separate Replit project or serve static build from the FastAPI app.
+
+Quick demo seed script (optional) — crm/seed.py
+# crm/seed.py
+from .api import SessionLocal, engine
+from . import models, crud, schemas
+
+models.Base.metadata.create_all(bind=engine)
+db = SessionLocal()
+
+org = crud.create_org(db, schemas.OrgIn(name="Brinson Wealth"))
+c = crud.create_contact(db, schemas.ContactIn(first_name="Barkai", last_name="Brinson", email="barkai@example.com"))
+l = crud.create_lead(db, schemas.LeadIn(contact_id=c.id, source="website"))
+d = crud.create_deal(db, schemas.DealIn(title="Portfolio Review", contact_id=c.id, amount=5000))
+a = crud.create_activity(db, schemas.ActivityIn(contact_id=c.id, type="call", subject="Intro call", body="Left voicemail"))
+print("seeded")
+
+
+Run: python -m crm.seed (or python crm/seed.py depending on structure).
+
+Why this is tailored to your app
+
+Your app is a Wealth Automation / Daily Brief — CRM must track clients, leads, portfolios, and events (daily briefs, portfolio alerts). The schema includes portfolio_id on Contact to link to your wealth accounts. Activities capture briefings, email threads, and trading/alert events. Background AI hooks are already placed so your existing AI pipeline can analyze client interactions and generate daily briefs automatically.

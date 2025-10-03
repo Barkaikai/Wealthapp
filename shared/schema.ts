@@ -699,7 +699,7 @@ export type AnomalyDetection = typeof anomalyDetections.$inferSelect;
 export const receipts = pgTable("receipts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  filename: text("filename").notNull(),
+  filename: text("filename").notNull().default('receipt'),
   imageUrl: text("image_url"), // URL to stored image (if using Object Storage)
   rawText: text("raw_text"), // OCR extracted text
   merchant: text("merchant"), // AI-extracted merchant name
@@ -707,6 +707,7 @@ export const receipts = pgTable("receipts", {
   currency: text("currency").default('USD'),
   receiptDate: timestamp("receipt_date"), // Date on receipt
   category: text("category"), // AI-suggested category (groceries, dining, travel, etc)
+  items: text("items").array(), // Individual items from receipt
   aiAnalysis: text("ai_analysis"), // Full AI analysis and insights
   tags: text("tags").array(),
   status: text("status").notNull().default('pending'), // 'pending', 'processed', 'reviewed', 'archived'

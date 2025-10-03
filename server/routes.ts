@@ -1860,7 +1860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency: analysis.currency,
         receiptDate: analysis.receiptDate,
         category: analysis.category,
-        rawOcrText: analysis.rawText,
+        rawText: analysis.rawText,
         items: analysis.items || [],
         aiAnalysis: analysis.aiAnalysis,
         status: 'processed',

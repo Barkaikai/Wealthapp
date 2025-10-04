@@ -1,0 +1,284 @@
+1️⃣ Architecture Overview
+
+Components:
+
+Backend API / WebSocket Service
+
+FastAPI + LoRA model on GPU.
+
+Async batching + Redis caching.
+
+Horizontal auto-scaling GPU pods.
+
+Redis Cluster
+
+Caching for repeated prompts.
+
+Frontend React App
+
+Virtualized chat, WebSocket streaming.
+
+Served via Nginx.
+
+LoRA Retraining Pipeline
+
+Scheduled via Argo CronJob.
+
+Pulls interactions from DB/S3, fine-tunes LoRA adapter, saves to S3.
+
+Kubernetes Features
+
+GPU auto-scaling (HPA).
+
+Persistent volumes for model artifacts.
+
+Secrets for Redis, DB, S3 credentials.
+
+2️⃣ Dockerfiles
+Backend Dockerfile (backend/Dockerfile)
+FROM nvidia/cuda:12.2.1-cudnn8-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y python3 python3-pip git build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt
+
+COPY . /app
+ENV PYTHONPATH=/app
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app:app", "--workers", "4", "--bind", "0.0.0.0:8000"]
+
+
+requirements.txt:
+
+torch
+transformers
+peft
+bitsandbytes
+safetensors
+fastapi
+uvicorn
+gunicorn
+aioredis
+
+Frontend Dockerfile (frontend/Dockerfile)
+FROM node:20-alpine as build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+
+nginx.conf:
+
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    location /ws/ {
+        proxy_pass http://backend:8000/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+3️⃣ Kubernetes Manifests
+Backend Deployment (k8s/backend-deployment.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: <your-registry>/backend:latest
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        ports:
+        - containerPort: 8000
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+
+Backend Horizontal Pod Autoscaler (k8s/backend-hpa.yaml)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: nvidia.com/gpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+
+Redis Deployment (k8s/redis.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+
+Frontend Deployment (k8s/frontend.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: <your-registry>/frontend:latest
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+4️⃣ Argo CronJob for LoRA Retraining (argo/lora-cronjob.yaml)
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: lora-train
+spec:
+  schedule: "0 2 * * *"  # daily at 2AM
+  workflowSpec:
+    entrypoint: train
+    templates:
+    - name: train
+      container:
+        image: <your-registry>/backend:latest
+        command: ["/bin/bash", "-c"]
+        args: ["python3 build_dataset_s3.py && python3 fine_tune_lora.py && python3 evaluator.py"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: 32Gi
+            cpu: 8
+
+5️⃣ Notes for Production Deployment
+
+Secrets & Config
+
+Store S3_BUCKET, POSTGRES_DSN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY as Kubernetes secrets.
+
+Use envFrom: secretRef in deployments.
+
+GPU Nodes
+
+Use cloud provider GPU nodes (GCP/AWS/Azure).
+
+Ensure nvidia-device-plugin is installed.
+
+Scaling & Performance
+
+HPA auto-scales backend pods by GPU utilization.
+
+Redis cluster can be scaled for caching.
+
+LoRA training runs on separate cron GPU pods.
+
+WebSocket Streaming
+
+Frontend connects directly via LoadBalancer / Nginx proxy.
+
+Allows token-level streaming if you enhance backend.
+
+Observability
+
+Add Prometheus/Grafana for GPU metrics and request latency.
+
+Logs for batch queue and cache hits/misses.

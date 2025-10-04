@@ -1,0 +1,287 @@
+Good — below is a single, practical implementation you can drop into your app to accept major credit/debit cards, Apple Pay, Google Pay, Cash App Pay, and route all payments directly to your Stripe account. I also explain the current situation with Venmo and give a safe fallback.
+
+This solution uses Stripe Checkout (fast, wallet-friendly, Checkout automatically surfaces Apple/Google Pay and Cash App Pay when enabled on your Stripe account) plus a webhook to securely confirm payments server-side and then mint tokens to the buyer (so you only mint after Stripe confirms funds). It covers server and client code, environment variables, webhook security, and notes about Venmo.
+
+Important notes before you copy/paste
+
+This code assumes you already have a mintTokensToUser(userPubkey, amountTokens) server function (Solana mint) and a MintLog model to store the payment→mint record. If you want I can paste a minimal mintTokensToUser example too.
+
+You must set the environment variables listed below in your deployment (Stripe keys, webhook secret, domain).
+
+Enable Cash App Pay and the relevant wallets in your Stripe Dashboard (Settings → Payment methods) if you want them available.
+
+For production: store Stripe secret keys and mint private keys in secret manager (KMS), and protect webhook endpoint with the Stripe webhook secret.
+
+What this setup does
+
+Client creates a Stripe Checkout session for a given number of tokens (or amount in USD).
+
+User completes payment via Checkout (cards, Apple Pay, Google Pay, Cash App Pay if enabled).
+
+Stripe sends checkout.session.completed webhook to your server.
+
+Server verifies webhook signature, retrieves the session metadata (user wallet, token amount), mints tokens to the user's wallet, stores a MintLog and returns success.
+
+All funds go to your Stripe account (Stripe handles disbursement to your bank).
+
+Environment variables (required)
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_SUCCESS_URL=https://yourdomain.com/checkout/success
+STRIPE_CANCEL_URL=https://yourdomain.com/checkout/cancel
+BASE_PRICE_USD=0.00007
+SLOPE_PRICE_USD=0.00000001
+MINT_DECIMALS=6
+DOMAIN=https://yourdomain.com   # public domain, used by Checkout
+
+1) Backend — Express routes (create-checkout-session + webhook + helper price calc)
+
+Create file backend/routes/stripeCheckout.js (ESM style). Adapt import paths for your project.
+
+// backend/routes/stripeCheckout.js
+import express from 'express';
+import Stripe from 'stripe';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import { MintLog } from '../models.js';           // adapt to your models file
+import { mintTokensToUser } from '../solanaMint.js'; // implement or adapt
+import { getCurrentSupplyTokens, calculateTotalPriceUSD } from '../priceUtils.js'; // I'll give these after
+
+dotenv.config();
+const router = express.Router();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
+
+// Create a Checkout Session
+// POST /api/stripe/create-checkout-session
+// body: { userPubkey, buyAmount }  (buyAmount = integer tokens)
+router.post('/create-checkout-session', express.json(), async (req, res) => {
+  try {
+    const { userPubkey, buyAmount } = req.body;
+    if (!userPubkey || !Number.isInteger(buyAmount) || buyAmount <= 0) {
+      return res.status(400).json({ error: 'missing userPubkey or invalid buyAmount' });
+    }
+
+    // compute the dynamic price using your bonding curve
+    const currentSupply = await getCurrentSupplyTokens();
+    const totalUSD = calculateTotalPriceUSD(currentSupply, buyAmount);
+
+    // Stripe expects amount in cents (integer)
+    const amountCents = Math.max(1, Math.round(totalUSD * 100));
+
+    // create Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'], // Checkout auto-enables wallets like Apple/Google Pay and other wallets automatically when available
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${buyAmount} WFG tokens`,
+              metadata: { token_amount: String(buyAmount) },
+            },
+            unit_amount: amountCents, // Checkout treats this as total for quantity 1, so we set quantity:1
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: process.env.STRIPE_SUCCESS_URL + '?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: process.env.STRIPE_CANCEL_URL,
+      metadata: {
+        userPubkey: userPubkey,
+        buyAmount: String(buyAmount),
+        currentSupply: String(currentSupply),
+      },
+      // allow express/checkout to show wallets (Apple Pay/Google Pay/Link/CashAppPay if enabled)
+      // You can include billing_address_collection: 'required' if you need it.
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('create-checkout-session error', err);
+    res.status(500).json({ error: 'internal' });
+  }
+});
+
+// Webhook endpoint to process completed Checkout sessions
+// NOTE: Stripe sends raw body; use bodyParser.raw for signature verification
+router.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('⚠️ Webhook signature verification failed.', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the checkout.session.completed event
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    try {
+      // idempotency: check if we've already processed this session
+      const existing = await MintLog.findOne({ where: { paymentIntentId: session.payment_intent || session.id } });
+      if (existing) {
+        console.log('Session already processed:', session.id);
+        return res.json({ received: true });
+      }
+
+      const metadata = session.metadata || {};
+      const userPubkey = metadata.userPubkey || session.client_reference_id || null;
+      const buyAmount = Number(metadata.buyAmount || 0);
+
+      if (!userPubkey || buyAmount <= 0) {
+        console.warn('Missing userPubkey or buyAmount in session metadata; skipping mint');
+        // Optionally record a failed MintLog or notify admin
+        return res.json({ received: true });
+      }
+
+      // double-check price server-side (optional)
+      const currentSupply = await getCurrentSupplyTokens();
+      const totalUSD = calculateTotalPriceUSD(currentSupply, buyAmount);
+      // Note: price may have changed between session creation and now. You can choose to enforce exact match by comparing with session.amount_total/100
+
+      // Mint tokens on-chain
+      const mintResult = await mintTokensToUser(userPubkey, buyAmount); // returns { sig }
+      // Save MintLog: record payment/session and mint tx
+      await MintLog.create({
+        wallet: userPubkey,
+        amount: (BigInt(buyAmount) * BigInt(10 ** Number(process.env.MINT_DECIMALS || 6))).toString(),
+        mintSig: mintResult.sig || null,
+        paymentIntentId: session.payment_intent || session.id,
+        usdAmount: totalUSD,
+      });
+
+      console.log('Minted', buyAmount, 'tokens to', userPubkey);
+    } catch (err) {
+      console.error('Error processing checkout.session.completed', err);
+      // do not return error to Stripe — respond 200 so Stripe won't retry flooding; handle retries via your own logic or background queue
+    }
+  }
+
+  res.json({ received: true });
+});
+
+export default router;
+
+Helper utilities (price calculation and supply)
+
+Create backend/priceUtils.js:
+
+// backend/priceUtils.js
+import { MintLog } from './models.js'; // adapt path
+const BASE_PRICE_USD = Number(process.env.BASE_PRICE_USD ?? 0.00007);
+const SLOPE_PRICE_USD = Number(process.env.SLOPE_PRICE_USD ?? 0.00000001);
+const MINT_DECIMALS = Number(process.env.MINT_DECIMALS ?? 6);
+
+export async function getCurrentSupplyTokens() {
+  // Sum minted amounts stored in smallest units across MintLog
+  const rows = await MintLog.findAll();
+  let totalSmall = BigInt(0);
+  for (const r of rows) {
+    const amt = BigInt(r.amount || r.amountSmallest || 0);
+    totalSmall += amt;
+  }
+  const suppliedTokens = Number(totalSmall / BigInt(10 ** MINT_DECIMALS));
+  return suppliedTokens;
+}
+
+export function calculateTotalPriceUSD(currentSupplyTokens, buyAmountTokens) {
+  const base = BASE_PRICE_USD;
+  const slope = SLOPE_PRICE_USD;
+  const N = buyAmountTokens;
+  const S = currentSupplyTokens;
+  // formula: N*base + slope*(N*S + N*(N-1)/2)
+  const total = N * base + slope * (N * S + (N * (N - 1)) / 2);
+  return total;
+}
+
+2) Frontend — Stripe Checkout redirect (React)
+
+Create frontend/components/BuyWithStripeCheckout.jsx:
+
+// frontend/components/BuyWithStripeCheckout.jsx
+import React, { useState } from 'react';
+import axios from 'axios';
+
+export default function BuyWithStripeCheckout({ userPubkey }) {
+  const [buyAmount, setBuyAmount] = useState(10);
+  const [loading, setLoading] = useState(false);
+
+  async function createSession() {
+    setLoading(true);
+    try {
+      const res = await axios.post('/api/stripe/create-checkout-session', { userPubkey, buyAmount });
+      const { url } = res.data;
+      // redirect to Checkout (Stripe-hosted)
+      window.location.href = url;
+    } catch (err) {
+      console.error('create session error', err);
+      alert('Failed to create checkout session');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="p-4 border rounded">
+      <h3>Buy WFG Tokens</h3>
+      <label>
+        Amount:
+        <input type="number" min="1" value={buyAmount} onChange={(e)=>setBuyAmount(Number(e.target.value))} />
+      </label>
+      <div className="mt-2">
+        <button onClick={createSession} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded">
+          {loading ? 'Creating...' : `Buy ${buyAmount} tokens`}
+        </button>
+      </div>
+      <p className="text-xs mt-2">Pay using card, Apple Pay, Google Pay, Cash App Pay (if available).</p>
+    </div>
+  );
+}
+
+
+Why Stripe Checkout? It’s Stripe-hosted, PCI-compliant, and surfaces Apple Pay, Google Pay, and Cash App Pay automatically where available. It also avoids you handling sensitive card data.
+
+3) Webhook setup
+
+Add the webhook endpoint path you used (e.g. /api/stripe/webhook) to your Stripe Dashboard → Developers → Webhooks. Use the exact STRIPE_WEBHOOK_SECRET value to verify requests.
+
+If deploying behind proxies, make sure raw body is passed to the webhook route (Express bodyParser.raw usage above).
+
+4) Venmo: current state & recommended fallback
+
+As of my latest check, Stripe doesn’t provide consistent universal Venmo support on web like it does for Apple Pay/Google Pay/Cash App Pay. Venmo is available primarily via Venmo’s own merchant/consumer flows, Braintree, or specific mobile SDK flows.
+
+Recommendation: instead of relying on Venmo-for-web, enable Cash App Pay (Stripe) and Apple Pay/Google Pay — these cover most mobile-wallet users. If you must accept Venmo, consider:
+
+Offer a Venmo pay link as a fallback (user opens Venmo and pays your Venmo Business account) and have them paste the transaction id into your site for manual verification and a manual mint (less ideal).
+
+Or use a third-party bridge (some tools allow Venmo→Stripe flows) — those add complexity.
+
+5) Security & production checklist
+
+Do not store owner-keypair.json or other private keys in repo. Use KMS / Secrets Manager.
+
+Verify webhook signatures (code above does).
+
+Use idempotency: ensure each session.id or payment_intent is processed only once (we check MintLog).
+
+Log all payment→mint mapping and keep an admin dashboard showing status.
+
+Use HTTPS and secure your endpoints.
+
+6) Quick deploy checklist
+
+Add stripeCheckout router to your main server file:
+
+import stripeCheckoutRouter from './routes/stripeCheckout.js';
+app.use('/api/stripe', stripeCheckoutRouter);
+
+
+Set env vars in your deployment (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, DOMAIN, success/cancel urls).
+
+Enable Cash App Pay and wallets on Stripe Dashboard if desired.
+
+Deploy and test on Stripe test mode using test cards and wallets. Use a test webhook signing secret and ngrok/localtunnel for local webhook testing.

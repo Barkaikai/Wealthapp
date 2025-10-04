@@ -70,34 +70,47 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 ### Recent Security & Bug Fixes (October 4, 2025)
 
 **🔒 Security Enhancements:**
-- **Wealth Forge Input Validation:** Added comprehensive server-side validation
-  - gameScore: type checking, range validation (0-100), finite number verification
-  - gameData: structure validation (must be object, not array)
-  - packName: whitelist enforcement for buy endpoint (starter/bronze/silver/gold)
+- **Wealth Forge Input Validation** (`server/routes.ts` - `/api/wealth-forge/mine` endpoint):
+  - gameScore: type checking (`typeof === 'number'`), range validation (0-100), finite number verification (`Number.isFinite()`)
+  - gameData: structure validation (must be object, not array) using `typeof === 'object' && !Array.isArray()`
+  - Implementation: Added validation before `storage.mineWealthForgeTokens()` call
+- **Wealth Forge Buy Validation** (`server/routes.ts` - `/api/wealth-forge/buy` endpoint):
+  - packName: whitelist enforcement (['starter', 'bronze', 'silver', 'gold'])
   - amount: range validation (1-10,000) for purchase amounts
-- **Daily Bonus Timezone Fix:** Eliminated timezone-dependent logic, now uses UTC date normalization to prevent exploitation across timezones
-- **Race Condition Mitigation:** Enhanced anti-abuse checks in mining endpoint
+- **Daily Bonus Timezone Fix** (`server/routes.ts` - mining endpoint):
+  - Eliminated timezone-dependent logic by normalizing all dates to UTC using `new Date().toISOString().split('T')[0]`
+  - Storage layer (`storage.getWealthForgeProgress()`) returns UTC-normalized `lastDailyBonus` date
+  - Prevents timezone exploitation by comparing UTC dates only
+- **Race Condition Mitigation** (`server/routes.ts` - mining endpoint):
+  - Enhanced anti-abuse checks with proper date comparison before `storage.mineWealthForgeTokens()` call
 
 **🐛 Critical Bug Fixes:**
-- **Subscription Middleware:** Fixed critical bug where middleware accessed non-existent `tier` field
-  - UserSubscription table has `planId`, not `tier`
-  - Implemented proper resolution: `planId → plan → tier` via new `getSubscriptionPlanById()` storage method
-  - Fixed `attachSubscription`, `hasFeatureAccess`, and `checkUsageLimit` functions
-  - All subscription feature gating now working correctly
-- **Wealth Forge Mining:** Fixed Mine Tokens button sending invalid type 'mine' instead of valid 'task' type
-  - Server validates mining types: ['mini_game', 'daily_bonus', 'quiz', 'task']
-  - Frontend now sends correct 'task' type
+- **Subscription Middleware** (`server/subscriptionMiddleware.ts`):
+  - Fixed critical bug where `userSubscription.tier` was being accessed but doesn't exist in schema
+  - UserSubscription table has `planId` (references subscription_plans table), not `tier` field
+  - Implemented proper resolution chain: `planId → getSubscriptionPlanById() → plan.tier`
+  - Fixed functions: `attachSubscription()`, `hasFeatureAccess()`, `checkUsageLimit()`
+  - Added new storage method: `getSubscriptionPlanById()` in `server/storage.ts` and `server/db.ts`
+  - All subscription feature gating now working correctly with Premium tier properly recognized
+- **Wealth Forge Mining Button** (`client/src/pages/WealthForge.tsx` - line 308):
+  - Fixed Mine Tokens button sending invalid type `'mine'` instead of valid `'task'` type
+  - Changed: `onClick={() => mineMutation.mutate({ type: 'mine' })}` → `type: 'task'`
+  - Server validates mining types in array: `['mini_game', 'daily_bonus', 'quiz', 'task']`
+  - Frontend now sends correct 'task' type matching server validation
 
 **✅ Testing Status:**
-- Comprehensive E2E tests passed for all critical user flows:
-  - Authentication & OIDC login
-  - Subscription management (Premium tier)
-  - Wealth Forge mining with validation
-  - Dashboard asset creation and display
-  - Personal Wallet balances
-  - CRM organization management
-- All security validations confirmed working
-- No blocking issues detected
+- Comprehensive E2E regression tests passed via Playwright for all critical user flows
+- Test coverage includes:
+  - Authentication & OIDC login flow with session creation
+  - Subscription management (Premium tier recognition and feature access)
+  - Wealth Forge mining with input validation (gameScore, gameData, type validation)
+  - Daily bonus UTC date normalization behavior
+  - Dashboard asset creation and real-time display updates
+  - Personal Wallet balance tracking
+  - CRM organization CRUD operations
+- All security validations confirmed working at both API and UI levels
+- No blocking issues detected in production-critical paths
+- E2E test command: `run_test` tool via Playwright with database integration
 
 ## External Dependencies
 

@@ -128,13 +128,15 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
   
   // Initialize WebSocket server for AI streaming
-  if (process.env.OPENAI_API_KEY) {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    setupAIWebSocket(server, openai);
-    log("✓ AI WebSocket streaming enabled at /ws/ai-chat");
-  } else {
-    log("⚠️  AI WebSocket disabled - OPENAI_API_KEY not configured");
-  }
+  // NOTE: Temporarily disabled - no client-side implementation yet
+  // Re-enable when client-side WebSocket connection is implemented
+  // if (process.env.OPENAI_API_KEY) {
+  //   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  //   setupAIWebSocket(server, openai);
+  //   log("✓ AI WebSocket streaming enabled at /ws/ai-chat");
+  // } else {
+  //   log("⚠️  AI WebSocket disabled - OPENAI_API_KEY not configured");
+  // }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

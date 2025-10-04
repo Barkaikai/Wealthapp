@@ -30,7 +30,15 @@ export function setupAIWebSocket(server: Server, openai: OpenAI) {
           return;
         }
 
-        if (message.type === 'chat' && message.message) {
+        if (message.type === 'chat') {
+          if (!message.message) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Missing required field: message' 
+            }));
+            return;
+          }
+
           const model = message.model || 'gpt-4o-mini';
           
           const cached = aiCache.get(message.message, model);
@@ -66,7 +74,15 @@ export function setupAIWebSocket(server: Server, openai: OpenAI) {
           ws.send(JSON.stringify({ type: 'done', cached: false }));
           
           console.log(`[WebSocket] Completed streaming response (${fullResponse.length} chars)`);
+          return;
         }
+
+        // Handle invalid message types
+        ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: `Invalid message type: ${message.type}. Supported types: 'chat', 'ping'` 
+        }));
+        console.log(`[WebSocket] Invalid message type received: ${message.type}`);
       } catch (error) {
         console.error('[WebSocket] Error processing message:', error);
         ws.send(JSON.stringify({ 

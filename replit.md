@@ -17,7 +17,14 @@ This production-ready AI-powered platform is designed for billionaire-level weal
 - AI data forwarding integration for comprehensive app monitoring and learning
 - 27 critical payment/subscription/wallet routes migrated to canonical user pattern
 
-**Recent Bug Fixes (October 4, 2025):**
+**Recent Bug Fixes (October 4, 2025 - Latest Session):**
+1. ✅ `/api/subscription/checkout` - Fixed subscription checkout to use `getSubscriptionPlanById(planId)` instead of `getActivePlan(tier)`, resolving 404 errors when upgrading to Premium/Enterprise tiers (server/routes.ts line 4511)
+2. ✅ Stripe Test Price IDs - Configured test Stripe price IDs for Premium and Enterprise tiers in database (price_test_monthly_premium, price_test_monthly_enterprise, etc.) to enable checkout flow testing
+3. ✅ `/api/accounting/journal-entries` - Added GET and POST alias endpoints for journal entries API compatibility (server/routes.ts lines 2670, 2682)
+4. ✅ `/api/nft/items` - Added GET alias endpoint for NFT items API compatibility (server/routes.ts line 3553)
+5. ✅ Active plan validation - Enhanced subscription checkout to verify plan.isActive before processing payment
+
+**Previous Bug Fixes (October 4, 2025 - Earlier):**
 1. ✅ `/api/subscription/tiers` - Added alias endpoint for compatibility
 2. ✅ `/api/wealth-forge/balance` - Added dedicated balance endpoint
 3. ✅ `/api/nft/wallets` - Fixed storage method name (getWalletConnections)
@@ -25,9 +32,10 @@ This production-ready AI-powered platform is designed for billionaire-level weal
 5. ✅ `/api/wallet/balance` - Added wallet balance alias endpoint
 6. ✅ Digital Accountant Account Ledger - Fixed query URL construction with account code
 
-**Known Missing Features (Not Bugs):**
-- `/api/health/summary` - Aggregated health metrics endpoint (planned)
-- `/integrations` - Frontend page for managing integrations (planned)
+**Known Limitations (By Design):**
+- Stripe Integration: Test price IDs configured for development; real Stripe products/prices must be created in Stripe Dashboard and IDs updated in subscription_plans table for production use
+- `/api/health/summary` - Aggregated health metrics endpoint (planned enhancement)
+- `/integrations` - Frontend page for managing integrations (planned enhancement)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

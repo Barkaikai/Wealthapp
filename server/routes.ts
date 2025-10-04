@@ -7,11 +7,19 @@ import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
 import { fetchRecentEmails } from "./gmail";
 import OpenAI from "openai";
+import Stripe from "stripe";
+import { convertToUSD } from "./currencyExchange";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY,
   timeout: 60000,
+});
+
+// Initialize Stripe client
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-11-20.acacia',
+  typescript: true,
 });
 import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema, insertAccountSchema, insertJournalLineSchema, insertInvoiceSchema, insertBankTransactionSchema } from "@shared/schema";
 import { analyzeReceiptImage } from "./receiptOCR";
@@ -3837,6 +3845,419 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     } catch (error: any) {
       console.error('[Wealth Forge] Seed error:', error);
       res.status(500).json({ message: error.message || 'Failed to seed vault items' });
+    }
+  });
+
+  // ============================================================================
+  // SUBSCRIPTION & STRIPE ROUTES
+  // ============================================================================
+
+  // Get all subscription plans
+  app.get('/api/subscription/plans', isAuthenticated, async (req: any, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error('[Subscription] Get plans error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch subscription plans' });
+    }
+  });
+
+  // Get current user's subscription
+  app.get('/api/subscription/current', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        return res.json({ tier: 'free', status: 'active' });
+      }
+      
+      res.json(subscription);
+    } catch (error: any) {
+      console.error('[Subscription] Get current error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch subscription' });
+    }
+  });
+
+  // Create Stripe Checkout Session
+  app.post('/api/subscription/checkout', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { planId, billingInterval = 'monthly' } = req.body;
+
+      if (!planId) {
+        return res.status(400).json({ message: 'Plan ID is required' });
+      }
+
+      const plan = await storage.getActivePlan(planId);
+      if (!plan) {
+        return res.status(404).json({ message: 'Subscription plan not found' });
+      }
+
+      // Get or create Stripe customer
+      const user = await storage.getUser(userId);
+      let customerId = user?.stripeCustomerId;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user?.email || undefined,
+          metadata: { userId },
+        });
+        customerId = customer.id;
+        
+        await storage.upsertUser({
+          id: userId,
+          email: user?.email || null,
+          name: user?.name || null,
+          stripeCustomerId: customerId,
+        });
+      }
+
+      // Select the appropriate price ID
+      const priceId = billingInterval === 'annual' 
+        ? plan.stripePriceIdAnnual 
+        : plan.stripePriceIdMonthly;
+
+      if (!priceId) {
+        return res.status(400).json({ 
+          message: `No Stripe price configured for ${billingInterval} billing` 
+        });
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.APP_BASE_URL || req.headers.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.APP_BASE_URL || req.headers.origin}/subscription`,
+        metadata: {
+          userId,
+          planId: plan.id.toString(),
+          tier: plan.tier,
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('[Subscription] Checkout error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create checkout session' });
+    }
+  });
+
+  // Create Stripe Customer Portal Session
+  app.post('/api/subscription/portal', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ message: 'No Stripe customer found' });
+      }
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${process.env.APP_BASE_URL || req.headers.origin}/subscription`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('[Subscription] Portal error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create portal session' });
+    }
+  });
+
+  // Stripe Webhook Handler (no auth required - validates via signature)
+  app.post('/api/stripe/webhook', async (req, res) => {
+    const signature = req.headers['stripe-signature'] as string;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      console.error('[Stripe] Webhook secret not configured');
+      return res.status(500).json({ message: 'Webhook secret not configured' });
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    } catch (err: any) {
+      console.error('[Stripe] Webhook signature verification failed:', err.message);
+      return res.status(400).json({ message: `Webhook signature verification failed: ${err.message}` });
+    }
+
+    // Check for duplicate events
+    const existingEvent = await storage.getSubscriptionEventByStripeId(event.id);
+    if (existingEvent) {
+      console.log('[Stripe] Duplicate event, skipping:', event.id);
+      return res.json({ received: true, duplicate: true });
+    }
+
+    console.log('[Stripe] Processing webhook event:', event.type);
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const userId = session.metadata?.userId;
+          const planId = session.metadata?.planId;
+          const tier = session.metadata?.tier;
+
+          if (!userId || !planId) {
+            console.error('[Stripe] Missing metadata in checkout session:', session.id);
+            break;
+          }
+
+          // Create or update subscription
+          const subscription = await storage.createUserSubscription({
+            userId,
+            planId: parseInt(planId),
+            tier: tier || 'premium',
+            status: 'active',
+            stripeSubscriptionId: session.subscription as string,
+            stripeCustomerId: session.customer as string,
+            currentPeriodStart: new Date(session.created * 1000),
+            currentPeriodEnd: new Date((session.created + 30 * 24 * 60 * 60) * 1000), // Approximate, will be updated
+            billingInterval: 'monthly',
+          });
+
+          // Log revenue with proper FX conversion
+          const plan = await storage.getActivePlan(tier || 'premium');
+          if (plan && session.amount_total) {
+            const amount = session.amount_total / 100; // Convert from cents to dollars
+            const currency = session.currency?.toUpperCase() || 'USD';
+            
+            try {
+              const usdValue = await convertToUSD(amount, currency);
+              const exchangeRate = currency === 'USD' ? 1.0 : (amount > 0 ? usdValue / amount : 1.0);
+
+              await storage.createRevenueEntry({
+                userId,
+                source: 'stripe_subscription',
+                eventType: 'subscription_created',
+                amount,
+                currency,
+                usdValue,
+                metadata: {
+                  sessionId: session.id,
+                  subscriptionId: session.subscription,
+                  planId,
+                  tier,
+                  exchangeRate,
+                  originalAmountCents: session.amount_total,
+                },
+                occurredAt: new Date(session.created * 1000),
+              });
+              console.log(`[Stripe] Revenue logged: ${currency} ${amount} = USD ${usdValue.toFixed(2)} (rate: ${exchangeRate.toFixed(4)})`);
+            } catch (error) {
+              console.error('[Stripe] Failed to log revenue with FX conversion:', error);
+              // Log with fallback 1:1 conversion but mark as failed
+              await storage.createRevenueEntry({
+                userId,
+                source: 'stripe_subscription',
+                eventType: 'subscription_created',
+                amount,
+                currency,
+                usdValue: amount, // Fallback 1:1
+                metadata: {
+                  sessionId: session.id,
+                  subscriptionId: session.subscription,
+                  planId,
+                  tier,
+                  fxConversionFailed: true,
+                  error: (error as Error).message,
+                },
+                occurredAt: new Date(session.created * 1000),
+              });
+            }
+          }
+
+          console.log('[Stripe] Subscription created:', subscription.id);
+          break;
+        }
+
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const dbSubscription = await storage.getUserSubscriptionByStripeId(subscription.id);
+
+          if (dbSubscription) {
+            await storage.updateUserSubscription(dbSubscription.id, {
+              status: subscription.status,
+              currentPeriodStart: new Date(subscription.current_period_start * 1000),
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end ? 'true' : 'false',
+            });
+            console.log('[Stripe] Subscription updated:', dbSubscription.id);
+          }
+          break;
+        }
+
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const dbSubscription = await storage.getUserSubscriptionByStripeId(subscription.id);
+
+          if (dbSubscription) {
+            await storage.updateUserSubscription(dbSubscription.id, {
+              status: 'canceled',
+              canceledAt: new Date(),
+            });
+            console.log('[Stripe] Subscription canceled:', dbSubscription.id);
+          }
+          break;
+        }
+
+        case 'invoice.paid': {
+          const invoice = event.data.object as Stripe.Invoice;
+          const subscription = await storage.getUserSubscriptionByStripeId(invoice.subscription as string);
+
+          if (subscription && invoice.amount_paid) {
+            // Log revenue for recurring payment with FX conversion
+            const amount = invoice.amount_paid / 100; // Convert from cents to dollars
+            const currency = invoice.currency.toUpperCase();
+            
+            try {
+              const usdValue = await convertToUSD(amount, currency);
+              const exchangeRate = currency === 'USD' ? 1.0 : (amount > 0 ? usdValue / amount : 1.0);
+
+              await storage.createRevenueEntry({
+                userId: subscription.userId,
+                source: 'stripe_subscription',
+                eventType: 'invoice_paid',
+                amount,
+                currency,
+                usdValue,
+                metadata: {
+                  invoiceId: invoice.id,
+                  subscriptionId: invoice.subscription,
+                  exchangeRate,
+                  originalAmountCents: invoice.amount_paid,
+                },
+                occurredAt: new Date(invoice.created * 1000),
+              });
+              console.log(`[Stripe] Invoice paid: ${currency} ${amount} = USD ${usdValue.toFixed(2)} (rate: ${exchangeRate.toFixed(4)})`);
+            } catch (error) {
+              console.error('[Stripe] Failed to log invoice revenue with FX conversion:', error);
+              // Log with fallback 1:1 conversion but mark as failed
+              await storage.createRevenueEntry({
+                userId: subscription.userId,
+                source: 'stripe_subscription',
+                eventType: 'invoice_paid',
+                amount,
+                currency,
+                usdValue: amount, // Fallback 1:1
+                metadata: {
+                  invoiceId: invoice.id,
+                  subscriptionId: invoice.subscription,
+                  fxConversionFailed: true,
+                  error: (error as Error).message,
+                },
+                occurredAt: new Date(invoice.created * 1000),
+              });
+            }
+          }
+          break;
+        }
+
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as Stripe.Invoice;
+          const subscription = await storage.getUserSubscriptionByStripeId(invoice.subscription as string);
+
+          if (subscription) {
+            await storage.updateUserSubscription(subscription.id, {
+              status: 'past_due',
+            });
+            console.log('[Stripe] Payment failed, subscription marked past_due:', subscription.id);
+          }
+          break;
+        }
+
+        default:
+          console.log('[Stripe] Unhandled event type:', event.type);
+      }
+
+      // Log the event
+      await storage.createSubscriptionEvent({
+        stripeEventId: event.id,
+        eventType: event.type,
+        eventData: event.data.object as any,
+        processedAt: new Date(),
+      });
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('[Stripe] Webhook processing error:', error);
+      res.status(500).json({ message: error.message || 'Webhook processing failed' });
+    }
+  });
+
+  // ============================================================================
+  // REVENUE ANALYTICS ROUTES
+  // ============================================================================
+
+  // Get revenue entries (admin/analytics)
+  app.get('/api/revenue/entries', isAuthenticated, async (req: any, res) => {
+    try {
+      const { startDate, endDate, source } = req.query;
+      
+      const start = startDate ? new Date(startDate) : undefined;
+      const end = endDate ? new Date(endDate) : undefined;
+
+      let entries;
+      if (source) {
+        entries = await storage.getRevenueBySource(source, start, end);
+      } else {
+        entries = await storage.getRevenueEntries(undefined, start, end);
+      }
+
+      res.json(entries);
+    } catch (error: any) {
+      console.error('[Revenue] Get entries error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch revenue entries' });
+    }
+  });
+
+  // Get revenue summary
+  app.get('/api/revenue/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'Start date and end date are required' });
+      }
+
+      const summary = await storage.getRevenueSummary(
+        new Date(startDate),
+        new Date(endDate)
+      );
+
+      res.json(summary);
+    } catch (error: any) {
+      console.error('[Revenue] Get summary error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch revenue summary' });
+    }
+  });
+
+  // Get revenue reports
+  app.get('/api/revenue/reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const { type, limit } = req.query;
+      
+      const reports = await storage.getRevenueReports(
+        type as string | undefined,
+        limit ? parseInt(limit as string) : undefined
+      );
+
+      res.json(reports);
+    } catch (error: any) {
+      console.error('[Revenue] Get reports error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch revenue reports' });
     }
   });
 

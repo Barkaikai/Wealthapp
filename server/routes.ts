@@ -2664,6 +2664,41 @@ ${processedText}`;
     }
   });
 
+  app.get('/api/accounting/journal-entries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const entries = await storage.getJournalEntries(userId, limit);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching journal entries:", error);
+      res.status(500).json({ message: "Failed to fetch journal entries" });
+    }
+  });
+
+  app.post('/api/accounting/journal-entries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { description, lines, clientRef } = req.body;
+
+      if (!description || !lines || !Array.isArray(lines)) {
+        return res.status(400).json({ message: "Invalid journal entry data" });
+      }
+
+      const validatedLines = lines.map(line => insertJournalLineSchema.parse(line));
+      
+      if (!storage.validateDoubleEntry(validatedLines)) {
+        return res.status(400).json({ message: "Double-entry validation failed: debits must equal credits" });
+      }
+
+      const entry = await storage.createJournalEntry(userId, description, validatedLines, clientRef);
+      res.json(entry);
+    } catch (error: any) {
+      console.error("Error creating journal entry:", error);
+      res.status(400).json({ message: error.message || "Failed to create journal entry" });
+    }
+  });
+
   app.get('/api/accounting/invoices', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

@@ -2422,6 +2422,32 @@ ${processedText}`;
     }
   });
 
+  // Alias endpoint for wallet balance (compatibility)
+  app.get('/api/wallet/balance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      let wallet = await storage.getWallet(userId);
+      
+      // Create wallet if it doesn't exist
+      if (!wallet) {
+        wallet = await storage.createWallet({
+          userId,
+          balance: 0,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalDeposited: 0,
+          totalWithdrawn: 0,
+          currency: 'USD',
+        });
+      }
+      
+      res.json(wallet);
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+      res.status(500).json({ message: "Failed to fetch wallet balance" });
+    }
+  });
+
   app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = await getCanonicalUserId(req.user.claims);

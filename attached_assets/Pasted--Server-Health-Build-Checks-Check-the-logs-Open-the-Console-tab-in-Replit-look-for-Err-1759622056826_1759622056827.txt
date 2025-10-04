@@ -1,0 +1,125 @@
+🧩 Server Health & Build Checks
+
+✅ Check the logs:
+Open the “Console” tab in Replit → look for:
+
+Errors like Cannot find module, SyntaxError, or npm ERR!
+
+Warnings about “port already in use”
+
+✅ Run manually:
+
+npm install
+npm run build
+npm start
+
+
+Make sure you see something like:
+
+Server listening on 3000
+
+
+✅ Correct PORT usage:
+In your code (usually server.ts or index.js), ensure:
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT);
+
+
+Replit automatically injects the port via process.env.PORT.
+
+🌐 Replit Configuration Checks
+
+✅ Open .replit file — ensure it includes:
+
+run = "npm start"
+
+
+or if using TypeScript dev mode:
+
+run = "npm run dev"
+
+
+✅ Ensure replit.nix includes NodeJS (e.g., Node 20 or newer):
+
+{ pkgs }: {
+  deps = [ pkgs.nodejs-20_x pkgs.bash pkgs.openssl pkgs.git ];
+}
+
+⚙️ Networking / Port Exposure
+
+✅ Ensure the server binds to 0.0.0.0 instead of localhost:
+
+app.listen(PORT, '0.0.0.0', () => console.log(`Server on ${PORT}`));
+
+
+✅ No conflicting processes:
+If you ran npm start multiple times, stop all running processes in the Replit shell with:
+
+killall node
+
+
+then restart with npm start.
+
+📦 Dependencies & Build
+
+✅ Install all dependencies cleanly:
+
+rm -rf node_modules
+npm cache clean --force
+npm install
+
+
+✅ Check package.json scripts:
+
+"start" should point to built JS (node dist/server.js)
+
+"dev" should use ts-node-dev (ts-node-dev src/server.ts)
+
+✅ Run build step before deploy:
+
+npm run build
+
+🔐 Environment & Secrets
+
+✅ Confirm all required ENV vars are set:
+
+JWT_SECRET=
+STRIPE_SECRET_KEY=
+SMTP_USER=
+PORT=3000
+
+
+✅ Check Replit Secrets tab → ensure none of your keys are malformed (e.g. extra quotes).
+
+💻 Deployment / URL Layer
+
+✅ Wait 20–30 seconds after running.
+Replit sometimes takes a bit to boot the HTTPS URL.
+
+✅ Click the "Open in new tab" globe icon in Replit’s top bar instead of the printed URL.
+
+✅ If still refused: Try a new Replit instance.
+Sometimes Replit routing nodes cache a broken build.
+
+Fork the project or create a new one
+
+Copy your code
+
+Re-run the setup.
+
+🧪 Verification
+
+✅ After starting, open the Replit console and confirm it prints:
+
+Server listening on 3000
+
+
+✅ Test manually in Replit shell:
+
+curl http://localhost:3000/health
+
+
+Should return { "ok": true }
+
+✅ Then open your Replit web URL again — it should now connect.

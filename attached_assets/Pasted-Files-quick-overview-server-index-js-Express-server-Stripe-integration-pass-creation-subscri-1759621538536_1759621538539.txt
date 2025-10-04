@@ -1,0 +1,554 @@
+Files & quick overview
+
+server/index.js — Express server, Stripe integration, pass creation, subscription management.
+
+server/db.sql — Postgres schema.
+
+frontend/src/SubscribeButton.jsx — Start Stripe Checkout for subscription.
+
+frontend/src/ProfileAdmin.jsx — Admin UI to create/view passes and change plan price/tax configuration.
+
+frontend/src/RedeemPass.jsx — UI to redeem barcode/QR pass.
+
+package.json snippets & required env vars.
+
+Notes for deployment & security.
+
+ENVIRONMENT VARIABLES (required)
+
+Set these in your environment (Replit Secrets / .env in development):
+
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+DATABASE_URL=postgres://user:pass@host:5432/dbname
+APP_BASE_URL=https://your-app-url.example   # used for success/cancel URLs
+ADMIN_USER_ID=<your-admin-auth-id>          # the ID used by your profile auth
+DEFAULT_PLAN_PRICE_CENTS=2499               # 2499 cents -> $24.99
+DEFAULT_PLAN_ID=<optional existing stripe price id>
+
+1) Database schema (server/db.sql)
+
+Run this to prepare your Postgres DB:
+
+-- users table (basic)
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT,
+  name TEXT,
+  is_admin BOOLEAN DEFAULT FALSE
+);
+
+-- subscription_config: stores current monthly price and stripe price id
+CREATE TABLE IF NOT EXISTS subscription_config (
+  id SERIAL PRIMARY KEY,
+  stripe_price_id TEXT,    -- keep if you create a Stripe Price (optional)
+  price_cents INTEGER NOT NULL DEFAULT 2499,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+-- free_pass: admin-created pass codes (barcode values)
+CREATE TABLE IF NOT EXISTS free_passes (
+  id SERIAL PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  created_by TEXT NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT now(),
+  redeemed_by TEXT REFERENCES users(id),
+  redeemed_at TIMESTAMP,
+  note TEXT
+);
+
+-- tax_rates: map region -> stripe_tax_rate_id OR percentage
+CREATE TABLE IF NOT EXISTS tax_rates (
+  id SERIAL PRIMARY KEY,
+  region_code TEXT UNIQUE NOT NULL,   -- e.g. "US-CA", "US", "DE"
+  stripe_tax_rate_id TEXT,            -- optional: store Stripe Tax Rate id
+  percent NUMERIC,                    -- fallback percent if stripe id not used
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+-- insert initial subscription_config row
+INSERT INTO subscription_config (price_cents, currency) 
+SELECT 2499, 'usd' WHERE NOT EXISTS (SELECT 1 FROM subscription_config);
+
+2) Backend: server/index.js
+
+Install dependencies:
+
+npm install express pg stripe body-parser qrcode uuid dotenv cors
+
+
+Now the server:
+
+// server/index.js
+require('dotenv').config();
+const express = require('express');
+const { Pool } = require('pg');
+const Stripe = require('stripe');
+const bodyParser = require('body-parser');
+const QRCode = require('qrcode');
+const { v4: uuidv4 } = require('uuid');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+
+// env
+const {
+  STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET,
+  DATABASE_URL,
+  APP_BASE_URL,
+  ADMIN_USER_ID,
+} = process.env;
+
+if (!STRIPE_SECRET_KEY || !DATABASE_URL) {
+  console.error("Please set STRIPE_SECRET_KEY and DATABASE_URL in env");
+  process.exit(1);
+}
+
+const stripe = Stripe(STRIPE_SECRET_KEY);
+const db = new Pool({ connectionString: DATABASE_URL });
+
+// Simple auth middleware (replace with your real auth)
+function requireAuth(req, res, next) {
+  // example: auth passes user id in header X-User-Id (adapt to your system)
+  const userId = req.header('x-user-id');
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  req.user = { id: userId };
+  next();
+}
+
+// admin middleware
+async function requireAdmin(req, res, next) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (userId === ADMIN_USER_ID) return next(); // quick admin check
+  // Alternatively check DB users.is_admin
+  const r = await db.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+  if (r.rows.length && r.rows[0].is_admin) return next();
+  return res.status(403).json({ error: 'Forbidden' });
+}
+
+/*
+  Helper to get current subscription config (price)
+*/
+async function getSubscriptionConfig() {
+  const r = await db.query('SELECT * FROM subscription_config ORDER BY id DESC LIMIT 1');
+  if (r.rows.length) return r.rows[0];
+  // fallback default
+  return { price_cents: 2499, currency: 'usd', stripe_price_id: null };
+}
+
+/*
+  Create a Stripe Checkout Session for subscribing
+  We include regional tax rates by checking tax_rates table for a region parameter
+*/
+app.post('/create-checkout-session', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { region } = req.body; // e.g. 'US-CA' or 'DE' etc.
+
+    const cfg = await getSubscriptionConfig();
+    let priceId = cfg.stripe_price_id;
+
+    // If no existing Stripe Price, create an on-the-fly Price
+    if (!priceId) {
+      const product = await stripe.products.create({
+        name: 'MyCoin App Monthly Subscription',
+      });
+      const price = await stripe.prices.create({
+        unit_amount: cfg.price_cents,
+        currency: cfg.currency,
+        recurring: { interval: 'month' },
+        product: product.id
+      });
+      priceId = price.id;
+      // store price id for future (optional)
+      await db.query('UPDATE subscription_config SET stripe_price_id = $1 WHERE id = (SELECT id FROM subscription_config ORDER BY id DESC LIMIT 1)', [priceId]);
+    }
+
+    // Find tax rate for region if any
+    let taxRateId = null;
+    if (region) {
+      const tr = await db.query('SELECT stripe_tax_rate_id, percent FROM tax_rates WHERE region_code = $1', [region]);
+      if (tr.rows.length) {
+        taxRateId = tr.rows[0].stripe_tax_rate_id || null;
+        // If percent present and no stripe tax id, create Stripe Tax Rate on the fly
+        if (!taxRateId && tr.rows[0].percent) {
+          const tax = await stripe.taxRates.create({
+            display_name: `Tax ${region}`,
+            percentage: parseFloat(tr.rows[0].percent),
+            inclusive: false,
+          });
+          taxRateId = tax.id;
+          await db.query('UPDATE tax_rates SET stripe_tax_rate_id = $1 WHERE region_code = $2', [taxRateId, region]);
+        }
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer_email: req.header('x-user-email') || undefined, // optional
+      line_items: [{ price: priceId, quantity: 1, tax_rates: taxRateId ? [taxRateId] : [] }],
+      metadata: { userId },
+      success_url: `${APP_BASE_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${APP_BASE_URL}/billing/cancel`
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Admin: change subscription price (and optionally update Stripe Price)
+  Only admins allowed
+*/
+app.post('/admin/change-plan', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { price_cents, currency } = req.body;
+    // store in DB
+    await db.query('INSERT INTO subscription_config (price_cents, currency) VALUES ($1, $2)', [price_cents, currency || 'usd']);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Admin: create free passes limited to 400 total across the system
+  Returns barcodes (codes) that only admin can fetch and see
+*/
+app.post('/admin/create-passes', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { count = 1, note } = req.body;
+    const MAX_TOTAL = 400;
+
+    // check existing total
+    const totalRow = await db.query('SELECT count(*) FROM free_passes');
+    const total = parseInt(totalRow.rows[0].count, 10);
+    if (total + count > MAX_TOTAL) {
+      return res.status(400).json({ error: `Cannot create ${count} passes; would exceed ${MAX_TOTAL}` });
+    }
+
+    const created = [];
+    for (let i = 0; i < count; i++) {
+      // create secure random code (UUID-based)
+      const code = uuidv4(); // e.g. '3f8b7...'
+      await db.query('INSERT INTO free_passes (code, created_by, note) VALUES ($1, $2, $3)', [code, req.user.id, note || null]);
+      created.push(code);
+    }
+    res.json({ created });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Admin: list passes (admin-only)
+*/
+app.get('/admin/list-passes', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const r = await db.query('SELECT id, code, created_at, redeemed_by, redeemed_at, note FROM free_passes ORDER BY id DESC');
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Generate QR code PNG data URL for a pass code
+*/
+app.get('/pass/:code/qrcode', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { code } = req.params;
+    // verify pass exists and created_by is admin (only admin can fetch)
+    const r = await db.query('SELECT * FROM free_passes WHERE code = $1', [code]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+    const dataUrl = await QRCode.toDataURL(code);
+    // respond with PNG data URL (client can embed <img src=.../>)
+    res.json({ dataUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Redeem a pass (public route) - user supplies pass code to get a free subscription or promo
+*/
+app.post('/redeem-pass', requireAuth, async (req, res) => {
+  try {
+    const { code } = req.body;
+    const userId = req.user.id;
+
+    // find pass and ensure not redeemed
+    const r = await db.query('SELECT * FROM free_passes WHERE code = $1', [code]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Invalid code' });
+    const pass = r.rows[0];
+    if (pass.redeemed_at) return res.status(400).json({ error: 'Code already redeemed' });
+
+    // mark redeemed
+    await db.query('UPDATE free_passes SET redeemed_by = $1, redeemed_at = now() WHERE id = $2', [userId, pass.id]);
+
+    // Option: create a trial subscription via Stripe or grant a flag in your DB to allow access
+    // e.g., store a free subscription record in your DB (here we simply return success)
+    res.json({ ok: true, message: 'Pass redeemed. Access granted.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Admin: set tax rate for a region (region_code e.g., 'US-CA' or 'DE')
+  You can provide percent OR stripe_tax_rate_id
+*/
+app.post('/admin/set-tax', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { region_code, percent, stripe_tax_rate_id } = req.body;
+    // upsert
+    await db.query(
+      `INSERT INTO tax_rates (region_code, percent, stripe_tax_rate_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (region_code) DO UPDATE SET percent = EXCLUDED.percent, stripe_tax_rate_id = EXCLUDED.stripe_tax_rate_id, updated_at = now()`,
+      [region_code, percent || null, stripe_tax_rate_id || null]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+  Stripe webhook for subscription events (you must set webhook endpoint in Stripe dashboard)
+*/
+app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.warn("No STRIPE_WEBHOOK_SECRET configured; raw webhook disabled");
+    return res.status(400).send('Webhook not configured');
+  }
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed.', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // handle relevant events
+  switch (event.type) {
+    case 'checkout.session.completed':
+      {
+        const session = event.data.object;
+        // you can mark user as having active subscription in your DB
+        const userId = session.metadata?.userId;
+        if (userId) {
+          await db.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT DO NOTHING`, [userId]);
+          // store subscription info (skipped here); optionally record stripe subscription id etc.
+        }
+      }
+      break;
+    case 'invoice.payment_failed':
+      // handle failed payment
+      break;
+    case 'customer.subscription.deleted':
+      // subscription canceled
+      break;
+    default:
+      break;
+  }
+
+  res.json({ received: true });
+});
+
+// health
+app.get('/health', (req, res) => res.json({ ok: true }));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+
+
+Notes on this backend:
+
+Auth: requireAuth is a simple placeholder expecting X-User-Id and optionally X-User-Email. Replace with your real authentication middleware (JWT/Session).
+
+Admin-only passes: created passes are only returned to admins. The pass codes are UUIDs — you can display them as QR codes via /pass/:code/qrcode.
+
+Limit 400: enforced when creating passes.
+
+Taxes: stored in DB per region; if Stripe tax rate ID is provided it will be used; otherwise a Stripe tax rate is created when checkout is created.
+
+Stripe Price: if no stored price exists, we create a Stripe Price for recurring monthly charge using DB-configured cents.
+
+3) React Frontend snippets
+
+Install in frontend:
+
+npm install react qrcode.react axios
+
+frontend/src/SubscribeButton.jsx
+import React from "react";
+import axios from "axios";
+
+export default function SubscribeButton({ userId, region }) {
+  async function startCheckout() {
+    try {
+      const res = await axios.post('/create-checkout-session', { region }, {
+        headers: { 'x-user-id': userId, 'x-user-email': 'user@example.com' }
+      });
+      window.location = res.data.url; // redirect to Stripe Checkout
+    } catch (err) {
+      alert("Checkout error: " + (err.response?.data?.error || err.message));
+    }
+  }
+
+  return <button onClick={startCheckout}>Subscribe $24.99 / month</button>;
+}
+
+frontend/src/ProfileAdmin.jsx (admin view)
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+export default function ProfileAdmin({ userId }) {
+  const [passes, setPasses] = useState([]);
+  const [count, setCount] = useState(1);
+  const [price, setPrice] = useState(2499);
+  const [regionCode, setRegionCode] = useState('');
+  const [taxPercent, setTaxPercent] = useState('');
+
+  useEffect(() => {
+    async function load() {
+      const r = await axios.get('/admin/list-passes', { headers: { 'x-user-id': userId }});
+      setPasses(r.data);
+    }
+    load();
+  }, [userId]);
+
+  const createPasses = async () => {
+    await axios.post('/admin/create-passes', { count }, { headers: { 'x-user-id': userId }});
+    const r = await axios.get('/admin/list-passes', { headers: { 'x-user-id': userId }});
+    setPasses(r.data);
+  };
+
+  const changePlan = async () => {
+    await axios.post('/admin/change-plan', { price_cents: price, currency: 'usd' }, { headers: { 'x-user-id': userId }});
+    alert('Plan updated.');
+  };
+
+  const setTax = async () => {
+    await axios.post('/admin/set-tax', { region_code: regionCode, percent: parseFloat(taxPercent) }, { headers: { 'x-user-id': userId }});
+    alert('Tax set.');
+  };
+
+  return (
+    <div>
+      <h3>Admin Panel</h3>
+
+      <div>
+        <h4>Create Free Passes (max total 400)</h4>
+        <input type="number" value={count} onChange={e => setCount(e.target.value)} min="1" max="100"/>
+        <button onClick={createPasses}>Create</button>
+      </div>
+
+      <div>
+        <h4>Existing Passes</h4>
+        <ul>
+          {passes.map(p => (
+            <li key={p.id}>
+              {p.code} - Created: {new Date(p.created_at).toLocaleString()} - Redeemed: {p.redeemed_at ? new Date(p.redeemed_at).toLocaleString() : 'No'}
+              <img alt="qr" src={`/pass/${p.code}/qrcode`} style={{width:80}}/>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h4>Change Plan Price</h4>
+        <input type="number" value={price} onChange={e=>setPrice(parseInt(e.target.value,10))}/> cents
+        <button onClick={changePlan}>Save</button>
+      </div>
+
+      <div>
+        <h4>Set Tax Rate</h4>
+        <input placeholder="Region code e.g. US-CA" value={regionCode} onChange={e=>setRegionCode(e.target.value)} />
+        <input placeholder="Percent e.g. 7.25" value={taxPercent} onChange={e=>setTaxPercent(e.target.value)} />
+        <button onClick={setTax}>Set Tax</button>
+      </div>
+    </div>
+  );
+}
+
+
+For the pass QR image in the <img src=...> you may prefer to call the /pass/:code/qrcode route and render the returned dataUrl instead of fetching a JSON endpoint.
+
+frontend/src/RedeemPass.jsx
+import React, { useState } from "react";
+import axios from "axios";
+
+export default function RedeemPass({ userId }) {
+  const [code, setCode] = useState('');
+  const [message, setMessage] = useState('');
+
+  async function redeem() {
+    try {
+      const r = await axios.post('/redeem-pass', { code }, { headers: { 'x-user-id': userId }});
+      setMessage('Redeemed: ' + r.data.message);
+    } catch (err) {
+      setMessage('Error: ' + (err.response?.data?.error || err.message));
+    }
+  }
+
+  return (
+    <div>
+      <h3>Redeem Free Pass</h3>
+      <input value={code} onChange={e=>setCode(e.target.value)} placeholder="Enter code" />
+      <button onClick={redeem}>Redeem</button>
+      <div>{message}</div>
+    </div>
+  );
+}
+
+4) Production & Security Notes
+
+Authentication: Replace the simple x-user-id header pattern with proper authentication (JWT or session cookies). requireAuth must validate token and set req.user.id.
+
+Admin protection: Protect admin endpoints with proper auth & RBAC; ADMIN_USER_ID quick check is temporary.
+
+Stripe webhooks: Configure your Stripe webhook URL in the Stripe dashboard and set STRIPE_WEBHOOK_SECRET (use stripe CLI for testing).
+
+Tax compliance: Tax rules are complex. Use Stripe Tax or consult an accountant for region-specific rules. The code supports per-region tax rates.
+
+Pass security: Pass codes are UUIDs and unguessable; keep them private. Only admin can list/create them. If you need a printable barcode, use the QR dataURL or generate PNGs server-side.
+
+Audit & logging: Log creation and redemption events for audit and fraud detection.
+
+Rate limits & abuse: Monitor pass redemption; ensure one pass per user or other limits as your policy.
+
+5) Deployment checklist (quick)
+
+Apply server/db.sql to your Postgres instance.
+
+Set environment variables and secrets.
+
+Install Node deps and start server:
+
+cd server
+npm install
+node index.js
+
+
+Build and serve frontend, or integrate frontend routes with your app.
+
+Create initial admin user in users table with id matching ADMIN_USER_ID.
+
+In Stripe, create webhook endpoint and copy STRIPE_WEBHOOK_SECRET into env.

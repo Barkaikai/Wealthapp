@@ -9,6 +9,7 @@ import { fetchRecentEmails } from "./gmail";
 import OpenAI from "openai";
 import Stripe from "stripe";
 import { convertToUSD } from "./currencyExchange";
+import { attachSubscription, requireTier, requireFeature, enforceLimit } from "./subscriptionMiddleware";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
@@ -75,8 +76,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return parsed;
   };
 
-  // Mount health tracking routes
+  // Mount health tracking routes (before subscription middleware to keep them unauthenticated)
   app.use('/api', healthRoutes);
+  
+  // Attach subscription data to all authenticated requests (after health routes)
+  app.use('/api', isAuthenticated, attachSubscription);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -160,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/assets', isAuthenticated, async (req: any, res) => {
+  app.post('/api/assets', isAuthenticated, enforceLimit('maxAssets'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const assetData = insertAssetSchema.parse({ ...req.body, userId });
@@ -3454,8 +3458,8 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
-  // Mine tokens (free or paid) - Server calculates all rewards
-  app.post('/api/wealth-forge/mine', isAuthenticated, async (req: any, res) => {
+  // Mine tokens (free or paid) - Server calculates all rewards (Premium+ feature)
+  app.post('/api/wealth-forge/mine', isAuthenticated, requireFeature('wealthForge'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { type, gameData, gameScore } = req.body;

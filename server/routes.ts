@@ -88,8 +88,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const claims = req.user.claims;
+      const userId = claims.sub;
+      
+      // Try to get user from database
+      let user = await storage.getUser(userId);
+      
+      // If user doesn't exist, create it from claims (handles OIDC bypass in tests)
+      if (!user) {
+        user = await storage.upsertUser({
+          id: claims.sub,
+          email: claims.email,
+          firstName: claims.first_name,
+          lastName: claims.last_name,
+          profileImageUrl: claims.profile_image_url,
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -3354,7 +3369,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.get('/api/nft/wallets', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const wallets = await storage.getWalletConnectionsByUserId(userId);
+      const wallets = await storage.getWalletConnections(userId);
       // Return 200 with data (or empty array if null)
       res.json({ wallets: wallets || [], error: false });
     } catch (error: any) {
@@ -3700,6 +3715,41 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     } catch (error: any) {
       console.error('[Wealth Forge] Get progress error:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch progress' });
+    }
+  });
+
+  // Get user's Wealth Forge balance (alias for progress endpoint, returns balance info)
+  app.get('/api/wealth-forge/balance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      
+      let progress = await storage.getWealthForgeProgress(userId);
+      
+      // Create initial progress if it doesn't exist
+      if (!progress) {
+        progress = await storage.upsertWealthForgeProgress({
+          userId,
+          tokens: 0,
+          xp: 0,
+          level: 1,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalMined: 0,
+          totalSpent: 0,
+        });
+      }
+      
+      // Return balance-focused data
+      res.json({
+        tokens: progress.tokens,
+        level: progress.level,
+        xp: progress.xp,
+        totalMined: progress.totalMined,
+        totalSpent: progress.totalSpent,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Get balance error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch balance' });
     }
   });
 
@@ -4356,6 +4406,17 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     } catch (error: any) {
       console.error('[Subscription] Get plans error:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch subscription plans' });
+    }
+  });
+
+  // Alias for subscription plans (alternative endpoint name)
+  app.get('/api/subscription/tiers', isAuthenticated, async (req: any, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error('[Subscription] Get tiers error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch subscription tiers' });
     }
   });
 

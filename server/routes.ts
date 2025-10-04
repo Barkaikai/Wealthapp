@@ -3230,12 +3230,14 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.post('/api/discord/initialize', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { z } = await import('zod');
-      const initSchema = z.object({
-        botToken: z.string().min(1),
-      });
+      const botToken = process.env.DISCORD_BOT_TOKEN;
+      
+      if (!botToken) {
+        return res.status(400).json({ 
+          message: 'Discord bot token not configured. Please set DISCORD_BOT_TOKEN in environment secrets.' 
+        });
+      }
 
-      const { botToken } = initSchema.parse(req.body);
       const { discordBot } = await import('./discord/discordBot');
 
       // Set storage instance
@@ -3250,9 +3252,6 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       res.json({ message: 'Discord bot initialized successfully' });
     } catch (error: any) {
       console.error('[Discord] Initialize error:', error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: 'Invalid request data', errors: error.errors });
-      }
       res.status(500).json({ message: error.message || 'Failed to initialize Discord bot' });
     }
   });

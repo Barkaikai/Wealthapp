@@ -1169,6 +1169,7 @@ export const journalLines = pgTable("journal_lines", {
 
 export const insertJournalLineSchema = createInsertSchema(journalLines).omit({
   id: true,
+  entryId: true, // Backend sets this after creating the parent entry
   createdAt: true,
 });
 

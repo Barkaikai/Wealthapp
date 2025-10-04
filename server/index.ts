@@ -45,10 +45,10 @@ app.use(compression({
 // Security: Cookie parser
 app.use(cookieParser());
 
-// Security: Rate limiting (300 requests per 15 minutes per IP)
+// Security: Rate limiting (1000 requests per 15 minutes per IP)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 300,
+  limit: 1000, // Increased for modern SPA with multiple API calls
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { message: "Too many requests, please try again later." }

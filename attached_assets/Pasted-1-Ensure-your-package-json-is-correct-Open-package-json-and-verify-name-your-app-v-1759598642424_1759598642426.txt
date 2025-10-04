@@ -1,0 +1,104 @@
+1️⃣ Ensure your package.json is correct
+
+Open package.json and verify:
+
+{
+  "name": "your-app",
+  "version": "1.0.0",
+  "scripts": {
+    "preinstall": "npm ci || npm install",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
+
+
+Important:
+✅ axios must be under "dependencies"
+🚫 NOT under "devDependencies"
+
+Run this once locally in your Replit shell:
+
+npm install axios --save
+
+
+Commit the updated package.json and package-lock.json.
+
+2️⃣ Add a Replit Deploy Hook Script
+
+Create a file called:
+📁 scripts/deploy-setup.sh
+
+#!/usr/bin/env bash
+set -e
+echo "🧩 Setting up production build for Replit Deploy..."
+
+# Clean previous installs
+rm -rf node_modules dist
+npm cache clean --force || true
+
+# Install all dependencies (prod + build-time)
+npm ci || npm install --omit=dev=false
+
+# Verify axios and express exist
+for pkg in axios express; do
+  if ! npm list "$pkg" >/dev/null 2>&1; then
+    echo "⚠️ Missing $pkg, installing..."
+    npm install "$pkg"
+  fi
+done
+
+# Build TypeScript if applicable
+if [ -f "tsconfig.json" ]; then
+  echo "🏗  Building TypeScript..."
+  npx tsc
+fi
+
+echo "✅ Build setup complete!"
+
+
+Then make it executable:
+
+chmod +x scripts/deploy-setup.sh
+
+3️⃣ Update Replit Deploy Config
+
+If you’re using Replit Deploy (GUI):
+
+Click Deployments → Configure Build
+
+Set:
+
+Phase	Command
+Build command	bash scripts/deploy-setup.sh
+Run command	npm start
+
+This ensures Replit installs all dependencies before trying to start your app.
+
+If you’re using .replit or replit.nix, add this line to .replit:
+
+run = "bash scripts/deploy-setup.sh && npm start"
+
+4️⃣ Clean and Redeploy
+
+Now re-run from the Replit shell:
+
+bash scripts/deploy-setup.sh
+npm start
+
+
+If it runs fine locally, hit Deploy → Publish.
+
+✅ What This Fix Does
+
+✔ Ensures all dependencies (like axios) are installed before build
+✔ Works with Replit’s “ephemeral” deploy environment
+✔ Handles both TypeScript and JS builds
+✔ Guarantees a clean, reproducible build every time

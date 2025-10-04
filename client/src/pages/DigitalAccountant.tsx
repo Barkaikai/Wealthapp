@@ -1208,12 +1208,20 @@ export default function DigitalAccountant() {
                       <SelectTrigger data-testid="select-ledger-account">
                         <SelectValue placeholder="Select an account" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.code}>
-                            {acc.code} - {acc.name}
-                          </SelectItem>
-                        ))}
+                      <SelectContent data-testid="select-ledger-account-options">
+                        {accounts.length > 0 ? (
+                          accounts.map((acc) => (
+                            <SelectItem 
+                              key={acc.id} 
+                              value={acc.code}
+                              data-testid={`option-account-${acc.code}`}
+                            >
+                              {acc.code} - {acc.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm text-muted-foreground">No accounts available</div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

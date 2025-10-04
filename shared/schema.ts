@@ -1932,3 +1932,62 @@ export const insertRevenueReportSchema = createInsertSchema(revenueReports).omit
 
 export type InsertRevenueReport = z.infer<typeof insertRevenueReportSchema>;
 export type RevenueReport = typeof revenueReports.$inferSelect;
+
+// Subscription Config - Flexible subscription pricing configuration
+export const subscriptionConfig = pgTable("subscription_config", {
+  id: serial("id").primaryKey(),
+  stripePriceId: varchar("stripe_price_id"),
+  priceCents: integer("price_cents").notNull().default(2499),
+  currency: varchar("currency", { length: 10 }).notNull().default('usd'),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSubscriptionConfigSchema = createInsertSchema(subscriptionConfig).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSubscriptionConfig = z.infer<typeof insertSubscriptionConfigSchema>;
+export type SubscriptionConfig = typeof subscriptionConfig.$inferSelect;
+
+// Free Passes - Admin-created promotional pass codes
+export const freePasses = pgTable("free_passes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").unique().notNull(),
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+  redeemedBy: varchar("redeemed_by").references(() => users.id, { onDelete: 'set null' }),
+  redeemedAt: timestamp("redeemed_at"),
+  note: text("note"),
+}, (table) => [
+  index("idx_free_passes_code").on(table.code),
+  index("idx_free_passes_created_by").on(table.createdBy),
+  index("idx_free_passes_redeemed_by").on(table.redeemedBy)
+]);
+
+export const insertFreePassSchema = createInsertSchema(freePasses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFreePass = z.infer<typeof insertFreePassSchema>;
+export type FreePass = typeof freePasses.$inferSelect;
+
+// Tax Rates - Regional tax configuration for Stripe
+export const taxRates = pgTable("tax_rates", {
+  id: serial("id").primaryKey(),
+  regionCode: varchar("region_code").unique().notNull(), // e.g. "US-CA", "US", "DE"
+  stripeTaxRateId: varchar("stripe_tax_rate_id"),
+  percent: real("percent"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_tax_rates_region").on(table.regionCode)
+]);
+
+export const insertTaxRateSchema = createInsertSchema(taxRates).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertTaxRate = z.infer<typeof insertTaxRateSchema>;
+export type TaxRate = typeof taxRates.$inferSelect;

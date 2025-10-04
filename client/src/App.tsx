@@ -19,32 +19,44 @@ import { ViewModeSwitcher } from "@/components/ViewModeSwitcher";
 import { DigitalCalendar } from "@/components/DigitalCalendar";
 import { useAuth } from "@/hooks/useAuth";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { useLocation } from "wouter";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import luxuryBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
-import Landing from "@/pages/Landing";
-import Login from "@/pages/Login";
-import DailyBriefing from "@/pages/DailyBriefing";
-import WealthDashboard from "@/pages/WealthDashboard";
-import WealthMonitor from "@/pages/WealthMonitor";
-import ProductivityHubConsolidated from "@/pages/ProductivityHubConsolidated";
-import HealthMonitoring from "@/pages/HealthMonitoring";
-import AIIntelligence from "@/pages/AIIntelligence";
-import Guide from "@/pages/Guide";
-import Settings from "@/pages/Settings";
-import LearnPage from "@/pages/LearnPage";
-import Wallet from "@/pages/Wallet";
-import DigitalAccountant from "@/pages/DigitalAccountant";
-import CRMPage from "@/pages/crm";
-import NFTVault from "@/pages/NFTVault";
-import DiscordManager from "@/pages/DiscordManager";
-import WealthForge from "@/pages/WealthForge";
-import RevenueDashboard from "@/pages/RevenueDashboard";
-import Subscription from "@/pages/Subscription";
-import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
+
+// Lazy-loaded page components for better performance
+const Landing = lazy(() => import("@/pages/Landing"));
+const Login = lazy(() => import("@/pages/Login"));
+const DailyBriefing = lazy(() => import("@/pages/DailyBriefing"));
+const WealthDashboard = lazy(() => import("@/pages/WealthDashboard"));
+const WealthMonitor = lazy(() => import("@/pages/WealthMonitor"));
+const ProductivityHubConsolidated = lazy(() => import("@/pages/ProductivityHubConsolidated"));
+const HealthMonitoring = lazy(() => import("@/pages/HealthMonitoring"));
+const AIIntelligence = lazy(() => import("@/pages/AIIntelligence"));
+const Guide = lazy(() => import("@/pages/Guide"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const LearnPage = lazy(() => import("@/pages/LearnPage"));
+const Wallet = lazy(() => import("@/pages/Wallet"));
+const DigitalAccountant = lazy(() => import("@/pages/DigitalAccountant"));
+const CRMPage = lazy(() => import("@/pages/crm"));
+const NFTVault = lazy(() => import("@/pages/NFTVault"));
+const DiscordManager = lazy(() => import("@/pages/DiscordManager"));
+const WealthForge = lazy(() => import("@/pages/WealthForge"));
+const RevenueDashboard = lazy(() => import("@/pages/RevenueDashboard"));
+const Subscription = lazy(() => import("@/pages/Subscription"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-screen">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -61,36 +73,38 @@ function Router() {
   }
 
   return (
-    <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/login" component={Login} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={DailyBriefing} />
-          <Route path="/login" component={Login} />
-          <Route path="/wallet" component={Wallet} />
-          <Route path="/nft-vault" component={NFTVault} />
-          <Route path="/discord" component={DiscordManager} />
-          <Route path="/wealth" component={WealthDashboard} />
-          <Route path="/wealth-monitor" component={WealthMonitor} />
-          <Route path="/wealth-forge" component={WealthForge} />
-          <Route path="/notepad" component={ProductivityHubConsolidated} />
-          <Route path="/health" component={HealthMonitoring} />
-          <Route path="/ai-intelligence" component={AIIntelligence} />
-          <Route path="/accountant" component={DigitalAccountant} />
-          <Route path="/crm" component={CRMPage} />
-          <Route path="/revenue" component={RevenueDashboard} />
-          <Route path="/subscription" component={Subscription} />
-          <Route path="/guide" component={Guide} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/learn/:slug" component={LearnPage} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<LoadingFallback />}>
+      <Switch>
+        {!isAuthenticated ? (
+          <>
+            <Route path="/" component={Landing} />
+            <Route path="/login" component={Login} />
+          </>
+        ) : (
+          <>
+            <Route path="/" component={DailyBriefing} />
+            <Route path="/login" component={Login} />
+            <Route path="/wallet" component={Wallet} />
+            <Route path="/nft-vault" component={NFTVault} />
+            <Route path="/discord" component={DiscordManager} />
+            <Route path="/wealth" component={WealthDashboard} />
+            <Route path="/wealth-monitor" component={WealthMonitor} />
+            <Route path="/wealth-forge" component={WealthForge} />
+            <Route path="/notepad" component={ProductivityHubConsolidated} />
+            <Route path="/health" component={HealthMonitoring} />
+            <Route path="/ai-intelligence" component={AIIntelligence} />
+            <Route path="/accountant" component={DigitalAccountant} />
+            <Route path="/crm" component={CRMPage} />
+            <Route path="/revenue" component={RevenueDashboard} />
+            <Route path="/subscription" component={Subscription} />
+            <Route path="/guide" component={Guide} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/learn/:slug" component={LearnPage} />
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

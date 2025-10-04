@@ -46,6 +46,7 @@ const DiscordManager = lazy(() => import("@/pages/DiscordManager"));
 const WealthForge = lazy(() => import("@/pages/WealthForge"));
 const RevenueDashboard = lazy(() => import("@/pages/RevenueDashboard"));
 const Subscription = lazy(() => import("@/pages/Subscription"));
+const ReceiptManager = lazy(() => import("@/pages/ReceiptManager"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 // Loading fallback component
@@ -91,6 +92,7 @@ function Router() {
             <Route path="/wealth-monitor" component={WealthMonitor} />
             <Route path="/wealth-forge" component={WealthForge} />
             <Route path="/notepad" component={ProductivityHubConsolidated} />
+            <Route path="/receipts" component={ReceiptManager} />
             <Route path="/health" component={HealthMonitoring} />
             <Route path="/ai-intelligence" component={AIIntelligence} />
             <Route path="/accountant" component={DigitalAccountant} />

@@ -89,20 +89,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const claims = req.user.claims;
-      const userId = claims.sub;
       
-      // Try to get user from database
-      let user = await storage.getUser(userId);
+      // Use canonical user ID resolution (handles email conflicts and OIDC sub changes)
+      const userId = await getCanonicalUserId(claims);
       
-      // If user doesn't exist, create it from claims (handles OIDC bypass in tests)
+      // Get user from database (canonical resolver ensures user exists)
+      const user = await storage.getUser(userId);
+      
       if (!user) {
-        user = await storage.upsertUser({
-          id: claims.sub,
-          email: claims.email,
-          firstName: claims.first_name,
-          lastName: claims.last_name,
-          profileImageUrl: claims.profile_image_url,
-        });
+        // This should never happen after canonical resolution, but handle gracefully
+        return res.status(404).json({ message: "User not found" });
       }
       
       res.json(user);

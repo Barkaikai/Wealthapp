@@ -3875,6 +3875,211 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  // Bonding curve price calculation
+  app.get('/api/wealth-forge/bonding-price', isAuthenticated, async (req: any, res) => {
+    try {
+      const amount = parseInt(req.query.amount || '1', 10);
+      if (isNaN(amount) || amount <= 0 || amount > 100000) {
+        return res.status(400).json({ message: 'Invalid amount: must be between 1-100000' });
+      }
+
+      const BASE_PRICE_USD = 0.00007;
+      const SLOPE_PRICE_USD = 0.00000001;
+      
+      const currentSupply = await storage.getTotalMintedSupply();
+      const totalUSD = amount * BASE_PRICE_USD + SLOPE_PRICE_USD * (amount * currentSupply + (amount * (amount - 1)) / 2);
+      const perTokenApproxUSD = totalUSD / amount;
+
+      res.json({
+        amount,
+        currentSupply,
+        totalUSD: Math.max(0.01, totalUSD),
+        perTokenApproxUSD,
+        basePrice: BASE_PRICE_USD,
+        slope: SLOPE_PRICE_USD,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Price calculation error:', error);
+      res.status(500).json({ message: error.message || 'Failed to calculate price' });
+    }
+  });
+
+  // Create Stripe PaymentIntent for token purchase
+  app.post('/api/wealth-forge/create-payment-intent', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount } = req.body;
+      
+      if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 100000 || !Number.isFinite(amount)) {
+        return res.status(400).json({ message: 'Invalid amount: must be between 1-100000' });
+      }
+
+      const BASE_PRICE_USD = 0.00007;
+      const SLOPE_PRICE_USD = 0.00000001;
+      
+      const currentSupply = await storage.getTotalMintedSupply();
+      const totalUSD = amount * BASE_PRICE_USD + SLOPE_PRICE_USD * (amount * currentSupply + (amount * (amount - 1)) / 2);
+      const amountCents = Math.max(50, Math.round(totalUSD * 100));
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountCents,
+        currency: 'usd',
+        metadata: {
+          userId,
+          tokenAmount: String(amount),
+          currentSupply: String(currentSupply),
+          productType: 'wealth_forge_tokens',
+        },
+        description: `Purchase ${amount} WFG tokens`,
+      });
+
+      await storage.createStripePayment({
+        userId,
+        paymentIntentId: paymentIntent.id,
+        amount,
+        pricePerToken: totalUSD / amount,
+        totalUsd: totalUSD,
+        amountCents,
+        status: 'pending',
+        currentSupply,
+        metadata: { created: new Date().toISOString() },
+      });
+
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amount,
+        totalUSD,
+        amountCents,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Create payment intent error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create payment intent' });
+    }
+  });
+
+  // Complete token purchase after successful payment
+  app.post('/api/wealth-forge/complete-purchase', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: 'Missing paymentIntentId' });
+      }
+
+      const existingPayment = await storage.getStripePayment(paymentIntentId);
+      if (!existingPayment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      if (existingPayment.status === 'succeeded') {
+        return res.status(400).json({ message: 'Payment already processed' });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ message: 'Payment not succeeded', status: paymentIntent.status });
+      }
+
+      const tokenAmount = Number(paymentIntent.metadata.tokenAmount || existingPayment.amount);
+      
+      let progress = await storage.getWealthForgeProgress(userId);
+      if (!progress) {
+        progress = await storage.upsertWealthForgeProgress({
+          userId,
+          tokens: 0,
+          xp: 0,
+          level: 1,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalMined: 0,
+          totalSpent: 0,
+        });
+      }
+
+      const newTokens = (progress.tokens || 0) + tokenAmount;
+      await storage.updateWealthForgeProgress(userId, { tokens: newTokens });
+
+      await storage.createWealthForgeTransaction({
+        userId,
+        type: 'purchase',
+        amount: tokenAmount,
+        description: `Purchased ${tokenAmount} WFG tokens via Stripe`,
+        metadata: { 
+          paymentIntentId,
+          priceUsd: existingPayment.totalUsd,
+          bondingCurve: true,
+        },
+      });
+
+      await storage.updateStripePayment(paymentIntentId, {
+        status: 'succeeded',
+        metadata: { completedAt: new Date().toISOString() },
+      });
+
+      res.json({
+        success: true,
+        tokensAdded: tokenAmount,
+        newBalance: newTokens,
+        paymentIntentId,
+      });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Complete purchase error:', error);
+      res.status(500).json({ message: error.message || 'Failed to complete purchase' });
+    }
+  });
+
+  // Get ownership contract
+  app.get('/api/wealth-forge/contract', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contractType = (req.query.type as string) || 'ownership_assignment';
+      
+      const contract = await storage.getWealthForgeContract(userId, contractType);
+      res.json(contract || null);
+    } catch (error: any) {
+      console.error('[Wealth Forge] Get contract error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch contract' });
+    }
+  });
+
+  // Save/update ownership contract
+  app.post('/api/wealth-forge/contract', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { contractText, contractType = 'ownership_assignment', signedDate } = req.body;
+      
+      if (!contractText || typeof contractText !== 'string') {
+        return res.status(400).json({ message: 'Contract text is required' });
+      }
+
+      const existing = await storage.getWealthForgeContract(userId, contractType);
+      
+      let contract;
+      if (existing) {
+        contract = await storage.updateWealthForgeContract(existing.id, userId, {
+          contractText,
+          signedDate: signedDate ? new Date(signedDate) : undefined,
+          metadata: { lastUpdated: new Date().toISOString() },
+        });
+      } else {
+        contract = await storage.createWealthForgeContract({
+          userId,
+          contractType,
+          contractText,
+          signedDate: signedDate ? new Date(signedDate) : undefined,
+          metadata: { created: new Date().toISOString() },
+        });
+      }
+
+      res.json({ success: true, contract });
+    } catch (error: any) {
+      console.error('[Wealth Forge] Save contract error:', error);
+      res.status(500).json({ message: error.message || 'Failed to save contract' });
+    }
+  });
+
   // ============================================================================
   // SUBSCRIPTION & STRIPE ROUTES
   // ============================================================================

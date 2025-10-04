@@ -163,6 +163,8 @@ import {
   wealthForgeVaultItems,
   wealthForgeRedemptions,
   wealthForgeMiningHistory,
+  wealthForgeContracts,
+  wealthForgeStripePayments,
   type WealthForgeProgress,
   type InsertWealthForgeProgress,
   type WealthForgeTransaction,
@@ -173,6 +175,10 @@ import {
   type InsertWealthForgeRedemption,
   type WealthForgeMiningHistory,
   type InsertWealthForgeMiningHistory,
+  type WealthForgeContract,
+  type InsertWealthForgeContract,
+  type WealthForgeStripePayment,
+  type InsertWealthForgeStripePayment,
   subscriptionPlans,
   userSubscriptions,
   subscriptionEvents,
@@ -411,6 +417,18 @@ export interface IStorage {
   getWealthForgeMiningHistory(userId: string, limit?: number): Promise<WealthForgeMiningHistory[]>;
   createWealthForgeMiningHistory(data: InsertWealthForgeMiningHistory): Promise<WealthForgeMiningHistory>;
   getWealthForgeLeaderboard(limit?: number): Promise<{ userId: string; nickname: string | null; solanaWallet: string | null; tokens: number; level: number; totalMined: number }[]>;
+  
+  // Wealth Forge Contracts
+  getWealthForgeContracts(userId: string): Promise<WealthForgeContract[]>;
+  getWealthForgeContract(userId: string, contractType?: string): Promise<WealthForgeContract | undefined>;
+  createWealthForgeContract(data: InsertWealthForgeContract): Promise<WealthForgeContract>;
+  updateWealthForgeContract(id: number, userId: string, data: Partial<InsertWealthForgeContract>): Promise<WealthForgeContract>;
+  
+  // Wealth Forge Stripe Payments
+  createStripePayment(data: InsertWealthForgeStripePayment): Promise<WealthForgeStripePayment>;
+  getStripePayment(paymentIntentId: string): Promise<WealthForgeStripePayment | undefined>;
+  updateStripePayment(paymentIntentId: string, data: Partial<InsertWealthForgeStripePayment>): Promise<WealthForgeStripePayment>;
+  getTotalMintedSupply(): Promise<number>;
   
   // Subscription operations
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
@@ -2152,6 +2170,84 @@ export class DatabaseStorage implements IStorage {
     .limit(limit);
     
     return results;
+  }
+
+  // Wealth Forge Contracts
+  async getWealthForgeContracts(userId: string): Promise<WealthForgeContract[]> {
+    return await db.select().from(wealthForgeContracts)
+      .where(eq(wealthForgeContracts.userId, userId))
+      .orderBy(desc(wealthForgeContracts.createdAt));
+  }
+
+  async getWealthForgeContract(userId: string, contractType: string = 'ownership_assignment'): Promise<WealthForgeContract | undefined> {
+    const [contract] = await db.select().from(wealthForgeContracts)
+      .where(and(
+        eq(wealthForgeContracts.userId, userId),
+        eq(wealthForgeContracts.contractType, contractType)
+      ))
+      .orderBy(desc(wealthForgeContracts.createdAt))
+      .limit(1);
+    return contract;
+  }
+
+  async createWealthForgeContract(data: InsertWealthForgeContract): Promise<WealthForgeContract> {
+    const [contract] = await db.insert(wealthForgeContracts).values(data).returning();
+    return contract;
+  }
+
+  async updateWealthForgeContract(id: number, userId: string, data: Partial<InsertWealthForgeContract>): Promise<WealthForgeContract> {
+    const [contract] = await db.update(wealthForgeContracts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(
+        eq(wealthForgeContracts.id, id),
+        eq(wealthForgeContracts.userId, userId)
+      ))
+      .returning();
+    
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+    
+    return contract;
+  }
+
+  // Wealth Forge Stripe Payments
+  async createStripePayment(data: InsertWealthForgeStripePayment): Promise<WealthForgeStripePayment> {
+    const [payment] = await db.insert(wealthForgeStripePayments).values(data).returning();
+    return payment;
+  }
+
+  async getStripePayment(paymentIntentId: string): Promise<WealthForgeStripePayment | undefined> {
+    const [payment] = await db.select().from(wealthForgeStripePayments)
+      .where(eq(wealthForgeStripePayments.paymentIntentId, paymentIntentId));
+    return payment;
+  }
+
+  async updateStripePayment(paymentIntentId: string, data: Partial<InsertWealthForgeStripePayment>): Promise<WealthForgeStripePayment> {
+    const [payment] = await db.update(wealthForgeStripePayments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(wealthForgeStripePayments.paymentIntentId, paymentIntentId))
+      .returning();
+    
+    if (!payment) {
+      throw new Error('Payment not found');
+    }
+    
+    return payment;
+  }
+
+  async getTotalMintedSupply(): Promise<number> {
+    const purchases = await db.select({ amount: wealthForgeStripePayments.amount })
+      .from(wealthForgeStripePayments)
+      .where(eq(wealthForgeStripePayments.status, 'succeeded'));
+    
+    const mined = await db.select({ totalMined: wealthForgeProgress.totalMined })
+      .from(wealthForgeProgress);
+    
+    const purchasedTotal = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const minedTotal = mined.reduce((sum, m) => sum + (m.totalMined || 0), 0);
+    
+    return purchasedTotal + minedTotal;
   }
 
   // Subscription operations

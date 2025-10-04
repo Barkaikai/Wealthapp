@@ -71,14 +71,30 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(claims: any) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+async function upsertUser(claims: any, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await storage.upsertUser({
+        id: claims["sub"],
+        email: claims["email"],
+        firstName: claims["first_name"],
+        lastName: claims["last_name"],
+        profileImageUrl: claims["profile_image_url"],
+      });
+      return;
+    } catch (error: any) {
+      const isNeonSuspended = error?.message?.includes('endpoint has been disabled') || 
+                              error?.code === 'XX000';
+      
+      if (isNeonSuspended && attempt < retries) {
+        console.log(`[Auth] Neon DB suspended, retrying (${attempt}/${retries})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        continue;
+      }
+      
+      throw error;
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {

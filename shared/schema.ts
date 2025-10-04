@@ -699,6 +699,8 @@ export type AnomalyDetection = typeof anomalyDetections.$inferSelect;
 export const receipts = pgTable("receipts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").references(() => crmOrganizations.id, { onDelete: 'set null' }),
+  contactId: integer("contact_id").references(() => crmContacts.id, { onDelete: 'set null' }),
   filename: text("filename").notNull().default('receipt'),
   imageUrl: text("image_url"), // URL to stored image (if using Object Storage)
   rawText: text("raw_text"), // OCR extracted text
@@ -714,7 +716,11 @@ export const receipts = pgTable("receipts", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [index("idx_receipts_user_id").on(table.userId)]);
+}, (table) => [
+  index("idx_receipts_user_id").on(table.userId),
+  index("idx_receipts_org_id").on(table.organizationId),
+  index("idx_receipts_contact_id").on(table.contactId),
+]);
 
 export const insertReceiptSchema = createInsertSchema(receipts).omit({
   id: true,
@@ -726,6 +732,44 @@ export const insertReceiptSchema = createInsertSchema(receipts).omit({
 
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
 export type Receipt = typeof receipts.$inferSelect;
+
+// Receipt Reports - AI-generated analysis reports
+export const receiptReports = pgTable("receipt_reports", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  description: text("description"),
+  reportType: text("report_type").notNull(), // 'monthly', 'category', 'vendor', 'custom'
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  filters: jsonb("filters"), // Category, status, amount range, etc
+  aiSummary: text("ai_summary"), // GPT-4o generated summary
+  insights: text("insights").array(), // Key insights from AI
+  recommendations: text("recommendations").array(), // AI recommendations
+  totalReceipts: integer("total_receipts"),
+  totalAmount: real("total_amount"),
+  categoryBreakdown: jsonb("category_breakdown"), // {groceries: 500, dining: 200, ...}
+  merchantBreakdown: jsonb("merchant_breakdown"), // {Walmart: 300, Amazon: 150, ...}
+  trends: jsonb("trends"), // Spending trends over time
+  metadata: jsonb("metadata"),
+  status: text("status").notNull().default('generating'), // 'generating', 'completed', 'failed'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_receipt_reports_user_id").on(table.userId),
+]);
+
+export const insertReceiptReportSchema = createInsertSchema(receiptReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+export type InsertReceiptReport = z.infer<typeof insertReceiptReportSchema>;
+export type ReceiptReport = typeof receiptReports.$inferSelect;
 
 // Wallet - User's personal wallet/account balance
 export const wallets = pgTable("wallets", {

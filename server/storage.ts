@@ -24,6 +24,7 @@ import {
   rebalancingRecommendations,
   anomalyDetections,
   receipts,
+  receiptReports,
   wallets,
   walletTransactions,
   paymentMethods,
@@ -91,6 +92,8 @@ import {
   type InsertAnomalyDetection,
   type Receipt,
   type InsertReceipt,
+  type ReceiptReport,
+  type InsertReceiptReport,
   type Wallet,
   type InsertWallet,
   type WalletTransaction,
@@ -348,6 +351,13 @@ export interface IStorage {
   createReceipt(receipt: InsertReceipt): Promise<Receipt>;
   updateReceipt(id: number, userId: string, receipt: Partial<InsertReceipt>): Promise<Receipt>;
   deleteReceipt(id: number, userId: string): Promise<void>;
+  
+  // Receipt Report operations
+  getReceiptReports(userId: string): Promise<ReceiptReport[]>;
+  getReceiptReport(id: number, userId: string): Promise<ReceiptReport | undefined>;
+  createReceiptReport(report: InsertReceiptReport): Promise<ReceiptReport>;
+  updateReceiptReport(id: number, userId: string, report: Partial<InsertReceiptReport>): Promise<ReceiptReport>;
+  deleteReceiptReport(id: number, userId: string): Promise<void>;
 
   // Wallet operations
   getWallet(userId: string): Promise<Wallet | undefined>;
@@ -1228,6 +1238,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReceipt(id: number, userId: string): Promise<void> {
     await db.delete(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
+  }
+
+  // Receipt Report operations
+  async getReceiptReports(userId: string): Promise<ReceiptReport[]> {
+    return await db.select().from(receiptReports).where(eq(receiptReports.userId, userId)).orderBy(desc(receiptReports.createdAt));
+  }
+
+  async getReceiptReport(id: number, userId: string): Promise<ReceiptReport | undefined> {
+    const [report] = await db.select().from(receiptReports).where(and(eq(receiptReports.id, id), eq(receiptReports.userId, userId)));
+    return report;
+  }
+
+  async createReceiptReport(report: InsertReceiptReport): Promise<ReceiptReport> {
+    const [newReport] = await db.insert(receiptReports).values(report).returning();
+    return newReport;
+  }
+
+  async updateReceiptReport(id: number, userId: string, report: Partial<InsertReceiptReport>): Promise<ReceiptReport> {
+    const [updatedReport] = await db
+      .update(receiptReports)
+      .set({ ...report, updatedAt: new Date() })
+      .where(and(eq(receiptReports.id, id), eq(receiptReports.userId, userId)))
+      .returning();
+    
+    if (!updatedReport) {
+      throw new Error("Receipt report not found");
+    }
+    return updatedReport;
+  }
+
+  async deleteReceiptReport(id: number, userId: string): Promise<void> {
+    await db.delete(receiptReports).where(and(eq(receiptReports.id, id), eq(receiptReports.userId, userId)));
   }
 
   // Wallet operations

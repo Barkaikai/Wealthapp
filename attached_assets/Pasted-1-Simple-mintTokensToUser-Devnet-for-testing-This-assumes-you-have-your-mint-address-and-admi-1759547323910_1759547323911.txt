@@ -1,0 +1,123 @@
+1. Simple mintTokensToUser() (Devnet, for testing)
+
+This assumes you have your mint address and admin keypair in .env.
+
+// backend/utils/mint.js
+const { Connection, clusterApiUrl, Keypair, PublicKey } = require("@solana/web3.js");
+const { getOrCreateAssociatedTokenAccount, mintTo } = require("@solana/spl-token");
+const bs58 = require("bs58");
+
+const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+const mintAddress = new PublicKey(process.env.SOLANA_MINT_ADDRESS);
+const adminKey = Keypair.fromSecretKey(bs58.decode(process.env.SOLANA_ADMIN_SECRET));
+
+/**
+ * Mint tokens to a user wallet (devnet only).
+ * @param {string} userWallet - user's Solana public key
+ * @param {number} amount - token amount (in smallest unit, e.g. 1000000 = 1 if decimals=6)
+ */
+async function mintTokensToUser(userWallet, amount) {
+  try {
+    const userPublicKey = new PublicKey(userWallet);
+
+    // Get or create ATA (associated token account)
+    const ata = await getOrCreateAssociatedTokenAccount(
+      connection,
+      adminKey,
+      mintAddress,
+      userPublicKey
+    );
+
+    // Mint to ATA
+    const sig = await mintTo(
+      connection,
+      adminKey,
+      mintAddress,
+      ata.address,
+      adminKey,
+      amount
+    );
+
+    console.log("✅ Minted", amount, "to", userWallet, "tx:", sig);
+    return { success: true, sig };
+  } catch (err) {
+    console.error("❌ Mint failed:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { mintTokensToUser };
+
+2. Admin webhook handler with retry
+
+This is an Express route that retries minting if the first attempt fails.
+
+// backend/routes/adminWebhook.js
+const express = require("express");
+const { mintTokensToUser } = require("../utils/mint");
+const { MintLog } = require("../models");
+
+const router = express.Router();
+
+router.post("/admin/mint", async (req, res) => {
+  const { userWallet, amount } = req.body;
+
+  if (!userWallet || !amount) {
+    return res.status(400).json({ error: "Missing userWallet or amount" });
+  }
+
+  // First mint attempt
+  let result = await mintTokensToUser(userWallet, amount);
+
+  // Retry once if failed
+  if (!result.success) {
+    console.log("Retrying mint...");
+    result = await mintTokensToUser(userWallet, amount);
+  }
+
+  // Save log
+  await MintLog.create({
+    userWallet,
+    amount,
+    txSig: result.sig || null,
+    status: result.success ? "success" : "failed",
+    error: result.error || null,
+  });
+
+  if (result.success) {
+    res.json({ success: true, sig: result.sig });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+});
+
+module.exports = router;
+
+3. Sample MintLog Sequelize model
+// backend/models/mintlog.js
+module.exports = (sequelize, DataTypes) => {
+  const MintLog = sequelize.define("MintLog", {
+    userWallet: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    amount: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+    },
+    txSig: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.ENUM("success", "failed"),
+      defaultValue: "success",
+    },
+    error: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+  });
+
+  return MintLog;
+};

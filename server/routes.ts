@@ -10,8 +10,9 @@ import OpenAI from "openai";
 import Stripe from "stripe";
 import { convertToUSD } from "./currencyExchange";
 import { attachSubscription, requireTier, requireFeature, enforceLimit } from "./subscriptionMiddleware";
-import { getCanonicalUserId } from "./helpers/canonicalUser";
+import { getCanonicalUserId, getCacheStats } from "./helpers/canonicalUser";
 import { appLogger } from "./appLogger";
+import { aiDataForwarder } from "./aiDataForwarder";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
@@ -1513,7 +1514,7 @@ ${processedText}`;
   // Wallet Connection routes
   app.get('/api/wallets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const wallets = await storage.getWalletConnections(userId);
       res.json(wallets);
     } catch (error) {
@@ -1524,7 +1525,7 @@ ${processedText}`;
 
   app.post('/api/wallets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const validatedData = insertWalletConnectionSchema.parse({ ...req.body, userId });
       const wallet = await storage.createWalletConnection(validatedData);
       res.status(201).json(wallet);
@@ -1536,7 +1537,7 @@ ${processedText}`;
 
   app.patch('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const id = parseIntId(req.params.id);
       const wallet = await storage.updateWalletConnection(id, userId, req.body);
       res.json(wallet);
@@ -1548,7 +1549,7 @@ ${processedText}`;
 
   app.delete('/api/wallets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const id = parseIntId(req.params.id);
       await storage.deleteWalletConnection(id, userId);
       res.status(204).send();
@@ -2383,7 +2384,7 @@ ${processedText}`;
   // Wallet routes
   app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       let wallet = await storage.getWallet(userId);
       
       // Create wallet if it doesn't exist
@@ -2408,7 +2409,7 @@ ${processedText}`;
 
   app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const transactions = await storage.getWalletTransactions(userId);
       res.json(transactions);
     } catch (error) {
@@ -2419,7 +2420,7 @@ ${processedText}`;
 
   app.post('/api/wallet/deposit', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { amount, paymentMethodId } = req.body;
       
       if (!amount || amount <= 0) {
@@ -2489,7 +2490,7 @@ ${processedText}`;
 
   app.post('/api/wallet/withdraw', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { amount, paymentMethodId } = req.body;
       
       if (!amount || amount <= 0) {
@@ -2554,7 +2555,7 @@ ${processedText}`;
 
   app.get('/api/payment-methods', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const methods = await storage.getPaymentMethods(userId);
       res.json(methods);
     } catch (error) {
@@ -4361,7 +4362,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get current user's subscription
   app.get('/api/subscription/current', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const subscription = await storage.getUserSubscription(userId);
       
       if (!subscription) {
@@ -4378,7 +4379,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Create Stripe Checkout Session
   app.post('/api/subscription/checkout', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { planId, billingInterval = 'monthly' } = req.body;
 
       if (!planId) {
@@ -4450,7 +4451,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Create Stripe Customer Portal Session
   app.post('/api/subscription/portal', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const user = await storage.getUser(userId);
 
       if (!user?.stripeCustomerId) {
@@ -4838,6 +4839,51 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     } catch (error: any) {
       console.error('[AppLogs] Clear error:', error);
       res.status(500).json({ message: error.message || 'Failed to clear logs' });
+    }
+  });
+
+  // ============================================================================
+  // SYSTEM MONITORING ROUTES (Admin/Development Only)
+  // ============================================================================
+
+  // Get AI Data Forwarder statistics
+  app.get('/api/system/ai-forwarder-stats', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const stats = aiDataForwarder.getStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error('[System] AI Forwarder stats error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch stats' });
+    }
+  });
+
+  // Get canonical user ID cache statistics
+  app.get('/api/system/user-cache-stats', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const stats = getCacheStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error('[System] User cache stats error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch cache stats' });
+    }
+  });
+
+  // Get combined system statistics
+  app.get('/api/system/stats', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const stats = {
+        aiDataForwarder: aiDataForwarder.getStats(),
+        userIdCache: getCacheStats(),
+        memory: process.memoryUsage(),
+        uptime: process.uptime(),
+        nodeVersion: process.version,
+        platform: process.platform,
+        timestamp: new Date().toISOString(),
+      };
+      res.json(stats);
+    } catch (error: any) {
+      console.error('[System] System stats error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch system stats' });
     }
   });
 

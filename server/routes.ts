@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Financial sync routes
-  app.post('/api/financial/sync', isAuthenticated, async (req: any, res) => {
+  app.post('/api/financial/sync', isAuthenticated, requireTier('premium'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = await syncAllFinancialData(userId);
@@ -212,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/financial/sync/stocks', isAuthenticated, async (req: any, res) => {
+  app.post('/api/financial/sync/stocks', isAuthenticated, requireTier('premium'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = await syncStockPrices(userId);
@@ -223,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/financial/sync/crypto', isAuthenticated, async (req: any, res) => {
+  app.post('/api/financial/sync/crypto', isAuthenticated, requireTier('premium'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = await syncCryptoPrices(userId);
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/routines/ai-report', isAuthenticated, async (req: any, res) => {
+  app.post('/api/routines/ai-report', isAuthenticated, requireFeature('automatedReports'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { templateName, routines } = req.body;
@@ -376,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Email routes
+  // Email routes  
   app.get('/api/emails', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -429,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/emails/:id/draft', isAuthenticated, async (req: any, res) => {
+  app.post('/api/emails/:id/draft', isAuthenticated, requireFeature('emailAutomation'), async (req: any, res) => {
     try {
       const emailId = req.params.id;
       const userId = req.user.claims.sub;
@@ -468,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/emails/:id/draft-reply', isAuthenticated, async (req: any, res) => {
+  app.post('/api/emails/:id/draft-reply', isAuthenticated, requireFeature('emailAutomation'), async (req: any, res) => {
     try {
       const id = req.params.id;
       const userId = req.user.claims.sub;
@@ -1658,7 +1658,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/portfolio-reports/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/portfolio-reports/generate', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { reportType = 'daily', periodStart, periodEnd } = req.body;
@@ -1702,7 +1702,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/trading-recommendations/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/trading-recommendations/generate', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
 
@@ -1783,7 +1783,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/tax-events/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/tax-events/generate', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
 
@@ -1854,7 +1854,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/rebalancing-recommendations/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/rebalancing-recommendations/generate', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const targetAllocation = req.body.targetAllocation;
@@ -1904,7 +1904,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/anomalies/detect', isAuthenticated, async (req: any, res) => {
+  app.post('/api/anomalies/detect', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
 
@@ -2801,7 +2801,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
 
 
   // AI Task Generation
-  app.post('/api/ai/generate-tasks', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/generate-tasks', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -2844,7 +2844,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // AI Calendar Recommendations
-  app.post('/api/ai/calendar-recommendations', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/calendar-recommendations', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -2871,7 +2871,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // AI Document Organization
-  app.post('/api/ai/organize-document', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/organize-document', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { documentName, extractedText, documentType, documentId } = req.body;
@@ -2982,7 +2982,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Multi-Agent AI Query
-  app.post('/api/ai/multi-agent', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/multi-agent', isAuthenticated, requireFeature('multiAgentAI'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { prompt, context, enableCritique } = req.body;
@@ -3336,7 +3336,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Schedule AI message
-  app.post('/api/discord/schedule', isAuthenticated, async (req: any, res) => {
+  app.post('/api/discord/schedule', isAuthenticated, requireFeature('discordScheduling'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { z } = await import('zod');

@@ -18,11 +18,13 @@ This production-ready AI-powered platform is designed for billionaire-level weal
 - 27 critical payment/subscription/wallet routes migrated to canonical user pattern
 
 **Recent Bug Fixes (October 4, 2025 - Latest Session):**
-1. ✅ `/api/subscription/checkout` - Fixed subscription checkout to use `getSubscriptionPlanById(planId)` instead of `getActivePlan(tier)`, resolving 404 errors when upgrading to Premium/Enterprise tiers (server/routes.ts line 4511)
-2. ✅ Stripe Test Price IDs - Configured test Stripe price IDs for Premium and Enterprise tiers in database (price_test_monthly_premium, price_test_monthly_enterprise, etc.) to enable checkout flow testing
-3. ✅ `/api/accounting/journal-entries` - Added GET and POST alias endpoints for journal entries API compatibility (server/routes.ts lines 2670, 2682)
-4. ✅ `/api/nft/items` - Added GET alias endpoint for NFT items API compatibility (server/routes.ts line 3553)
-5. ✅ Active plan validation - Enhanced subscription checkout to verify plan.isActive before processing payment
+1. ✅ **CRITICAL:** Email conflict bug - Fixed server crashes when OIDC login attempted to create user with email that already exists. Implemented email-priority upsert logic in `storage.upsertUser()` (lines 477-558) that prioritizes email lookup over OIDC sub, preventing unique constraint violations and ensuring stable authentication across OIDC provider changes
+2. ✅ **CRITICAL:** Session mismatch bug - Fixed `/api/auth/user` endpoint to use `getCanonicalUserId()` instead of directly accessing `claims.sub` (server/routes.ts line 97), resolving 404 errors when user's OIDC sub changes but email remains the same. Canonical resolution maps new auth IDs to existing database users via LRU cache
+3. ✅ `/api/subscription/checkout` - Fixed subscription checkout to use `getSubscriptionPlanById(planId)` instead of `getActivePlan(tier)`, resolving 404 errors when upgrading to Premium/Enterprise tiers (server/routes.ts line 4511)
+4. ✅ Stripe Test Price IDs - Configured test Stripe price IDs for Premium and Enterprise tiers in database (price_test_monthly_premium, price_test_monthly_enterprise, etc.) to enable checkout flow testing
+5. ✅ `/api/accounting/journal-entries` - Added GET and POST alias endpoints for journal entries API compatibility (server/routes.ts lines 2670, 2682)
+6. ✅ `/api/nft/items` - Added GET alias endpoint for NFT items API compatibility (server/routes.ts line 3553)
+7. ✅ Active plan validation - Enhanced subscription checkout to verify plan.isActive before processing payment
 
 **Previous Bug Fixes (October 4, 2025 - Earlier):**
 1. ✅ `/api/subscription/tiers` - Added alias endpoint for compatibility

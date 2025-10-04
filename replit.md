@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 The frontend uses React 18 with TypeScript, Vite, Wouter for routing, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3 principles, featuring a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, and WCAG AA compliance. A Coinbase-inspired blue theme is used, with wealth-themed background images, and a mobile/desktop view switcher.
 
 ### Technical Implementations
-The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface for advanced users.
+The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface for advanced users. Performance optimizations include gzip compression middleware and lazy-loading of page components with React.lazy and Suspense.
 
 ### Feature Specifications
 The platform offers:
@@ -21,7 +21,7 @@ The platform offers:
 - **Personal Wallet:** Integrated Fiat Wallet and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
 - **NFT Vault:** Multi-chain NFT management (Ethereum, Polygon, Solana, Hedera) with MetaMask integration.
 - **Discord AI Manager:** Discord bot integration with AI-powered message generation, editing, content moderation, and scheduling.
-- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation, and AI Calendar Recommendations.
+- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR, CRM integration, AI-powered report generation), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation, and AI Calendar Recommendations.
 - **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration.
 - **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights.
 - **CRM:** Manages organizations, contacts, leads, deals, and activities with CRUD operations and accounting integration.
@@ -31,7 +31,7 @@ The platform offers:
 - **Wealth Forge Token Economy:** Solana-based mining coin system with bonding curve pricing for real token purchases, token redemption vault, global leaderboard, and Stripe payment integration.
 
 ### System Design Choices
-The system is built for scalability and security, employing Helmet.js for HTTP headers, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are designed for user-centric data with appropriate indexing. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI to generate personalized daily reports. The Digital Accountant enforces double-entry validation. The CRM integrates with the Digital Accountant for deal tracking.
+The system is built for scalability and security, employing Helmet.js for HTTP headers, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are designed for user-centric data with appropriate indexing. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI to generate personalized daily reports. The Digital Accountant enforces double-entry validation. The CRM integrates with the Digital Accountant for deal tracking and with the Receipt Manager for expense tracking. Receipt reports use GPT-4o to generate AI-powered insights, trends, and recommendations based on spending patterns.
 
 ## External Dependencies
 
@@ -40,6 +40,7 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 - **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation, AI Calendar Recommendations, Multi-Agent orchestrator primary provider.
 - **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes, Multi-Agent responses and critiques.
 - **OpenAI GPT-4o Vision:** OCR and analysis of images in Notepad and Receipt Manager.
+- **OpenAI GPT-4o:** Receipt report generation with spending insights, trend analysis, and recommendations.
 - **Anthropic Claude 3.5 Sonnet:** (Optional) Secondary AI provider for Multi-Agent system.
 - **Cohere:** (Optional) Tertiary AI provider for diverse response generation.
 

@@ -47,7 +47,8 @@ const WealthForge = lazy(() => import("@/pages/WealthForge"));
 const RevenueDashboard = lazy(() => import("@/pages/RevenueDashboard"));
 const Subscription = lazy(() => import("@/pages/Subscription"));
 const ReceiptManager = lazy(() => import("@/pages/ReceiptManager"));
-const NotFound = lazy(() => import("@/pages/not-found"));
+// NotFound is not lazy-loaded to avoid loading spinner on 404 pages
+import NotFound from "@/pages/not-found";
 
 // Loading fallback component
 const LoadingFallback = () => (

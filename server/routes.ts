@@ -3675,7 +3675,17 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get user's Wealth Forge progress
   app.get('/api/wealth-forge/progress', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Ensure user exists and get canonical DB user ID (handles OIDC ID vs existing user by email)
+      const dbUser = await storage.upsertUser({
+        id: req.user.claims.sub,
+        email: req.user.claims.email || null,
+        firstName: req.user.claims.first_name || null,
+        lastName: req.user.claims.last_name || null,
+        profileImageUrl: req.user.claims.profile_image_url || null,
+      });
+      
+      const userId = dbUser.id; // Use canonical DB ID, not OIDC sub
+      
       let progress = await storage.getWealthForgeProgress(userId);
       
       // Create initial progress if it doesn't exist

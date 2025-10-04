@@ -12,10 +12,22 @@ This production-ready AI-powered platform is designed for billionaire-level weal
 - Double-entry accounting validation working
 - Stripe payment integration functional with CSP configured
 - Bonding curve pricing system operational
-- **NEW:** Canonical user ID resolution with LRU caching (10k users, 1hr TTL, 95%+ hit rate)
-- **NEW:** Log rotation system (10MB max file size, 7-day retention, 10-file limit)
-- **NEW:** AI data forwarding integration for comprehensive app monitoring and learning
-- **NEW:** 27 critical payment/subscription/wallet routes migrated to canonical user pattern
+- Canonical user ID resolution with LRU caching (10k users, 1hr TTL, 95%+ hit rate)
+- Log rotation system (10MB max file size, 7-day retention, 10-file limit)
+- AI data forwarding integration for comprehensive app monitoring and learning
+- 27 critical payment/subscription/wallet routes migrated to canonical user pattern
+
+**Recent Bug Fixes (October 4, 2025):**
+1. ✅ `/api/subscription/tiers` - Added alias endpoint for compatibility
+2. ✅ `/api/wealth-forge/balance` - Added dedicated balance endpoint
+3. ✅ `/api/nft/wallets` - Fixed storage method name (getWalletConnections)
+4. ✅ `/api/auth/user` - Auto-upsert from OIDC claims for test bypass scenarios
+5. ✅ `/api/wallet/balance` - Added wallet balance alias endpoint
+6. ✅ Digital Accountant Account Ledger - Fixed query URL construction with account code
+
+**Known Missing Features (Not Bugs):**
+- `/api/health/summary` - Aggregated health metrics endpoint (planned)
+- `/integrations` - Frontend page for managing integrations (planned)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

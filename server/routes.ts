@@ -2067,6 +2067,127 @@ ${processedText}`;
     }
   });
 
+  // Receipt Report endpoints
+  app.get('/api/receipt-reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const reports = await storage.getReceiptReports(userId);
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Error fetching receipt reports:", error);
+      res.status(500).json({ message: "Failed to fetch receipt reports" });
+    }
+  });
+
+  app.get('/api/receipt-reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      const report = await storage.getReceiptReport(id, userId);
+      
+      if (!report) {
+        return res.status(404).json({ message: "Receipt report not found" });
+      }
+      
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error fetching receipt report:", error);
+      res.status(500).json({ message: "Failed to fetch receipt report" });
+    }
+  });
+
+  app.post('/api/receipt-reports/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { title, description, reportType, startDate, endDate, filters } = req.body;
+      
+      if (!title || !reportType) {
+        return res.status(400).json({ message: "Title and report type are required" });
+      }
+
+      // Create report with generating status
+      const reportData = {
+        userId,
+        title,
+        description: description || '',
+        reportType,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        filters: filters || {},
+        status: 'generating' as const,
+      };
+
+      const report = await storage.createReceiptReport(reportData);
+
+      // Fetch receipts based on filters
+      const allReceipts = await storage.getReceipts(userId);
+      let filteredReceipts = allReceipts;
+
+      // Apply date filters
+      if (startDate) {
+        const start = new Date(startDate);
+        filteredReceipts = filteredReceipts.filter(
+          (r) => r.receiptDate && new Date(r.receiptDate) >= start
+        );
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        filteredReceipts = filteredReceipts.filter(
+          (r) => r.receiptDate && new Date(r.receiptDate) <= end
+        );
+      }
+
+      // Apply other filters
+      if (filters?.category) {
+        filteredReceipts = filteredReceipts.filter((r) => r.category === filters.category);
+      }
+      if (filters?.merchant) {
+        filteredReceipts = filteredReceipts.filter((r) => r.merchant?.includes(filters.merchant));
+      }
+      if (filters?.status) {
+        filteredReceipts = filteredReceipts.filter((r) => r.status === filters.status);
+      }
+
+      // Generate AI report asynchronously
+      const { generateReceiptReport } = await import("./receiptReportGenerator");
+      const generatedData = await generateReceiptReport(filteredReceipts, reportType, {
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        ...filters,
+      });
+
+      // Update report with generated data
+      const updatedReport = await storage.updateReceiptReport(report.id, userId, {
+        aiSummary: generatedData.aiSummary,
+        insights: generatedData.insights,
+        recommendations: generatedData.recommendations,
+        totalReceipts: filteredReceipts.length,
+        totalAmount: filteredReceipts.reduce((sum, r) => sum + (r.amount || 0), 0),
+        categoryBreakdown: generatedData.categoryBreakdown,
+        merchantBreakdown: generatedData.merchantBreakdown,
+        trends: generatedData.trends,
+        status: 'completed',
+      });
+
+      res.status(201).json(updatedReport);
+    } catch (error: any) {
+      console.error("Error generating receipt report:", error);
+      res.status(500).json({ message: error.message || "Failed to generate receipt report" });
+    }
+  });
+
+  app.delete('/api/receipt-reports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteReceiptReport(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting receipt report:", error);
+      res.status(500).json({ message: "Failed to delete receipt report" });
+    }
+  });
+
   // Video recommendation routes
   app.get('/api/videos/recommendations', isAuthenticated, async (req: any, res) => {
     try {

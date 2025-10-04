@@ -30,6 +30,7 @@ The platform offers:
 - **CRM:** Manages organizations, contacts, leads, deals, and activities with full CRUD operations and accounting integration.
 - **Microsoft Integration:** OAuth-based connection to Microsoft Office 365, Outlook, OneDrive, and Calendar with Graph API access.
 - **Header Tools:** Live time/date, online/offline status, advanced calculator (64-digit precision, Basic, Scientific, Expression modes), web search, and ChatGPT assistant.
+- **Subscription System:** ✅ Complete - Freemium/premium monetization with three tiers (Free, Premium $149/mo, Enterprise $499/mo), Stripe integration for checkout and billing, multi-currency revenue tracking with real-time FX conversion, feature gating middleware, and webhook-based subscription management.
 
 ### System Design Choices
 The system is built for scalability and security, employing Helmet.js for HTTP headers, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are designed for user-centric data with appropriate indexing and `createdAt`/`updatedAt` timestamps. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI to generate personalized daily reports based on success leader templates. The Digital Accountant enforces double-entry validation and auto-posts journal entries for invoices and payments. The CRM integrates with the Digital Accountant for deal tracking.
@@ -82,9 +83,9 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 - **Google Mail API via OAuth2:** Email synchronization (using Replit Connectors).
 
 ### Financial Data Integration
-- **Alpha Vantage API:** Real-time stock prices.
+- **Alpha Vantage API:** Real-time stock prices and currency exchange rates.
 - **CoinGecko API:** Cryptocurrency prices.
-- **Stripe:** Payment processing for wallet deposits and withdrawals.
+- **Stripe:** Payment processing for subscriptions, wallet deposits, withdrawals, and webhook-based billing management.
 - **Plaid:** (Planned) Bank account aggregation.
 
 ### Third-Party Services

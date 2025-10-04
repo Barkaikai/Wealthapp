@@ -39,12 +39,12 @@ class AIResponseCache {
       entry.hitCount++;
       entry.timestamp = Date.now();
       this.cache.set(key, entry);
-      console.log(`[AICache] HIT (${this.getHitRate()}% hit rate) - Prompt: ${prompt.substring(0, 50)}...`);
+      console.log(`[AICache] HIT (${this.getHitRate()}% hit rate) - Key: ${key.substring(0, 16)}...`);
       return entry.response;
     }
     
     this.stats.misses++;
-    console.log(`[AICache] MISS (${this.getHitRate()}% hit rate) - Prompt: ${prompt.substring(0, 50)}...`);
+    console.log(`[AICache] MISS (${this.getHitRate()}% hit rate) - Key: ${key.substring(0, 16)}...`);
     return null;
   }
 
@@ -56,7 +56,7 @@ class AIResponseCache {
       hitCount: 0
     };
     this.cache.set(key, entry);
-    console.log(`[AICache] SET - Cached response for: ${prompt.substring(0, 50)}...`);
+    console.log(`[AICache] SET - Key: ${key.substring(0, 16)}... (${response.length} chars)`);
   }
 
   clear(): void {

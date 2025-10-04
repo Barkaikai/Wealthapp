@@ -2170,6 +2170,12 @@ export class DatabaseStorage implements IStorage {
     return plan;
   }
 
+  async getSubscriptionPlanById(planId: number): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, planId));
+    return plan;
+  }
+
   async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
     const [created] = await db.insert(subscriptionPlans).values(plan).returning();
     return created;

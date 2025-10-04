@@ -3469,6 +3469,18 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         return res.status(400).json({ message: 'Invalid mining type' });
       }
       
+      // Validate gameScore for mini_game type (server-side security)
+      if (type === 'mini_game') {
+        if (typeof gameScore !== 'number' || gameScore < 0 || gameScore > 100 || !Number.isFinite(gameScore)) {
+          return res.status(400).json({ message: 'Invalid game score: must be between 0-100' });
+        }
+      }
+      
+      // Validate gameData structure (prevent malicious payloads)
+      if (gameData && (typeof gameData !== 'object' || Array.isArray(gameData))) {
+        return res.status(400).json({ message: 'Invalid game data format' });
+      }
+      
       // Get or create progress
       let progress = await storage.getWealthForgeProgress(userId);
       if (!progress) {
@@ -3494,12 +3506,17 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         }
       }
       
-      // Anti-abuse: Daily bonus can only be claimed once per day
+      // Anti-abuse: Daily bonus can only be claimed once per day (USE UTC FOR CONSISTENCY)
       if (type === 'daily_bonus') {
-        const today = new Date().toDateString();
-        const lastActivity = progress.lastActiveDate ? new Date(progress.lastActiveDate).toDateString() : null;
-        if (lastActivity === today) {
-          return res.status(400).json({ message: 'Daily bonus already claimed today' });
+        const nowUtc = new Date();
+        const todayUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate()));
+        const lastActivity = progress.lastActiveDate ? new Date(progress.lastActiveDate) : null;
+        
+        if (lastActivity) {
+          const lastActivityUtc = new Date(Date.UTC(lastActivity.getUTCFullYear(), lastActivity.getUTCMonth(), lastActivity.getUTCDate()));
+          if (todayUtc.getTime() === lastActivityUtc.getTime()) {
+            return res.status(400).json({ message: 'Daily bonus already claimed today' });
+          }
         }
       }
       
@@ -3509,7 +3526,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       
       switch (type) {
         case 'mini_game':
-          // Base reward + bonus for score (capped score validation)
+          // Base reward + bonus for score (validated above)
           tokensEarned = 5;
           xpEarned = 10;
           const validatedScore = Math.min(Math.max(gameScore || 0, 0), 100); // Clamp 0-100
@@ -3732,8 +3749,15 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       const userId = req.user.claims.sub;
       const { amount, packName } = req.body;
       
-      if (!amount || amount <= 0) {
-        return res.status(400).json({ message: 'Invalid amount' });
+      // Validate amount
+      if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000 || !Number.isFinite(amount)) {
+        return res.status(400).json({ message: 'Invalid amount: must be between 1-10000' });
+      }
+      
+      // Validate packName
+      const validPackNames = ['starter', 'standard', 'premium', 'ultimate'];
+      if (packName && !validPackNames.includes(packName)) {
+        return res.status(400).json({ message: 'Invalid pack name' });
       }
       
       // Get user progress

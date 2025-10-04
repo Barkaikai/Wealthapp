@@ -302,7 +302,7 @@ export default function WealthForge() {
                 <Button 
                   className="w-full" 
                   size="lg"
-                  onClick={() => mineMutation.mutate({ type: 'mine' })}
+                  onClick={() => mineMutation.mutate({ type: 'task' })}
                   disabled={mineMutation.isPending || cooldownTime > 0}
                   data-testid="button-mine"
                 >

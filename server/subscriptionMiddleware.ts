@@ -48,11 +48,28 @@ export async function attachSubscription(req: any, res: Response, next: NextFunc
       return next();
     }
 
-    // Get the plan details
-    const plan = await storage.getActivePlan(userSubscription.tier);
+    // Get the plan details using planId from userSubscription
+    // NOTE: userSubscription has planId, not tier
+    let plan: any = null;
+    let tier = 'free';
+    
+    if (userSubscription.planId) {
+      // Get plan by ID first to extract tier
+      const planById = await storage.getSubscriptionPlanById(userSubscription.planId);
+      if (planById) {
+        plan = planById;
+        tier = planById.tier;
+      }
+    }
+    
+    // Fallback to free if no plan found
+    if (!plan) {
+      plan = await storage.getActivePlan('free');
+      tier = 'free';
+    }
 
     req.subscription = {
-      tier: userSubscription.tier,
+      tier,
       status: userSubscription.status,
       plan,
       userSubscription,
@@ -128,7 +145,16 @@ export function requireActiveSubscription(req: Request, res: Response, next: Nex
 export async function hasFeatureAccess(userId: string, feature: string): Promise<boolean> {
   try {
     const userSubscription = await storage.getUserSubscription(userId);
-    const tier = userSubscription?.tier || 'free';
+    
+    // Get tier from plan, not from userSubscription (which doesn't have tier field)
+    let tier = 'free';
+    if (userSubscription?.planId) {
+      const planById = await storage.getSubscriptionPlanById(userSubscription.planId);
+      if (planById) {
+        tier = planById.tier;
+      }
+    }
+    
     const plan = await storage.getActivePlan(tier);
 
     if (!plan || !plan.features) {
@@ -177,7 +203,16 @@ export async function checkUsageLimit(
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
   try {
     const userSubscription = await storage.getUserSubscription(userId);
-    const tier = userSubscription?.tier || 'free';
+    
+    // Get tier from plan, not from userSubscription (which doesn't have tier field)
+    let tier = 'free';
+    if (userSubscription?.planId) {
+      const planById = await storage.getSubscriptionPlanById(userSubscription.planId);
+      if (planById) {
+        tier = planById.tier;
+      }
+    }
+    
     const plan = await storage.getActivePlan(tier);
 
     if (!plan) {

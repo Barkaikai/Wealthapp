@@ -139,7 +139,7 @@ export default function DigitalAccountant() {
   });
 
   const { data: accountLedger } = useQuery<any>({
-    queryKey: ["/api/accounting/reports/ledger", selectedAccountCode],
+    queryKey: selectedAccountCode ? [`/api/accounting/reports/ledger/${selectedAccountCode}`] : [],
     enabled: !!selectedAccountCode,
   });
 

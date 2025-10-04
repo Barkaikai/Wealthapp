@@ -3547,6 +3547,21 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  app.get('/api/nft/items', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const nfts = await storage.getNftAssets(userId);
+      res.json({ nfts: nfts || [], error: false });
+    } catch (error: any) {
+      console.error('[NFT] Get items error:', error);
+      res.status(503).json({ 
+        nfts: [], 
+        error: true,
+        message: 'Unable to fetch NFT data. Please try again later.' 
+      });
+    }
+  });
+
   // Disconnect wallet
   app.delete('/api/nft/wallet/:id', isAuthenticated, async (req: any, res) => {
     try {

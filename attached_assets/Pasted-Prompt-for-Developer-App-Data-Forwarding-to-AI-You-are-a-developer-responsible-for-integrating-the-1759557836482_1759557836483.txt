@@ -1,0 +1,64 @@
+Prompt for Developer / App Data Forwarding to AI
+You are a developer responsible for integrating the application with the AI system. Your task is to ensure that **all relevant app data** is automatically sent to the AI for **learning, analysis, and decision-making**.
+
+Follow these instructions:
+
+1. **Data Scope** – Send all data including:
+   - User actions and interactions
+   - API requests and responses
+   - Authentication events and user creation logs
+   - Errors, exceptions, and stack traces
+   - Code changes, updates, and deployment logs
+   - System events (server start, cron jobs, scheduled tasks)
+   - Database operations (inserts, updates, deletions)
+   - Any other event that impacts app behavior
+
+2. **Data Format** – Structure the data in **JSON**, with fields such as:
+   ```json
+   {
+     "timestamp": "<ISO8601 timestamp>",
+     "event_type": "<e.g., API_CALL, ERROR, USER_ACTION>",
+     "details": "<full event details>",
+     "stack_trace": "<if error>",
+     "user_id": "<if applicable>",
+     "environment": "<server/node details>"
+   }
+
+
+Transmission Frequency – Send data:
+
+In real-time for critical events (errors, user creation, transactions)
+
+Periodically for logs and metrics (every few seconds or minutes)
+
+Learning & Analysis Goals – The AI system should:
+
+Detect bugs and patterns
+
+Analyze user behavior
+
+Make decisions and suggest fixes
+
+Continuously improve automation and predictions
+
+Security & Privacy – Ensure all sensitive data is anonymized if necessary, and the transmission is secure.
+
+Confirmation – The AI system should acknowledge receipt of data and confirm it is usable for learning and analysis.
+
+Your role: Implement data forwarding and logging so the AI always has a complete, up-to-date view of app activity to learn from and optimize the system.
+
+
+---
+
+This prompt ensures:  
+
+- **Full visibility** into app behavior.  
+- **Structured data** that AI can parse and learn from.  
+- **Real-time and batch reporting** for comprehensive analysis.  
+- **Focus on AI-driven learning and decision-making**.  
+
+---
+
+If you want, I can **also write a small Node.js module** that automatically **collects all app events, errors, updates, and sends them to your AI system** in this exact JSON format.  
+
+Do you want me to do that next?

@@ -67,6 +67,38 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 - Service worker caching strategies for static assets and API responses
 - Memory monitoring with automatic cleanup attempts
 
+### Recent Security & Bug Fixes (October 4, 2025)
+
+**🔒 Security Enhancements:**
+- **Wealth Forge Input Validation:** Added comprehensive server-side validation
+  - gameScore: type checking, range validation (0-100), finite number verification
+  - gameData: structure validation (must be object, not array)
+  - packName: whitelist enforcement for buy endpoint (starter/bronze/silver/gold)
+  - amount: range validation (1-10,000) for purchase amounts
+- **Daily Bonus Timezone Fix:** Eliminated timezone-dependent logic, now uses UTC date normalization to prevent exploitation across timezones
+- **Race Condition Mitigation:** Enhanced anti-abuse checks in mining endpoint
+
+**🐛 Critical Bug Fixes:**
+- **Subscription Middleware:** Fixed critical bug where middleware accessed non-existent `tier` field
+  - UserSubscription table has `planId`, not `tier`
+  - Implemented proper resolution: `planId → plan → tier` via new `getSubscriptionPlanById()` storage method
+  - Fixed `attachSubscription`, `hasFeatureAccess`, and `checkUsageLimit` functions
+  - All subscription feature gating now working correctly
+- **Wealth Forge Mining:** Fixed Mine Tokens button sending invalid type 'mine' instead of valid 'task' type
+  - Server validates mining types: ['mini_game', 'daily_bonus', 'quiz', 'task']
+  - Frontend now sends correct 'task' type
+
+**✅ Testing Status:**
+- Comprehensive E2E tests passed for all critical user flows:
+  - Authentication & OIDC login
+  - Subscription management (Premium tier)
+  - Wealth Forge mining with validation
+  - Dashboard asset creation and display
+  - Personal Wallet balances
+  - CRM organization management
+- All security validations confirmed working
+- No blocking issues detected
+
 ## External Dependencies
 
 ### AI Services

@@ -4473,8 +4473,8 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         return res.status(400).json({ message: 'Plan ID is required' });
       }
 
-      const plan = await storage.getActivePlan(planId);
-      if (!plan) {
+      const plan = await storage.getSubscriptionPlanById(planId);
+      if (!plan || !plan.isActive) {
         return res.status(404).json({ message: 'Subscription plan not found' });
       }
 

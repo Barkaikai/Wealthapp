@@ -4,8 +4,8 @@ import OpenAI from 'openai';
 import { aiCache } from './aiCache';
 
 interface StreamMessage {
-  type: 'prompt' | 'ping';
-  prompt?: string;
+  type: 'chat' | 'ping';
+  message?: string;
   model?: string;
 }
 
@@ -30,26 +30,23 @@ export function setupAIWebSocket(server: Server, openai: OpenAI) {
           return;
         }
 
-        if (message.type === 'prompt' && message.prompt) {
-          const model = message.prompt || 'gpt-4o-mini';
+        if (message.type === 'chat' && message.message) {
+          const model = message.model || 'gpt-4o-mini';
           
-          const cached = aiCache.get(message.prompt, model);
+          const cached = aiCache.get(message.message, model);
           if (cached) {
-            ws.send(JSON.stringify({ type: 'start' }));
             const words = cached.split(' ');
             for (const word of words) {
-              ws.send(JSON.stringify({ type: 'token', content: word + ' ' }));
+              ws.send(JSON.stringify({ type: 'chunk', content: word + ' ' }));
               await new Promise(resolve => setTimeout(resolve, 20));
             }
-            ws.send(JSON.stringify({ type: 'end', cached: true }));
+            ws.send(JSON.stringify({ type: 'done', cached: true }));
             return;
           }
 
-          ws.send(JSON.stringify({ type: 'start' }));
-
           const stream = await openai.chat.completions.create({
             model,
-            messages: [{ role: 'user', content: message.prompt }],
+            messages: [{ role: 'user', content: message.message }],
             max_tokens: 1000,
             temperature: 0.7,
             stream: true,
@@ -61,12 +58,12 @@ export function setupAIWebSocket(server: Server, openai: OpenAI) {
             const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
               fullResponse += content;
-              ws.send(JSON.stringify({ type: 'token', content }));
+              ws.send(JSON.stringify({ type: 'chunk', content }));
             }
           }
 
-          aiCache.set(message.prompt, model, fullResponse);
-          ws.send(JSON.stringify({ type: 'end', cached: false }));
+          aiCache.set(message.message, model, fullResponse);
+          ws.send(JSON.stringify({ type: 'done', cached: false }));
           
           console.log(`[WebSocket] Completed streaming response (${fullResponse.length} chars)`);
         }

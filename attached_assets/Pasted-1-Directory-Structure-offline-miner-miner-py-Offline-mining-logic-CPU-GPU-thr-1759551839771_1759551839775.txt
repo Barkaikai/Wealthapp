@@ -1,0 +1,206 @@
+1️⃣ Directory Structure
+offline_miner/
+│
+├─ miner.py           # Offline mining logic (CPU/GPU + threading)
+├─ transaction_queue.py  # Offline transaction management
+├─ submitter.py       # Automatic online submission
+├─ blockchain.py      # Integration hooks / block validation
+└─ config.py          # Difficulty, node URL, etc.
+
+2️⃣ config.py
+NODE_URL = "http://localhost:5000"  # blockchain node for block submission
+DIFFICULTY = 4                      # initial PoW difficulty
+MINER_THREADS = 4                   # CPU threads (GPU handled separately)
+GPU_ENABLED = True                   # enable GPU mining if torch.cuda available
+OFFLINE_TX_FILE = "tx_queue.json"
+
+3️⃣ transaction_queue.py
+import json
+from config import OFFLINE_TX_FILE
+
+class TransactionQueue:
+    def __init__(self):
+        self.queue = self.load_queue()
+
+    def load_queue(self):
+        try:
+            with open(OFFLINE_TX_FILE, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+
+    def add_transaction(self, tx):
+        self.queue.append(tx)
+        self.save_queue()
+
+    def get_transactions(self):
+        return self.queue
+
+    def clear(self):
+        self.queue = []
+        self.save_queue()
+
+    def save_queue(self):
+        with open(OFFLINE_TX_FILE, "w") as f:
+            json.dump(self.queue, f)
+
+4️⃣ miner.py (CPU/GPU Multi-threaded Offline Mining)
+import hashlib, json, time, asyncio, torch, threading
+from queue import Queue
+from config import DIFFICULTY, MINER_THREADS, GPU_ENABLED
+from transaction_queue import TransactionQueue
+
+class Block:
+    def __init__(self, index, previous_hash, transactions, difficulty=DIFFICULTY):
+        self.index = index
+        self.previous_hash = previous_hash
+        self.timestamp = int(time.time())
+        self.transactions = transactions
+        self.nonce = 0
+        self.difficulty = difficulty
+        self.hash = self.compute_hash()
+
+    def compute_hash(self):
+        block_string = json.dumps({
+            "index": self.index,
+            "previous_hash": self.previous_hash,
+            "timestamp": self.timestamp,
+            "transactions": self.transactions,
+            "nonce": self.nonce
+        }, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
+
+def mine_block_cpu(block, stop_event=None):
+    target = "0" * block.difficulty
+    while not block.hash.startswith(target):
+        if stop_event and stop_event.is_set():
+            return None
+        block.nonce += 1
+        block.hash = block.compute_hash()
+    return block
+
+def mine_block_gpu(block):
+    # Simple GPU mining using torch tensors
+    target = "0" * block.difficulty
+    nonce = torch.zeros(1, dtype=torch.int64, device="cuda")
+    while True:
+        block.nonce = int(nonce.item())
+        block.hash = block.compute_hash()
+        if block.hash.startswith(target):
+            return block
+        nonce += 1
+
+def mine_offline(previous_hash, transactions):
+    block = Block(index=1, previous_hash=previous_hash, transactions=transactions)
+    if GPU_ENABLED and torch.cuda.is_available():
+        print("Mining with GPU...")
+        mined_block = mine_block_gpu(block)
+    else:
+        print(f"Mining with {MINER_THREADS} CPU threads...")
+        stop_event = threading.Event()
+        result_queue = Queue()
+
+        def worker():
+            b = Block(block.index, block.previous_hash, block.transactions)
+            mined = mine_block_cpu(b, stop_event)
+            if mined:
+                result_queue.put(mined)
+                stop_event.set()
+
+        threads = [threading.Thread(target=worker) for _ in range(MINER_THREADS)]
+        for t in threads: t.start()
+        mined_block = result_queue.get()
+        for t in threads: t.join()
+    print(f"Block mined! Nonce: {mined_block.nonce}, Hash: {mined_block.hash}")
+    return mined_block
+
+5️⃣ submitter.py (Automatic Submission When Online)
+import requests, time
+from miner import mine_offline
+from transaction_queue import TransactionQueue
+from config import NODE_URL
+
+queue = TransactionQueue()
+
+def submit_block(block):
+    try:
+        response = requests.post(f"{NODE_URL}/submit_block", json={
+            "index": block.index,
+            "previous_hash": block.previous_hash,
+            "timestamp": block.timestamp,
+            "transactions": block.transactions,
+            "nonce": block.nonce,
+            "hash": block.hash
+        }, timeout=5)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+def run_miner():
+    while True:
+        txs = queue.get_transactions()
+        if not txs:
+            time.sleep(5)
+            continue
+
+        # Fetch latest chain tip from node
+        try:
+            tip = requests.get(f"{NODE_URL}/latest_block", timeout=5).json()
+            previous_hash = tip["hash"]
+        except:
+            previous_hash = "0"*64  # fallback if offline
+
+        # Mine block
+        block = mine_offline(previous_hash, txs)
+
+        # Attempt submission
+        if submit_block(block):
+            print("Block submitted successfully!")
+            queue.clear()
+        else:
+            print("Submission failed, keeping block locally.")
+            time.sleep(10)  # retry later
+
+6️⃣ Integration Hook into Existing Blockchain
+
+In your blockchain node code:
+
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+blockchain = []  # your blockchain data structure
+
+@app.route("/submit_block", methods=["POST"])
+def submit_block():
+    data = request.get_json()
+    # Validate block: check hash, previous_hash, difficulty, txs
+    if validate_block(data):
+        blockchain.append(data)
+        return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "invalid"}), 400
+
+@app.route("/latest_block", methods=["GET"])
+def latest_block():
+    return jsonify(blockchain[-1] if blockchain else {"hash": "0"*64})
+
+✅ Features of this Offline Mining Module
+
+CPU/GPU Multi-threaded Mining
+
+Uses GPU if available; otherwise multi-threaded CPU mining.
+
+Offline Transaction Queue
+
+Users can queue transactions while offline.
+
+Automatic Submission
+
+Mines offline blocks and submits them when network is available.
+
+Integration-Friendly
+
+Easy to hook into your existing blockchain node endpoints.
+
+Persistence
+
+Transactions stored locally (tx_queue.json) until mined and submitted.

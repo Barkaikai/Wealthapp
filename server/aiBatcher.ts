@@ -1,11 +1,29 @@
 import OpenAI from 'openai';
 
+/**
+ * AIRequestBatcher - Parallel Request Queue Manager
+ * 
+ * Note: This implements parallel processing with request queueing, NOT true API batching.
+ * OpenAI's Chat Completions API doesn't support multi-prompt batching in a single request.
+ * 
+ * Benefits:
+ * - Rate limiting / throttling control
+ * - Prevents overwhelming the API with concurrent requests
+ * - Predictable throughput management
+ * - Timeout protection for queued requests
+ * 
+ * Limitations:
+ * - Does NOT reduce API costs (separate API call per request)
+ * - Does NOT share tokens between requests
+ */
+
 interface BatchRequest {
   prompt: string;
   model: string;
   resolve: (response: string) => void;
   reject: (error: Error) => void;
   timestamp: number;
+  timeoutId?: NodeJS.Timeout;
 }
 
 class AIRequestBatcher {
@@ -13,20 +31,30 @@ class AIRequestBatcher {
   private processing = false;
   private readonly BATCH_SIZE = 5;
   private readonly BATCH_INTERVAL = 100;
+  private readonly REQUEST_TIMEOUT = 30000; // 30 second timeout
   private timer: NodeJS.Timeout | null = null;
 
   constructor(private openai: OpenAI) {
-    console.log('[AIBatcher] Initialized with batch size:', this.BATCH_SIZE);
+    console.log('[AIBatcher] Initialized - parallel processing with queue (batch size:', this.BATCH_SIZE, ')');
   }
 
   async addRequest(prompt: string, model: string = 'gpt-4o-mini'): Promise<string> {
     return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const index = this.queue.findIndex(req => req.timeoutId === timeoutId);
+        if (index !== -1) {
+          this.queue.splice(index, 1);
+          reject(new Error('Request timeout - exceeded 30 seconds in queue'));
+        }
+      }, this.REQUEST_TIMEOUT);
+
       this.queue.push({
         prompt,
         model,
         resolve,
         reject,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        timeoutId
       });
 
       console.log(`[AIBatcher] Added request to queue (queue size: ${this.queue.length})`);
@@ -54,6 +82,10 @@ class AIRequestBatcher {
     await Promise.all(
       batch.map(async (req) => {
         try {
+          if (req.timeoutId) {
+            clearTimeout(req.timeoutId);
+          }
+
           const latency = Date.now() - req.timestamp;
           console.log(`[AIBatcher] Executing request (wait time: ${latency}ms)`);
           

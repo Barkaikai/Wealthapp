@@ -799,7 +799,7 @@ function StripePaymentForm({ amount, paymentIntentId, onSuccess }: {
     setIsProcessing(true);
     setErrorMessage("");
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/wealth-forge`,
@@ -810,8 +810,11 @@ function StripePaymentForm({ amount, paymentIntentId, onSuccess }: {
     if (error) {
       setErrorMessage(error.message || "Payment failed");
       setIsProcessing(false);
-    } else {
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       onSuccess();
+      setIsProcessing(false);
+    } else {
+      setErrorMessage("Payment was not successful");
       setIsProcessing(false);
     }
   };

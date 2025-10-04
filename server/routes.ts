@@ -10,6 +10,8 @@ import OpenAI from "openai";
 import Stripe from "stripe";
 import { convertToUSD } from "./currencyExchange";
 import { attachSubscription, requireTier, requireFeature, enforceLimit } from "./subscriptionMiddleware";
+import { getCanonicalUserId } from "./helpers/canonicalUser";
+import { appLogger } from "./appLogger";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
@@ -3675,16 +3677,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get user's Wealth Forge progress
   app.get('/api/wealth-forge/progress', isAuthenticated, async (req: any, res) => {
     try {
-      // Ensure user exists and get canonical DB user ID (handles OIDC ID vs existing user by email)
-      const dbUser = await storage.upsertUser({
-        id: req.user.claims.sub,
-        email: req.user.claims.email || null,
-        firstName: req.user.claims.first_name || null,
-        lastName: req.user.claims.last_name || null,
-        profileImageUrl: req.user.claims.profile_image_url || null,
-      });
-      
-      const userId = dbUser.id; // Use canonical DB ID, not OIDC sub
+      const userId = await getCanonicalUserId(req.user.claims);
       
       let progress = await storage.getWealthForgeProgress(userId);
       
@@ -3712,7 +3705,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Update Wealth Forge progress (nickname, wallet address)
   app.patch('/api/wealth-forge/progress', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { nickname, solanaWallet } = req.body;
       
       const progress = await storage.updateWealthForgeProgress(userId, {
@@ -3730,7 +3723,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Mine tokens (free or paid) - Server calculates all rewards (Premium+ feature)
   app.post('/api/wealth-forge/mine', isAuthenticated, requireFeature('wealthForge'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { type, gameData, gameScore } = req.body;
       
       // Validate mining type
@@ -3913,7 +3906,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Redeem vault item
   app.post('/api/wealth-forge/redeem', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { vaultItemId } = req.body;
       
       // Get vault item
@@ -3978,7 +3971,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get user's transactions
   app.get('/api/wealth-forge/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const limit = parseInt(req.query.limit as string) || 50;
       const transactions = await storage.getWealthForgeTransactions(userId, limit);
       res.json(transactions);
@@ -3991,7 +3984,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get user's redemptions
   app.get('/api/wealth-forge/redemptions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const redemptions = await storage.getWealthForgeRedemptions(userId);
       res.json(redemptions);
     } catch (error: any) {
@@ -4003,7 +3996,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get mining history
   app.get('/api/wealth-forge/history', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const limit = parseInt(req.query.limit as string) || 100;
       const history = await storage.getWealthForgeMiningHistory(userId, limit);
       res.json(history);
@@ -4016,7 +4009,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Buy token pack (simulated payment for MVP)
   app.post('/api/wealth-forge/buy', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { amount, packName } = req.body;
       
       // Validate amount
@@ -4177,7 +4170,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Create Stripe PaymentIntent for token purchase
   app.post('/api/wealth-forge/create-payment-intent', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { amount } = req.body;
       
       if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 100000 || !Number.isFinite(amount)) {
@@ -4231,7 +4224,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Complete token purchase after successful payment
   app.post('/api/wealth-forge/complete-purchase', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { paymentIntentId } = req.body;
       
       if (!paymentIntentId) {
@@ -4303,7 +4296,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Get ownership contract
   app.get('/api/wealth-forge/contract', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const contractType = (req.query.type as string) || 'ownership_assignment';
       
       const contract = await storage.getWealthForgeContract(userId, contractType);
@@ -4317,7 +4310,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Save/update ownership contract
   app.post('/api/wealth-forge/contract', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = await getCanonicalUserId(req.user.claims);
       const { contractText, contractType = 'ownership_assignment', signedDate } = req.body;
       
       if (!contractText || typeof contractText !== 'string') {
@@ -4760,6 +4753,91 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     } catch (error: any) {
       console.error('[Revenue] Get reports error:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch revenue reports' });
+    }
+  });
+
+  // ============================================================================
+  // APP LOGGING ROUTES (Admin/Development Only)
+  // ============================================================================
+  
+  // Admin check middleware for logging endpoints
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    // SECURITY: In production, implement proper admin role checking
+    // For now, this is development-only functionality
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ 
+        message: 'Logging endpoints disabled in production',
+        note: 'Contact system administrator for log access'
+      });
+    }
+    next();
+  };
+
+  // Get all app creation logs (Admin/Dev only)
+  app.get('/api/app-logs', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      await appLogger.log({
+        action: "App logs accessed",
+        metadata: { userId, timestamp: new Date().toISOString() }
+      });
+      
+      const logs = await appLogger.getAllLogs();
+      res.json({ logs, count: logs.length });
+    } catch (error: any) {
+      console.error('[AppLogs] Fetch error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch logs' });
+    }
+  });
+
+  // Get recent app creation logs (Admin/Dev only)
+  app.get('/api/app-logs/recent', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      await appLogger.log({
+        action: "Recent app logs accessed",
+        metadata: { userId, limit, timestamp: new Date().toISOString() }
+      });
+      
+      const logs = await appLogger.getAllLogs();
+      const recentLogs = logs.slice(-limit).reverse();
+      res.json({ logs: recentLogs, count: recentLogs.length });
+    } catch (error: any) {
+      console.error('[AppLogs] Fetch recent error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch recent logs' });
+    }
+  });
+
+  // Clear app creation logs (Admin/Dev only - requires explicit authorization)
+  app.delete('/api/app-logs', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      const { confirmClear } = req.body;
+      
+      if (confirmClear !== true) {
+        return res.status(400).json({ 
+          message: 'Confirmation required',
+          note: 'Set confirmClear: true in request body to confirm deletion'
+        });
+      }
+      
+      await appLogger.log({
+        action: "App creation logs deletion initiated",
+        metadata: { 
+          userId, 
+          userEmail: req.user.claims.email,
+          timestamp: new Date().toISOString()
+        },
+        insights: "SECURITY: Log deletion should be audited and restricted to authorized personnel only"
+      });
+      
+      await appLogger.clearLogs();
+      res.json({ message: 'Logs cleared successfully' });
+    } catch (error: any) {
+      console.error('[AppLogs] Clear error:', error);
+      res.status(500).json({ message: error.message || 'Failed to clear logs' });
     }
   });
 

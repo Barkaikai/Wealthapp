@@ -1,0 +1,167 @@
+Got it! The issue you’re describing is a systemic user ID mismatch: some routes (including Wealth Forge) are using req.user.claims.sub directly, but the database may have a different canonical ID. Right now you patched one endpoint, but the real fix is to introduce a helper function to always resolve the canonical database user ID and refactor routes to use it.
+
+Here’s a production-ready solution for your Node.js/TypeScript backend:
+
+1️⃣ Create a Helper Function for Canonical User ID
+
+server/helpers/user.ts:
+
+import { db } from "../storage"; // Your database client
+
+/**
+ * Resolves a canonical database user ID from the authentication claims.
+ * If the user does not exist, create it automatically.
+ */
+export async function getCanonicalUserId(authClaims: any): Promise<string> {
+  const authId = authClaims.sub;
+
+  // Check if user exists
+  const user = await db.user.findUnique({
+    where: { authId },
+  });
+
+  if (user) {
+    return user.id; // database canonical ID
+  }
+
+  // Create user if not exists
+  const newUser = await db.user.create({
+    data: {
+      authId,
+      email: authClaims.email || null,
+      name: authClaims.name || null,
+    },
+  });
+
+  return newUser.id;
+}
+
+
+✅ What it does:
+
+Ensures a user always exists in the database.
+
+Returns the canonical database ID instead of req.user.claims.sub.
+
+Handles creation automatically for new users.
+
+2️⃣ Refactor Routes to Use Canonical User ID
+
+Example: server/routes/wealthForge.ts
+
+import express from "express";
+import { getCanonicalUserId } from "../helpers/user";
+import { db } from "../storage";
+
+const router = express.Router();
+
+router.get("/progress", async (req, res) => {
+  try {
+    const canonicalUserId = await getCanonicalUserId(req.user.claims);
+
+    // Use canonical ID for database queries
+    const progress = await db.wealthForgeProgress.findMany({
+      where: { userId: canonicalUserId },
+    });
+
+    res.json(progress);
+  } catch (err) {
+    console.error("Wealth Forge progress error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+export default router;
+
+
+✅ Benefits:
+
+Eliminates foreign key issues.
+
+Centralizes user ID handling.
+
+Easy to apply to all routes.
+
+3️⃣ Apply to All Routes (Systemic Fix)
+
+Anywhere you currently do:
+
+const userId = req.user.claims.sub;
+
+
+replace with:
+
+const userId = await getCanonicalUserId(req.user.claims);
+
+
+You can also create a middleware for convenience:
+
+// server/middleware/canonicalUser.ts
+import { Request, Response, NextFunction } from "express";
+import { getCanonicalUserId } from "../helpers/user";
+
+export async function attachCanonicalUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    req.user.id = await getCanonicalUserId(req.user.claims);
+    next();
+  } catch (err) {
+    console.error("Canonical user middleware error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+
+Then use in routes:
+
+router.use(attachCanonicalUser);
+
+router.get("/progress", async (req, res) => {
+  const progress = await db.wealthForgeProgress.findMany({
+    where: { userId: req.user.id },
+  });
+  res.json(progress);
+});
+
+
+✅ Advantages of Middleware:
+
+Minimal code changes across 173+ routes.
+
+Automatically ensures canonical IDs.
+
+Fixes the systemic bug without touching every line individually.
+
+4️⃣ Optional: Batch Migration Script
+
+For existing users whose authId differs from id, you can run:
+
+// server/scripts/migrateUsers.ts
+import { db } from "../storage";
+
+async function migrateUsers() {
+  const users = await db.user.findMany();
+  for (const user of users) {
+    if (!user.authId) {
+      // Assign authId from an external auth system or mapping
+      await db.user.update({
+        where: { id: user.id },
+        data: { authId: user.email }, // example mapping
+      });
+    }
+  }
+  console.log("Migration complete");
+}
+
+migrateUsers();
+
+✅ Summary of Fix
+
+Introduced getCanonicalUserId() helper to centralize user ID handling.
+
+Optionally added middleware to attach canonical ID to req.user.id.
+
+Updated Wealth Forge progress endpoint to use canonical ID.
+
+Plan: gradually refactor all 173 routes to use helper/middleware.
+
+Prevents foreign key violations and ensures consistent user identity across all features.

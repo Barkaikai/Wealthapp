@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { healthMonitor } from "./healthMonitor";
 import helmet from "helmet";
+import compression from "compression";
 import { rateLimit } from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { doubleCsrf } from "csrf-csrf";
@@ -30,6 +31,12 @@ app.use(helmet({
       connectSrc: ["'self'", "https:", "wss:"],
     },
   },
+}));
+
+// Performance: Compression (gzip responses)
+app.use(compression({
+  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6, // Compression level (0-9, 6 is a good balance)
 }));
 
 // Security: Cookie parser

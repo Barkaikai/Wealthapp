@@ -10,9 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Trophy, ShoppingCart, History, Flame, Star, Zap, TrendingUp, Gift, Target, Pickaxe, Loader2, Clock } from "lucide-react";
+import { Coins, Trophy, ShoppingCart, History, Flame, Star, Zap, TrendingUp, Gift, Target, Pickaxe, Loader2, Clock, CreditCard, FileText } from "lucide-react";
 import Confetti from "react-confetti";
 import { motion, AnimatePresence } from "framer-motion";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Textarea } from "@/components/ui/textarea";
+
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function WealthForge() {
   const { toast } = useToast();
@@ -24,6 +30,12 @@ export default function WealthForge() {
   const [nickname, setNickname] = useState("");
   const [solanaWallet, setSolanaWallet] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
+  const [tokenAmount, setTokenAmount] = useState(100);
+  const [showStripePayment, setShowStripePayment] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
+  const [showContract, setShowContract] = useState(false);
+  const [contractText, setContractText] = useState("");
 
   const { data: progress, isLoading: progressLoading } = useQuery({
     queryKey: ['/api/wealth-forge/progress'],
@@ -118,6 +130,74 @@ export default function WealthForge() {
         title: "Redemption Failed",
         description: error.message || "Insufficient tokens",
         variant: "destructive",
+      });
+    },
+  });
+
+  const { data: bondingPrice } = useQuery({
+    queryKey: ['/api/wealth-forge/bonding-price', tokenAmount],
+    enabled: tokenAmount > 0,
+  });
+
+  const { data: contract } = useQuery({
+    queryKey: ['/api/wealth-forge/contract'],
+    enabled: showContract,
+  });
+
+  const createPaymentIntentMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const response = await apiRequest('POST', '/api/wealth-forge/create-payment-intent', { amount });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setClientSecret(data.clientSecret);
+      setPaymentIntentId(data.paymentIntentId);
+      setShowStripePayment(true);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Payment Setup Failed",
+        description: error.message || "Could not initialize payment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const completePurchaseMutation = useMutation({
+    mutationFn: async (paymentIntentId: string) => {
+      const response = await apiRequest('POST', '/api/wealth-forge/complete-purchase', { paymentIntentId });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/progress'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/transactions'] });
+      setShowStripePayment(false);
+      setClientSecret("");
+      setPaymentIntentId("");
+      toast({
+        title: "Purchase Complete",
+        description: `You received ${data.tokensAdded} WFG tokens`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Payment verification failed",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveContractMutation = useMutation({
+    mutationFn: async (data: { contractText: string; signedDate?: string }) => {
+      const response = await apiRequest('POST', '/api/wealth-forge/contract', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wealth-forge/contract'] });
+      toast({
+        title: "Contract Saved",
+        description: "Your ownership contract has been saved",
       });
     },
   });
@@ -373,37 +453,84 @@ export default function WealthForge() {
 
             <Card className="hover-elevate" data-testid="card-buy-packs">
               <CardHeader>
-                <CardTitle>Buy Token Packs</CardTitle>
-                <CardDescription>Purchase WFG tokens instantly</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Buy WFG Tokens
+                </CardTitle>
+                <CardDescription>Purchase with real money using Stripe (bonding curve pricing)</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-4 border rounded-lg hover-elevate">
-                    <div>
-                      <div className="font-medium">Starter Pack</div>
-                      <div className="text-sm text-muted-foreground">10 WFG</div>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="token-amount">Token Amount</Label>
+                  <Input
+                    id="token-amount"
+                    type="number"
+                    min="1"
+                    max="100000"
+                    value={tokenAmount}
+                    onChange={(e) => setTokenAmount(Math.max(1, Math.min(100000, parseInt(e.target.value) || 1)))}
+                    data-testid="input-token-amount"
+                  />
+                </div>
+                
+                {bondingPrice && (
+                  <div className="p-4 bg-muted rounded-lg space-y-2" data-testid="pricing-info">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Current Supply:</span>
+                      <span className="font-medium">{bondingPrice.currentSupply.toLocaleString()} WFG</span>
                     </div>
-                    <Button 
-                      onClick={() => buyPack(10, 'Starter Pack')}
-                      disabled={buyMutation.isPending}
-                      data-testid="button-buy-starter"
-                    >
-                      Buy
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg hover-elevate">
-                    <div>
-                      <div className="font-medium">Pro Pack</div>
-                      <div className="text-sm text-muted-foreground">25 WFG</div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Price per Token:</span>
+                      <span className="font-medium">${bondingPrice.perTokenApproxUSD.toFixed(6)}</span>
                     </div>
-                    <Button 
-                      onClick={() => buyPack(25, 'Pro Pack')}
-                      disabled={buyMutation.isPending}
-                      data-testid="button-buy-pro"
-                    >
-                      Buy
-                    </Button>
+                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                      <span>Total Price:</span>
+                      <span className="text-primary" data-testid="text-total-price">${bondingPrice.totalUSD.toFixed(2)}</span>
+                    </div>
                   </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      if (!stripePromise) {
+                        toast({
+                          title: "Stripe Not Configured",
+                          description: "Stripe publishable key is missing. Please configure VITE_STRIPE_PUBLISHABLE_KEY.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      createPaymentIntentMutation.mutate(tokenAmount);
+                    }}
+                    disabled={createPaymentIntentMutation.isPending || !tokenAmount || tokenAmount < 1}
+                    data-testid="button-buy-with-stripe"
+                  >
+                    {createPaymentIntentMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Buy with Stripe
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowContract(true)}
+                    data-testid="button-view-contract"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Contract
+                  </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground text-center">
+                  Prices increase as more tokens are minted (bonding curve)
                 </div>
               </CardContent>
             </Card>
@@ -570,7 +697,149 @@ export default function WealthForge() {
           <MiniGame onComplete={handleMiniGameComplete} />
         </DialogContent>
       </Dialog>
+
+      {/* Stripe Payment Dialog */}
+      {stripePromise && clientSecret && (
+        <Dialog open={showStripePayment} onOpenChange={setShowStripePayment}>
+          <DialogContent className="sm:max-w-md" data-testid="dialog-stripe-payment">
+            <DialogHeader>
+              <DialogTitle>Complete Your Purchase</DialogTitle>
+              <DialogDescription>
+                Securely pay with Stripe to receive {tokenAmount} WFG tokens
+              </DialogDescription>
+            </DialogHeader>
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <StripePaymentForm 
+                amount={tokenAmount} 
+                paymentIntentId={paymentIntentId}
+                onSuccess={() => completePurchaseMutation.mutate(paymentIntentId)}
+              />
+            </Elements>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Contract Dialog */}
+      <Dialog open={showContract} onOpenChange={setShowContract}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="dialog-contract">
+          <DialogHeader>
+            <DialogTitle>WFG Token Ownership Contract</DialogTitle>
+            <DialogDescription>
+              Your digital ownership agreement for purchased WFG tokens
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {contract ? (
+              <div className="space-y-3">
+                <div className="p-4 bg-muted rounded-lg">
+                  <pre className="whitespace-pre-wrap text-sm">{contract.contractText}</pre>
+                </div>
+                {contract.signedDate && (
+                  <div className="text-sm text-muted-foreground">
+                    Signed: {new Date(contract.signedDate).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="Enter ownership contract text..."
+                  value={contractText}
+                  onChange={(e) => setContractText(e.target.value)}
+                  rows={10}
+                  data-testid="input-contract"
+                />
+                <Button
+                  onClick={() => saveContractMutation.mutate({ 
+                    contractText, 
+                    signedDate: new Date().toISOString() 
+                  })}
+                  disabled={!contractText.trim() || saveContractMutation.isPending}
+                  data-testid="button-save-contract"
+                >
+                  {saveContractMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Save Contract
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Stripe Payment Form Component
+function StripePaymentForm({ amount, paymentIntentId, onSuccess }: { 
+  amount: number; 
+  paymentIntentId: string;
+  onSuccess: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage("");
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/wealth-forge`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      setErrorMessage(error.message || "Payment failed");
+      setIsProcessing(false);
+    } else {
+      onSuccess();
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {errorMessage && (
+        <div className="text-sm text-destructive" data-testid="error-payment">
+          {errorMessage}
+        </div>
+      )}
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={!stripe || isProcessing}
+        data-testid="button-submit-payment"
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          `Pay for ${amount} WFG Tokens`
+        )}
+      </Button>
+    </form>
   );
 }
 

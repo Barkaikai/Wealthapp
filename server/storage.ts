@@ -472,25 +472,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // First try to find existing user by ID
-    if (userData.id) {
-      const existingUserById = await this.getUser(userData.id);
-      
-      if (existingUserById) {
-        // Update existing user by ID
-        const [updatedUser] = await db
-          .update(users)
-          .set({
-            ...userData,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, userData.id))
-          .returning();
-        return updatedUser;
-      }
-    }
-    
-    // Check if email already exists
+    // PRIORITY 1: Check if email already exists (email is the stable identifier for OIDC)
     if (userData.email) {
       const [existingUserByEmail] = await db
         .select()
@@ -498,7 +480,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.email, userData.email));
       
       if (existingUserByEmail) {
-        // Update existing user (but keep existing ID to avoid foreign key violations)
+        // Update existing user found by email (keep existing ID to maintain foreign keys)
         const { id, ...updateData } = userData;
         const [updatedUser] = await db
           .update(users)
@@ -512,7 +494,40 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // No existing user, create new one
+    // PRIORITY 2: Check if user exists by ID (for cases where email might change)
+    if (userData.id) {
+      const existingUserById = await this.getUser(userData.id);
+      
+      if (existingUserById) {
+        // User exists by ID - check if email update would conflict
+        if (userData.email && userData.email !== existingUserById.email) {
+          // Email is changing - verify new email doesn't exist on another user
+          const [emailConflict] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, userData.email));
+          
+          if (emailConflict) {
+            // Email exists on different user - this is a conflict
+            // Return the user with the matching email (prioritize email over ID)
+            return emailConflict;
+          }
+        }
+        
+        // Safe to update by ID
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            ...userData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userData.id))
+          .returning();
+        return updatedUser;
+      }
+    }
+    
+    // No existing user found - create new one
     try {
       const [newUser] = await db
         .insert(users)
@@ -520,22 +535,19 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newUser;
     } catch (error: any) {
-      // Handle unique constraint violation (race condition or duplicate)
+      // Handle unique constraint violation (race condition)
       if (error.code === '23505') {
-        // Constraint violation - fetch existing user without overwriting
-        if (userData.id) {
-          const existingUser = await this.getUser(userData.id);
-          if (existingUser) return existingUser;
-        }
+        // Constraint violation - fetch and return existing user
         if (userData.email) {
           const [existingUser] = await db
             .select()
             .from(users)
             .where(eq(users.email, userData.email));
-          if (existingUser) {
-            // Just return the existing user - don't overwrite fields
-            return existingUser;
-          }
+          if (existingUser) return existingUser;
+        }
+        if (userData.id) {
+          const existingUser = await this.getUser(userData.id);
+          if (existingUser) return existingUser;
         }
       }
       throw error;

@@ -136,7 +136,12 @@ export default function WealthForge() {
 
   const { data: bondingPrice } = useQuery({
     queryKey: ['/api/wealth-forge/bonding-price', tokenAmount],
-    enabled: tokenAmount > 0,
+    queryFn: async () => {
+      const response = await fetch(`/api/wealth-forge/bonding-price?amount=${tokenAmount}`);
+      if (!response.ok) throw new Error('Failed to fetch bonding price');
+      return response.json();
+    },
+    enabled: tokenAmount > 0 && tokenAmount <= 100000,
   });
 
   const { data: contract } = useQuery({

@@ -1692,6 +1692,59 @@ export const insertWealthForgeMiningHistorySchema = createInsertSchema(wealthFor
 export type InsertWealthForgeMiningHistory = z.infer<typeof insertWealthForgeMiningHistorySchema>;
 export type WealthForgeMiningHistory = typeof wealthForgeMiningHistory.$inferSelect;
 
+// Wealth Forge Ownership Contracts - Store ownership/legal agreements
+export const wealthForgeContracts = pgTable("wealth_forge_contracts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  contractType: varchar("contract_type", { length: 100 }).default('ownership_assignment').notNull(),
+  contractText: text("contract_text").notNull(),
+  signedDate: timestamp("signed_date"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_contracts_user_id").on(table.userId),
+  index("idx_wf_contracts_type").on(table.contractType)
+]);
+
+export const insertWealthForgeContractSchema = createInsertSchema(wealthForgeContracts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWealthForgeContract = z.infer<typeof insertWealthForgeContractSchema>;
+export type WealthForgeContract = typeof wealthForgeContracts.$inferSelect;
+
+// Wealth Forge Stripe Payments - Track bonding curve purchases via Stripe
+export const wealthForgeStripePayments = pgTable("wealth_forge_stripe_payments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  paymentIntentId: varchar("payment_intent_id").unique().notNull(),
+  amount: real("amount").notNull(), // Token amount purchased
+  pricePerToken: real("price_per_token").notNull(), // Price at time of purchase
+  totalUsd: real("total_usd").notNull(), // Total USD paid
+  amountCents: integer("amount_cents").notNull(), // Stripe amount in cents
+  status: varchar("status", { length: 50 }).notNull(), // pending, succeeded, failed
+  currentSupply: real("current_supply").default(0).notNull(), // Supply at time of purchase
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_wf_stripe_user_id").on(table.userId),
+  index("idx_wf_stripe_intent_id").on(table.paymentIntentId),
+  index("idx_wf_stripe_status").on(table.status)
+]);
+
+export const insertWealthForgeStripePaymentSchema = createInsertSchema(wealthForgeStripePayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWealthForgeStripePayment = z.infer<typeof insertWealthForgeStripePaymentSchema>;
+export type WealthForgeStripePayment = typeof wealthForgeStripePayments.$inferSelect;
+
 // Subscription Plans - Define available subscription tiers
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: serial("id").primaryKey(),

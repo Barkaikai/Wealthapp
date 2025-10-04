@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image, Bot } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image, Bot, Crown } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -98,6 +98,11 @@ const menuGroups = [
     label: "System",
     icon: LifeBuoy,
     items: [
+      {
+        title: "Subscription",
+        url: "/subscription",
+        icon: Crown,
+      },
       {
         title: "Guide",
         url: "/guide",

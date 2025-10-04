@@ -4206,7 +4206,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // ============================================================================
 
   // Get revenue entries (admin/analytics)
-  app.get('/api/revenue/entries', isAuthenticated, async (req: any, res) => {
+  app.get('/api/revenue/entries', isAuthenticated, requireFeature('revenueDashboard'), async (req: any, res) => {
     try {
       const { startDate, endDate, source } = req.query;
       
@@ -4228,7 +4228,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Get revenue summary
-  app.get('/api/revenue/summary', isAuthenticated, async (req: any, res) => {
+  app.get('/api/revenue/summary', isAuthenticated, requireFeature('revenueDashboard'), async (req: any, res) => {
     try {
       const { startDate, endDate } = req.query;
       
@@ -4249,7 +4249,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Get revenue reports
-  app.get('/api/revenue/reports', isAuthenticated, async (req: any, res) => {
+  app.get('/api/revenue/reports', isAuthenticated, requireFeature('revenueDashboard'), async (req: any, res) => {
     try {
       const { type, limit } = req.query;
       

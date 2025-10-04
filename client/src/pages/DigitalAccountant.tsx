@@ -1219,36 +1219,60 @@ export default function DigitalAccountant() {
                   </div>
 
                   {selectedAccountCode && accountLedger && (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Debit</TableHead>
-                          <TableHead className="text-right">Credit</TableHead>
-                          <TableHead className="text-right">Balance</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {accountLedger.transactions?.map((txn: any, index: number) => (
-                          <TableRow key={index} data-testid={`row-ledger-${index}`}>
-                            <TableCell data-testid={`text-ledger-date-${index}`}>
-                              {format(new Date(txn.date), 'PP')}
-                            </TableCell>
-                            <TableCell data-testid={`text-ledger-description-${index}`}>{txn.description}</TableCell>
-                            <TableCell className="text-right font-mono" data-testid={`text-ledger-debit-${index}`}>
-                              {txn.debit ? formatCurrency(txn.debit) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right font-mono" data-testid={`text-ledger-credit-${index}`}>
-                              {txn.credit ? formatCurrency(txn.credit) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right font-mono font-semibold" data-testid={`text-ledger-balance-${index}`}>
-                              {formatCurrency(txn.balance)}
-                            </TableCell>
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        Account: {accountLedger.account?.name} ({accountLedger.account?.code})
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-right">Debit</TableHead>
+                            <TableHead className="text-right">Credit</TableHead>
+                            <TableHead className="text-right">Balance</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {accountLedger.entries?.length > 0 ? (
+                            (() => {
+                              let runningBalance = 0;
+                              return accountLedger.entries.map((line: any, index: number) => {
+                                const debit = line.isDebit ? line.amount : 0;
+                                const credit = line.isDebit ? 0 : line.amount;
+                                runningBalance += debit - credit;
+                                
+                                return (
+                                  <TableRow key={line.id} data-testid={`row-ledger-${index}`}>
+                                    <TableCell data-testid={`text-ledger-date-${index}`}>
+                                      {format(new Date(line.entry?.date || line.createdAt), 'PP')}
+                                    </TableCell>
+                                    <TableCell data-testid={`text-ledger-description-${index}`}>
+                                      {line.entry?.description || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono" data-testid={`text-ledger-debit-${index}`}>
+                                      {debit > 0 ? formatCurrency(debit) : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono" data-testid={`text-ledger-credit-${index}`}>
+                                      {credit > 0 ? formatCurrency(credit) : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono font-semibold" data-testid={`text-ledger-balance-${index}`}>
+                                      {formatCurrency(runningBalance)}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              });
+                            })()
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                No transactions found for this account
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>

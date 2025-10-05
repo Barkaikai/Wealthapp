@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/routines/recommendations', isAuthenticated, async (req: any, res) => {
+  app.post('/api/routines/recommendations', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const routines = await storage.getRoutines(userId);
@@ -378,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/routines/ai-report', isAuthenticated, requireFeature('automatedReports'), async (req: any, res) => {
+  app.post('/api/routines/ai-report', aiRateLimiter, isAuthenticated, requireFeature('automatedReports'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { templateName, routines } = req.body;
@@ -494,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/emails/:id/draft-reply', isAuthenticated, requireFeature('emailAutomation'), async (req: any, res) => {
+  app.post('/api/emails/:id/draft-reply', aiRateLimiter, isAuthenticated, requireFeature('emailAutomation'), async (req: any, res) => {
     try {
       const id = req.params.id;
       const userId = req.user.claims.sub;
@@ -2372,7 +2372,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/videos/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/videos/generate', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       

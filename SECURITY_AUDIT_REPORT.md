@@ -68,15 +68,19 @@ Comprehensive security audit completed with all critical security issues address
 - 50 requests per 15 minutes per IP
 - Applied to all AI generation endpoints
 
-**Protected Endpoints:**
+**Protected Endpoints (11 total):**
 ```
-- POST /api/briefing/generate
-- POST /api/learn/generate
-- POST /api/documents/:id/analyze
-- POST /api/ai/generate-tasks
-- POST /api/ai/calendar-recommendations
-- POST /api/ai/organize-document
-- POST /api/ai/multi-agent
+1. POST /api/briefing/generate
+2. POST /api/routines/recommendations
+3. POST /api/routines/ai-report
+4. POST /api/emails/:id/draft-reply
+5. POST /api/learn/generate
+6. POST /api/documents/:id/analyze
+7. POST /api/videos/generate
+8. POST /api/ai/generate-tasks
+9. POST /api/ai/calendar-recommendations
+10. POST /api/ai/organize-document
+11. POST /api/ai/multi-agent
 ```
 
 ---

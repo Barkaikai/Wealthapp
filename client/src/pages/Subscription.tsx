@@ -11,6 +11,7 @@ import {
   ArrowRight, Sparkles, Shield, Clock
 } from "lucide-react";
 import type { SubscriptionPlan, UserSubscription } from "@shared/schema";
+import RedeemPass from "@/components/RedeemPass";
 
 interface CurrentSubscription {
   subscription: UserSubscription | null;
@@ -196,6 +197,9 @@ export default function Subscription() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Redeem Pass Section */}
+      <RedeemPass />
 
       {/* Available Plans */}
       <div>

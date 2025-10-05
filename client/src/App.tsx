@@ -47,6 +47,7 @@ const WealthForge = lazy(() => import("@/pages/WealthForge"));
 const RevenueDashboard = lazy(() => import("@/pages/RevenueDashboard"));
 const Subscription = lazy(() => import("@/pages/Subscription"));
 const ReceiptManager = lazy(() => import("@/pages/ReceiptManager"));
+const AdminPasses = lazy(() => import("@/pages/AdminPasses"));
 // NotFound is not lazy-loaded to avoid loading spinner on 404 pages
 import NotFound from "@/pages/not-found";
 
@@ -100,6 +101,7 @@ function Router() {
             <Route path="/crm" component={CRMPage} />
             <Route path="/revenue" component={RevenueDashboard} />
             <Route path="/subscription" component={Subscription} />
+            <Route path="/admin/passes" component={AdminPasses} />
             <Route path="/guide" component={Guide} />
             <Route path="/settings" component={Settings} />
             <Route path="/learn/:slug" component={LearnPage} />

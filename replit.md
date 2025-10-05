@@ -47,6 +47,16 @@ This production-ready AI-powered platform is designed for billionaire-level weal
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Local Development Setup
+For developers who want to run this platform outside of Replit on their local machine, see **[RUN_LOCALLY.md](RUN_LOCALLY.md)** for comprehensive setup instructions including:
+- System requirements (Node.js v20.x, PostgreSQL v16.x)
+- Step-by-step installation guide
+- Complete environment variable configuration
+- Database initialization
+- Development and production commands
+- Troubleshooting common issues
+- Notes on Replit-specific dependencies that may require alternatives locally
+
 ## System Architecture
 
 ### UI/UX Decisions

@@ -4827,6 +4827,224 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // ============================================================================
+  // FREE PASSES & SUBSCRIPTION CONFIG ROUTES
+  // ============================================================================
+
+  // Admin middleware - checks if user is admin
+  const requireAdminUser = async (req: any, res: any, next: any) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      
+      // Check if ADMIN_USER_ID env var is set and matches
+      const adminUserId = process.env.ADMIN_USER_ID;
+      if (adminUserId && userId === adminUserId) {
+        return next();
+      }
+      
+      // Development fallback: if ADMIN_USER_ID is not set, check if this is the first created user
+      if (!adminUserId) {
+        // Query database to find the first created user (oldest createdAt)
+        const firstUserQuery = await db.select()
+          .from(users)
+          .orderBy(users.createdAt)
+          .limit(1);
+        
+        if (firstUserQuery.length > 0 && firstUserQuery[0].id === userId) {
+          console.log('[Admin] No ADMIN_USER_ID set, granting admin access to first user:', userId);
+          return next();
+        }
+      }
+      
+      return res.status(403).json({ message: 'Admin access required. Set ADMIN_USER_ID environment variable.' });
+    } catch (error: any) {
+      console.error('[Admin] Auth error:', error);
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+  };
+
+  // Get subscription config (current pricing)
+  app.get('/api/subscription/config', isAuthenticated, async (req: any, res) => {
+    try {
+      let config = await storage.getSubscriptionConfig();
+      
+      if (!config) {
+        // Create default config if not exists
+        config = await storage.createSubscriptionConfig({
+          priceCents: 2499,
+          currency: 'usd',
+        });
+      }
+      
+      res.json(config);
+    } catch (error: any) {
+      console.error('[Subscription Config] Get error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch subscription config' });
+    }
+  });
+
+  // Admin: Update subscription config
+  app.post('/api/admin/subscription/config', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const { priceCents, currency, stripePriceId } = req.body;
+      
+      const config = await storage.getSubscriptionConfig();
+      
+      if (config) {
+        const updated = await storage.updateSubscriptionConfig(config.id, {
+          priceCents,
+          currency,
+          stripePriceId,
+        });
+        res.json(updated);
+      } else {
+        const created = await storage.createSubscriptionConfig({
+          priceCents,
+          currency,
+          stripePriceId,
+        });
+        res.json(created);
+      }
+    } catch (error: any) {
+      console.error('[Subscription Config] Update error:', error);
+      res.status(500).json({ message: error.message || 'Failed to update subscription config' });
+    }
+  });
+
+  // Admin: Create free passes (limited to 400 total)
+  app.post('/api/admin/passes/create', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      const { count = 1, note } = req.body;
+      const MAX_TOTAL = 400;
+
+      if (count < 1 || count > 100) {
+        return res.status(400).json({ message: 'Count must be between 1 and 100' });
+      }
+
+      const totalPasses = await storage.getFreePassCount();
+      
+      if (totalPasses + count > MAX_TOTAL) {
+        return res.status(400).json({ 
+          message: `Cannot create ${count} passes; would exceed limit of ${MAX_TOTAL}. Current: ${totalPasses}` 
+        });
+      }
+
+      const created = [];
+      for (let i = 0; i < count; i++) {
+        const code = require('crypto').randomUUID();
+        const pass = await storage.createFreePass({
+          code,
+          createdBy: userId,
+          note: note || null,
+        });
+        created.push(pass);
+      }
+
+      res.json({ created, total: totalPasses + count });
+    } catch (error: any) {
+      console.error('[Admin] Create passes error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create passes' });
+    }
+  });
+
+  // Admin: List all passes
+  app.get('/api/admin/passes', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const passes = await storage.getFreePasses();
+      const total = await storage.getFreePassCount();
+      res.json({ passes, total, maxTotal: 400 });
+    } catch (error: any) {
+      console.error('[Admin] List passes error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch passes' });
+    }
+  });
+
+  // Admin: Generate QR code for a pass
+  app.get('/api/admin/passes/:code/qrcode', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const { code } = req.params;
+      const pass = await storage.getFreePassByCode(code);
+      
+      if (!pass) {
+        return res.status(404).json({ message: 'Pass not found' });
+      }
+
+      const QRCode = require('qrcode');
+      const dataUrl = await QRCode.toDataURL(code);
+      
+      res.json({ dataUrl, code, pass });
+    } catch (error: any) {
+      console.error('[Admin] QR code error:', error);
+      res.status(500).json({ message: error.message || 'Failed to generate QR code' });
+    }
+  });
+
+  // Redeem a free pass
+  app.post('/api/passes/redeem', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      const { code } = req.body;
+
+      if (!code) {
+        return res.status(400).json({ message: 'Pass code is required' });
+      }
+
+      // The storage method now handles all validation including redeemed check
+      const redeemed = await storage.redeemFreePass(code, userId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Pass redeemed successfully',
+        pass: redeemed
+      });
+    } catch (error: any) {
+      console.error('[Passes] Redeem error:', error);
+      
+      // Return appropriate status code based on error message
+      if (error.message.includes('not found')) {
+        return res.status(404).json({ message: 'Invalid pass code' });
+      }
+      if (error.message.includes('already redeemed')) {
+        return res.status(400).json({ message: 'This pass has already been redeemed' });
+      }
+      
+      res.status(500).json({ message: error.message || 'Failed to redeem pass' });
+    }
+  });
+
+  // Admin: List tax rates
+  app.get('/api/admin/tax-rates', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const rates = await storage.getTaxRates();
+      res.json(rates);
+    } catch (error: any) {
+      console.error('[Admin] Get tax rates error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch tax rates' });
+    }
+  });
+
+  // Admin: Set/update tax rate for a region
+  app.post('/api/admin/tax-rates', isAuthenticated, requireAdminUser, async (req: any, res) => {
+    try {
+      const { regionCode, percent, stripeTaxRateId } = req.body;
+
+      if (!regionCode) {
+        return res.status(400).json({ message: 'Region code is required' });
+      }
+
+      const rate = await storage.upsertTaxRate(regionCode, {
+        percent: percent || null,
+        stripeTaxRateId: stripeTaxRateId || null,
+      });
+
+      res.json(rate);
+    } catch (error: any) {
+      console.error('[Admin] Set tax rate error:', error);
+      res.status(500).json({ message: error.message || 'Failed to set tax rate' });
+    }
+  });
+
+  // ============================================================================
   // REVENUE ANALYTICS ROUTES
   // ============================================================================
 

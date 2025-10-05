@@ -187,6 +187,9 @@ import {
   subscriptionEvents,
   revenueEntries,
   revenueReports,
+  subscriptionConfig,
+  freePasses,
+  taxRates,
   type SubscriptionPlan,
   type InsertSubscriptionPlan,
   type UserSubscription,
@@ -197,6 +200,12 @@ import {
   type InsertRevenueEntry,
   type RevenueReport,
   type InsertRevenueReport,
+  type SubscriptionConfig,
+  type InsertSubscriptionConfig,
+  type FreePass,
+  type InsertFreePass,
+  type TaxRate,
+  type InsertTaxRate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, between } from "drizzle-orm";
@@ -2460,6 +2469,126 @@ export class DatabaseStorage implements IStorage {
     return await query
       .orderBy(desc(revenueReports.createdAt))
       .limit(limit);
+  }
+
+  // Subscription Config operations
+  async getSubscriptionConfig(): Promise<SubscriptionConfig | undefined> {
+    const [config] = await db.select().from(subscriptionConfig)
+      .orderBy(desc(subscriptionConfig.id))
+      .limit(1);
+    return config;
+  }
+
+  async createSubscriptionConfig(config: InsertSubscriptionConfig): Promise<SubscriptionConfig> {
+    const [created] = await db.insert(subscriptionConfig).values(config).returning();
+    return created;
+  }
+
+  async updateSubscriptionConfig(id: number, config: Partial<InsertSubscriptionConfig>): Promise<SubscriptionConfig> {
+    const [updated] = await db.update(subscriptionConfig)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(subscriptionConfig.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('Subscription config not found');
+    }
+    
+    return updated;
+  }
+
+  // Free Pass operations
+  async getFreePasses(): Promise<FreePass[]> {
+    return await db.select().from(freePasses)
+      .orderBy(desc(freePasses.createdAt));
+  }
+
+  async getFreePassByCode(code: string): Promise<FreePass | undefined> {
+    const [pass] = await db.select().from(freePasses)
+      .where(eq(freePasses.code, code));
+    return pass;
+  }
+
+  async getFreePassCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(freePasses);
+    return result[0]?.count || 0;
+  }
+
+  async createFreePass(pass: InsertFreePass): Promise<FreePass> {
+    const [created] = await db.insert(freePasses).values(pass).returning();
+    return created;
+  }
+
+  async redeemFreePass(code: string, userId: string): Promise<FreePass> {
+    // First check if pass exists and is not already redeemed
+    const pass = await this.getFreePassByCode(code);
+    
+    if (!pass) {
+      throw new Error('Free pass not found');
+    }
+    
+    if (pass.redeemedAt || pass.redeemedBy) {
+      throw new Error('Free pass already redeemed');
+    }
+    
+    // Update only if not redeemed (additional safety check in WHERE clause)
+    const [redeemed] = await db.update(freePasses)
+      .set({ 
+        redeemedBy: userId,
+        redeemedAt: new Date()
+      })
+      .where(and(
+        eq(freePasses.code, code),
+        sql`${freePasses.redeemedAt} IS NULL`
+      ))
+      .returning();
+    
+    if (!redeemed) {
+      throw new Error('Free pass cannot be redeemed (already redeemed or not found)');
+    }
+    
+    return redeemed;
+  }
+
+  // Tax Rate operations
+  async getTaxRates(): Promise<TaxRate[]> {
+    return await db.select().from(taxRates)
+      .orderBy(taxRates.regionCode);
+  }
+
+  async getTaxRateByRegion(regionCode: string): Promise<TaxRate | undefined> {
+    const [rate] = await db.select().from(taxRates)
+      .where(eq(taxRates.regionCode, regionCode));
+    return rate;
+  }
+
+  async createTaxRate(rate: InsertTaxRate): Promise<TaxRate> {
+    const [created] = await db.insert(taxRates).values(rate).returning();
+    return created;
+  }
+
+  async updateTaxRate(id: number, rate: Partial<InsertTaxRate>): Promise<TaxRate> {
+    const [updated] = await db.update(taxRates)
+      .set({ ...rate, updatedAt: new Date() })
+      .where(eq(taxRates.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('Tax rate not found');
+    }
+    
+    return updated;
+  }
+
+  async upsertTaxRate(regionCode: string, rate: Partial<InsertTaxRate>): Promise<TaxRate> {
+    const existing = await this.getTaxRateByRegion(regionCode);
+    
+    if (existing) {
+      return await this.updateTaxRate(existing.id, rate);
+    }
+    
+    return await this.createTaxRate({ regionCode, ...rate } as InsertTaxRate);
   }
 }
 

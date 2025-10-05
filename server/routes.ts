@@ -13,6 +13,7 @@ import { attachSubscription, requireTier, requireFeature, enforceLimit } from ".
 import { getCanonicalUserId, getCacheStats } from "./helpers/canonicalUser";
 import { appLogger } from "./appLogger";
 import { aiDataForwarder } from "./aiDataForwarder";
+import { rateLimit } from "express-rate-limit";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
@@ -40,6 +41,17 @@ import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config
 import healthRoutes from "./healthRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Stricter rate limiting for AI endpoints to prevent abuse and cost attacks
+  const aiRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 50, // 50 AI requests per 15 minutes per IP
+    message: { message: 'Too many AI requests. Please try again in a few minutes.' },
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skipSuccessfulRequests: false,
+    skipFailedRequests: false,
+  });
+
   // Health check endpoints (no auth required - used by deployment platforms)
   app.get('/healthz', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -123,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/briefing/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/briefing/generate', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       console.log(`Starting briefing generation for user ${userId}`);
@@ -620,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/learn/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/learn/generate', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const { topic, slug: customSlug } = req.body;
       
@@ -1452,7 +1464,7 @@ ${processedText}`;
     }
   });
 
-  app.post('/api/documents/:id/analyze', isAuthenticated, async (req: any, res) => {
+  app.post('/api/documents/:id/analyze', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       // Check if Object Storage is available
       if (!isObjectStorageAvailable()) {
@@ -3136,7 +3148,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
 
 
   // AI Task Generation
-  app.post('/api/ai/generate-tasks', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
+  app.post('/api/ai/generate-tasks', aiRateLimiter, isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -3179,7 +3191,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // AI Calendar Recommendations
-  app.post('/api/ai/calendar-recommendations', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
+  app.post('/api/ai/calendar-recommendations', aiRateLimiter, isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -3206,7 +3218,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // AI Document Organization
-  app.post('/api/ai/organize-document', isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
+  app.post('/api/ai/organize-document', aiRateLimiter, isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { documentName, extractedText, documentType, documentId } = req.body;
@@ -3317,7 +3329,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Multi-Agent AI Query
-  app.post('/api/ai/multi-agent', isAuthenticated, requireFeature('multiAgentAI'), async (req: any, res) => {
+  app.post('/api/ai/multi-agent', aiRateLimiter, isAuthenticated, requireFeature('multiAgentAI'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { prompt, context, enableCritique } = req.body;

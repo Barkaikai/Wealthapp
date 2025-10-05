@@ -10,6 +10,7 @@ import { doubleCsrf } from "csrf-csrf";
 import { validateEnvironment, logEnvironmentStatus } from "./env";
 import { setupAIWebSocket } from "./aiWebSocket";
 import OpenAI from "openai";
+import cors from "cors";
 
 // ============================================
 // ENVIRONMENT VALIDATION (BEFORE APP CREATION)
@@ -20,6 +21,37 @@ const env = validateEnvironment();
 logEnvironmentStatus(env);
 
 const app = express();
+
+// Security: CORS - Explicit configuration to prevent misconfigurations
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5000', 'http://127.0.0.1:5000'];
+
+// In production, add your Replit domain
+if (process.env.REPLIT_DOMAINS) {
+  const replitDomains = process.env.REPLIT_DOMAINS.split(',').map(domain => 
+    `https://${domain.trim()}`
+  );
+  allowedOrigins.push(...replitDomains);
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+  exposedHeaders: ['x-csrf-token'],
+  maxAge: 600, // Cache preflight requests for 10 minutes
+}));
 
 // Security: Helmet for secure HTTP headers
 app.use(helmet({

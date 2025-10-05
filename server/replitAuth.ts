@@ -54,8 +54,9 @@ export function getSession() {
       httpOnly: true,
       sameSite: "lax" as const,
       secure: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours (improved security with session timeout)
     },
+    rolling: true, // Reset maxAge on every request to extend active sessions
   };
   
   return session(sessionConfig);

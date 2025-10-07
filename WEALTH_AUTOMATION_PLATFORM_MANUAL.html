@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>WEALTH_AUTOMATION_PLATFORM_MANUAL</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#wealth-automation-platform"
+id="toc-wealth-automation-platform">WEALTH AUTOMATION PLATFORM</a>
+<ul>
+<li><a href="#complete-documentation-legal-manual"
+id="toc-complete-documentation-legal-manual">Complete Documentation
+&amp; Legal Manual</a></li>
+<li><a href="#important-legal-notice"
+id="toc-important-legal-notice">IMPORTANT LEGAL NOTICE</a></li>
+</ul></li>
+<li><a href="#table-of-contents" id="toc-table-of-contents">TABLE OF
+CONTENTS</a>
+<ul>
+<li><a href="#part-i-legal-documentation"
+id="toc-part-i-legal-documentation">PART I: LEGAL DOCUMENTATION</a></li>
+<li><a href="#part-ii-user-manual" id="toc-part-ii-user-manual">PART II:
+USER MANUAL</a></li>
+<li><a href="#part-iii-technical-documentation"
+id="toc-part-iii-technical-documentation">PART III: TECHNICAL
+DOCUMENTATION</a></li>
+</ul></li>
+<li><a href="#part-i-legal-documentation-1"
+id="toc-part-i-legal-documentation-1">PART I: LEGAL DOCUMENTATION</a>
+<ul>
+<li><a href="#software-ownership-assignment-agreement"
+id="toc-software-ownership-assignment-agreement">1. SOFTWARE OWNERSHIP
+ASSIGNMENT AGREEMENT</a>
+<ul>
+<li><a href="#assignment-of-intellectual-property-rights"
+id="toc-assignment-of-intellectual-property-rights">ASSIGNMENT OF
+INTELLECTUAL PROPERTY RIGHTS</a></li>
+<li><a href="#recitals" id="toc-recitals">RECITALS</a></li>
+<li><a href="#assignment-of-rights" id="toc-assignment-of-rights">1.
+ASSIGNMENT OF RIGHTS</a></li>
+<li><a href="#ownership-declaration" id="toc-ownership-declaration">2.
+OWNERSHIP DECLARATION</a></li>
+<li><a href="#warranty-of-ownership" id="toc-warranty-of-ownership">3.
+WARRANTY OF OWNERSHIP</a></li>
+<li><a href="#further-assurances" id="toc-further-assurances">4. FURTHER
+ASSURANCES</a></li>
+</ul></li>
+<li><a href="#copyright-registration-template"
+id="toc-copyright-registration-template">2. COPYRIGHT REGISTRATION
+TEMPLATE</a>
+<ul>
+<li><a href="#u.s.-copyright-office-registration"
+id="toc-u.s.-copyright-office-registration">U.S. COPYRIGHT OFFICE
+REGISTRATION</a></li>
+</ul></li>
+<li><a href="#end-user-license-agreement-eula"
+id="toc-end-user-license-agreement-eula">3. END USER LICENSE AGREEMENT
+(EULA)</a>
+<ul>
+<li><a href="#wealth-automation-platform---end-user-license-agreement"
+id="toc-wealth-automation-platform---end-user-license-agreement">WEALTH
+AUTOMATION PLATFORM - END USER LICENSE AGREEMENT</a></li>
+<li><a href="#license-grant" id="toc-license-grant">1. LICENSE
+GRANT</a></li>
+<li><a href="#ownership" id="toc-ownership">2. OWNERSHIP</a></li>
+<li><a href="#restrictions" id="toc-restrictions">3.
+RESTRICTIONS</a></li>
+<li><a href="#subscription-tiers" id="toc-subscription-tiers">4.
+SUBSCRIPTION TIERS</a></li>
+<li><a href="#data-privacy" id="toc-data-privacy">5. DATA
+PRIVACY</a></li>
+<li><a href="#termination" id="toc-termination">6. TERMINATION</a></li>
+<li><a href="#disclaimer-of-warranty" id="toc-disclaimer-of-warranty">7.
+DISCLAIMER OF WARRANTY</a></li>
+<li><a href="#limitation-of-liability"
+id="toc-limitation-of-liability">8. LIMITATION OF LIABILITY</a></li>
+<li><a href="#governing-law" id="toc-governing-law">9. GOVERNING
+LAW</a></li>
+</ul></li>
+<li><a href="#terms-of-service" id="toc-terms-of-service">4. TERMS OF
+SERVICE</a>
+<ul>
+<li><a href="#wealth-automation-platform---terms-of-service"
+id="toc-wealth-automation-platform---terms-of-service">WEALTH AUTOMATION
+PLATFORM - TERMS OF SERVICE</a></li>
+<li><a href="#acceptance-of-terms" id="toc-acceptance-of-terms">1.
+ACCEPTANCE OF TERMS</a></li>
+<li><a href="#service-description" id="toc-service-description">2.
+SERVICE DESCRIPTION</a></li>
+<li><a href="#user-accounts" id="toc-user-accounts">3. USER
+ACCOUNTS</a></li>
+<li><a href="#acceptable-use" id="toc-acceptable-use">4. ACCEPTABLE
+USE</a></li>
+<li><a href="#payment-terms" id="toc-payment-terms">5. PAYMENT
+TERMS</a></li>
+<li><a href="#intellectual-property" id="toc-intellectual-property">6.
+INTELLECTUAL PROPERTY</a></li>
+<li><a href="#data-usage" id="toc-data-usage">7. DATA USAGE</a></li>
+<li><a href="#service-modifications" id="toc-service-modifications">8.
+SERVICE MODIFICATIONS</a></li>
+<li><a href="#termination-1" id="toc-termination-1">9.
+TERMINATION</a></li>
+<li><a href="#indemnification" id="toc-indemnification">10.
+INDEMNIFICATION</a></li>
+<li><a href="#dispute-resolution" id="toc-dispute-resolution">11.
+DISPUTE RESOLUTION</a></li>
+<li><a href="#contact" id="toc-contact">12. CONTACT</a></li>
+</ul></li>
+<li><a href="#privacy-policy" id="toc-privacy-policy">5. PRIVACY
+POLICY</a>
+<ul>
+<li><a href="#wealth-automation-platform---privacy-policy"
+id="toc-wealth-automation-platform---privacy-policy">WEALTH AUTOMATION
+PLATFORM - PRIVACY POLICY</a></li>
+<li><a href="#information-we-collect" id="toc-information-we-collect">1.
+INFORMATION WE COLLECT</a></li>
+<li><a href="#how-we-use-your-information"
+id="toc-how-we-use-your-information">2. HOW WE USE YOUR
+INFORMATION</a></li>
+<li><a href="#data-sharing" id="toc-data-sharing">3. DATA
+SHARING</a></li>
+<li><a href="#data-security" id="toc-data-security">4. DATA
+SECURITY</a></li>
+<li><a href="#data-retention" id="toc-data-retention">5. DATA
+RETENTION</a></li>
+<li><a href="#your-rights" id="toc-your-rights">6. YOUR RIGHTS</a></li>
+<li><a href="#international-transfers"
+id="toc-international-transfers">7. INTERNATIONAL TRANSFERS</a></li>
+<li><a href="#childrens-privacy" id="toc-childrens-privacy">8.
+CHILDREN’S PRIVACY</a></li>
+<li><a href="#cookie-policy" id="toc-cookie-policy">9. COOKIE
+POLICY</a></li>
+<li><a href="#updates-to-policy" id="toc-updates-to-policy">10. UPDATES
+TO POLICY</a></li>
+<li><a href="#contact-1" id="toc-contact-1">11. CONTACT</a></li>
+</ul></li>
+<li><a href="#service-level-agreement-sla"
+id="toc-service-level-agreement-sla">6. SERVICE LEVEL AGREEMENT
+(SLA)</a>
+<ul>
+<li><a href="#wealth-automation-platform---service-level-agreement"
+id="toc-wealth-automation-platform---service-level-agreement">WEALTH
+AUTOMATION PLATFORM - SERVICE LEVEL AGREEMENT</a></li>
+<li><a href="#service-availability" id="toc-service-availability">1.
+SERVICE AVAILABILITY</a></li>
+<li><a href="#performance-standards" id="toc-performance-standards">2.
+PERFORMANCE STANDARDS</a></li>
+<li><a href="#support-response-times" id="toc-support-response-times">3.
+SUPPORT RESPONSE TIMES</a></li>
+<li><a href="#data-backup-recovery" id="toc-data-backup-recovery">4.
+DATA BACKUP &amp; RECOVERY</a></li>
+<li><a href="#security-commitments" id="toc-security-commitments">5.
+SECURITY COMMITMENTS</a></li>
+<li><a href="#monitoring-reporting" id="toc-monitoring-reporting">6.
+MONITORING &amp; REPORTING</a></li>
+<li><a href="#service-credits" id="toc-service-credits">7. SERVICE
+CREDITS</a></li>
+<li><a href="#exclusions" id="toc-exclusions">8. EXCLUSIONS</a></li>
+<li><a href="#incident-management" id="toc-incident-management">9.
+INCIDENT MANAGEMENT</a></li>
+<li><a href="#contact-2" id="toc-contact-2">10. CONTACT</a></li>
+</ul></li>
+<li><a href="#non-disclosure-agreement-nda-template"
+id="toc-non-disclosure-agreement-nda-template">7. NON-DISCLOSURE
+AGREEMENT (NDA) TEMPLATE</a>
+<ul>
+<li><a href="#mutual-non-disclosure-agreement"
+id="toc-mutual-non-disclosure-agreement">MUTUAL NON-DISCLOSURE
+AGREEMENT</a></li>
+<li><a href="#definition-of-confidential-information"
+id="toc-definition-of-confidential-information">1. DEFINITION OF
+CONFIDENTIAL INFORMATION</a></li>
+<li><a href="#obligations" id="toc-obligations">2. OBLIGATIONS</a></li>
+<li><a href="#exclusions-1" id="toc-exclusions-1">3. EXCLUSIONS</a></li>
+<li><a href="#term" id="toc-term">4. TERM</a></li>
+<li><a href="#remedies" id="toc-remedies">5. REMEDIES</a></li>
+<li><a href="#return-of-materials" id="toc-return-of-materials">6.
+RETURN OF MATERIALS</a></li>
+</ul></li>
+<li><a href="#attorney-signature-pages"
+id="toc-attorney-signature-pages">8. ATTORNEY SIGNATURE PAGES</a>
+<ul>
+<li><a href="#ownership-assignment---signature-page"
+id="toc-ownership-assignment---signature-page">OWNERSHIP ASSIGNMENT -
+SIGNATURE PAGE</a></li>
+<li><a href="#nda---signature-page" id="toc-nda---signature-page">NDA -
+SIGNATURE PAGE</a></li>
+</ul></li>
+<li><a href="#copyright-notice-templates"
+id="toc-copyright-notice-templates">9. COPYRIGHT NOTICE TEMPLATES</a>
+<ul>
+<li><a href="#software-copyright-notice"
+id="toc-software-copyright-notice">Software Copyright Notice</a></li>
+<li><a href="#source-code-header-template"
+id="toc-source-code-header-template">Source Code Header
+Template</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#part-ii-user-manual-1" id="toc-part-ii-user-manual-1">PART
+II: USER MANUAL</a>
+<ul>
+<li><a href="#platform-overview" id="toc-platform-overview">1. PLATFORM
+OVERVIEW</a>
+<ul>
+<li><a href="#what-is-the-wealth-automation-platform"
+id="toc-what-is-the-wealth-automation-platform">What is the Wealth
+Automation Platform?</a></li>
+<li><a href="#core-capabilities" id="toc-core-capabilities">Core
+Capabilities</a></li>
+<li><a href="#system-architecture" id="toc-system-architecture">System
+Architecture</a></li>
+</ul></li>
+<li><a href="#getting-started" id="toc-getting-started">2. GETTING
+STARTED</a>
+<ul>
+<li><a href="#account-creation-login"
+id="toc-account-creation-login">2.1 Account Creation &amp;
+Login</a></li>
+<li><a href="#dashboard-overview" id="toc-dashboard-overview">2.2
+Dashboard Overview</a></li>
+</ul></li>
+<li><a href="#feature-by-feature-instructions"
+id="toc-feature-by-feature-instructions">3. FEATURE-BY-FEATURE
+INSTRUCTIONS</a>
+<ul>
+<li><a href="#daily-briefing-wealth-dashboard"
+id="toc-daily-briefing-wealth-dashboard">3.1 DAILY BRIEFING &amp; WEALTH
+DASHBOARD</a></li>
+<li><a href="#digital-accountant" id="toc-digital-accountant">3.2
+DIGITAL ACCOUNTANT</a></li>
+<li><a href="#personal-wallet" id="toc-personal-wallet">3.3 PERSONAL
+WALLET</a></li>
+<li><a href="#nft-vault" id="toc-nft-vault">3.4 NFT VAULT</a></li>
+<li><a href="#productivity-hub" id="toc-productivity-hub">3.5
+PRODUCTIVITY HUB</a></li>
+<li><a href="#ai-intelligence-hub" id="toc-ai-intelligence-hub">3.6 AI
+INTELLIGENCE HUB</a></li>
+<li><a href="#health-monitoring" id="toc-health-monitoring">3.7 HEALTH
+MONITORING</a></li>
+<li><a href="#crm-customer-relationship-management"
+id="toc-crm-customer-relationship-management">3.8 CRM (Customer
+Relationship Management)</a></li>
+<li><a href="#integrations" id="toc-integrations">3.9
+INTEGRATIONS</a></li>
+<li><a href="#settings-preferences" id="toc-settings-preferences">3.10
+SETTINGS &amp; PREFERENCES</a></li>
+</ul></li>
+<li><a href="#advanced-features" id="toc-advanced-features">4. ADVANCED
+FEATURES</a>
+<ul>
+<li><a href="#api-access-enterprise-only"
+id="toc-api-access-enterprise-only">4.1 API Access (Enterprise
+Only)</a></li>
+<li><a href="#webhooks" id="toc-webhooks">4.2 Webhooks</a></li>
+<li><a href="#custom-integrations" id="toc-custom-integrations">4.3
+Custom Integrations</a></li>
+<li><a href="#automation-rules" id="toc-automation-rules">4.4 Automation
+Rules</a></li>
+</ul></li>
+<li><a href="#troubleshooting" id="toc-troubleshooting">5.
+TROUBLESHOOTING</a>
+<ul>
+<li><a href="#login-issues" id="toc-login-issues">5.1 Login
+Issues</a></li>
+<li><a href="#wallet-connection-issues"
+id="toc-wallet-connection-issues">5.2 Wallet Connection Issues</a></li>
+<li><a href="#ai-response-issues" id="toc-ai-response-issues">5.3 AI
+Response Issues</a></li>
+<li><a href="#payment-issues" id="toc-payment-issues">5.4 Payment
+Issues</a></li>
+<li><a href="#data-sync-issues" id="toc-data-sync-issues">5.5 Data Sync
+Issues</a></li>
+<li><a href="#performance-issues" id="toc-performance-issues">5.6
+Performance Issues</a></li>
+<li><a href="#getting-help" id="toc-getting-help">5.7 Getting
+Help</a></li>
+</ul></li>
+<li><a href="#technical-specifications"
+id="toc-technical-specifications">6. TECHNICAL SPECIFICATIONS</a>
+<ul>
+<li><a href="#system-requirements" id="toc-system-requirements">6.1
+System Requirements</a></li>
+<li><a href="#data-storage" id="toc-data-storage">6.2 Data
+Storage</a></li>
+<li><a href="#security-specifications"
+id="toc-security-specifications">6.3 Security Specifications</a></li>
+<li><a href="#performance-metrics" id="toc-performance-metrics">6.4
+Performance Metrics</a></li>
+<li><a href="#rate-limits" id="toc-rate-limits">6.5 Rate Limits</a></li>
+<li><a href="#data-export" id="toc-data-export">6.6 Data Export</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#part-iii-technical-documentation-1"
+id="toc-part-iii-technical-documentation-1">PART III: TECHNICAL
+DOCUMENTATION</a>
+<ul>
+<li><a href="#system-architecture-1" id="toc-system-architecture-1">1.
+SYSTEM ARCHITECTURE</a>
+<ul>
+<li><a href="#technology-stack" id="toc-technology-stack">1.1 Technology
+Stack</a></li>
+<li><a href="#architecture-diagram" id="toc-architecture-diagram">1.2
+Architecture Diagram</a></li>
+<li><a href="#database-schema" id="toc-database-schema">1.3 Database
+Schema</a></li>
+<li><a href="#api-routes" id="toc-api-routes">1.4 API Routes</a></li>
+<li><a href="#security-implementation"
+id="toc-security-implementation">1.5 Security Implementation</a></li>
+<li><a href="#performance-optimizations"
+id="toc-performance-optimizations">1.6 Performance
+Optimizations</a></li>
+</ul></li>
+<li><a href="#integration-guide" id="toc-integration-guide">2.
+INTEGRATION GUIDE</a>
+<ul>
+<li><a href="#openai-integration" id="toc-openai-integration">2.1 OpenAI
+Integration</a></li>
+<li><a href="#stripe-integration" id="toc-stripe-integration">2.2 Stripe
+Integration</a></li>
+<li><a href="#microsoft-graph-api" id="toc-microsoft-graph-api">2.3
+Microsoft Graph API</a></li>
+<li><a href="#web3-integration" id="toc-web3-integration">2.4 Web3
+Integration</a></li>
+</ul></li>
+<li><a href="#deployment" id="toc-deployment">3. DEPLOYMENT</a>
+<ul>
+<li><a href="#environment-variables" id="toc-environment-variables">3.1
+Environment Variables</a></li>
+<li><a href="#build-process" id="toc-build-process">3.2 Build
+Process</a></li>
+<li><a href="#database-migration" id="toc-database-migration">3.3
+Database Migration</a></li>
+<li><a href="#monitoring" id="toc-monitoring">3.4 Monitoring</a></li>
+</ul></li>
+<li><a href="#appendix-a-glossary" id="toc-appendix-a-glossary">APPENDIX
+A: GLOSSARY</a></li>
+<li><a href="#appendix-b-contact-information"
+id="toc-appendix-b-contact-information">APPENDIX B: CONTACT
+INFORMATION</a></li>
+<li><a href="#appendix-c-screenshot-placeholders"
+id="toc-appendix-c-screenshot-placeholders">APPENDIX C: SCREENSHOT
+PLACEHOLDERS</a></li>
+<li><a href="#appendix-d-legal-checklist"
+id="toc-appendix-d-legal-checklist">APPENDIX D: LEGAL CHECKLIST</a></li>
+<li><a href="#certification"
+id="toc-certification">CERTIFICATION</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="wealth-automation-platform">WEALTH AUTOMATION PLATFORM</h1>
+<h2 id="complete-documentation-legal-manual">Complete Documentation
+&amp; Legal Manual</h2>
+<hr />
+<p><strong>PROPRIETARY AND CONFIDENTIAL</strong></p>
+<p><strong>Copyright © 2025 Barkai Brinson LLC</strong><br />
+<strong>All Rights Reserved</strong></p>
+<p><strong>Owner:</strong> Barkai Brinson<br />
+<strong>Legal Entity:</strong> Barkai Brinson LLC</p>
+<hr />
+<h2 id="important-legal-notice">IMPORTANT LEGAL NOTICE</h2>
+<p><strong>ATTORNEY REVIEW REQUIRED:</strong> All legal documents
+contained in this manual are TEMPLATES ONLY and must be reviewed,
+customized, and finalized by a licensed attorney before use. These
+templates do not constitute legal advice.</p>
+<p><strong>Copyright Notice:</strong> This software and documentation
+are protected by United States and international copyright laws.
+Unauthorized reproduction or distribution of this software or
+documentation, or any portion of it, may result in severe civil and
+criminal penalties.</p>
+<hr />
+<h1 id="table-of-contents">TABLE OF CONTENTS</h1>
+<h2 id="part-i-legal-documentation">PART I: LEGAL DOCUMENTATION</h2>
+<ol type="1">
+<li>Software Ownership Assignment</li>
+<li>Copyright Registration Documents</li>
+<li>End User License Agreement (EULA)</li>
+<li>Terms of Service</li>
+<li>Privacy Policy</li>
+<li>Service Level Agreement</li>
+<li>Data Processing Agreement</li>
+<li>Intellectual Property Rights</li>
+<li>Non-Disclosure Agreement Template</li>
+<li>Attorney Signature Pages</li>
+</ol>
+<h2 id="part-ii-user-manual">PART II: USER MANUAL</h2>
+<ol type="1">
+<li>Platform Overview</li>
+<li>Getting Started</li>
+<li>Feature-by-Feature Instructions</li>
+<li>Advanced Features</li>
+<li>Troubleshooting</li>
+<li>Technical Specifications</li>
+</ol>
+<h2 id="part-iii-technical-documentation">PART III: TECHNICAL
+DOCUMENTATION</h2>
+<ol type="1">
+<li>System Architecture</li>
+<li>Security Specifications</li>
+<li>API Documentation</li>
+<li>Integration Guide</li>
+</ol>
+<hr />
+<h1 id="part-i-legal-documentation-1">PART I: LEGAL DOCUMENTATION</h1>
+<hr />
+<h2 id="software-ownership-assignment-agreement">1. SOFTWARE OWNERSHIP
+ASSIGNMENT AGREEMENT</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="assignment-of-intellectual-property-rights">ASSIGNMENT OF
+INTELLECTUAL PROPERTY RIGHTS</h3>
+<p><strong>THIS AGREEMENT</strong> is made effective as of
+_____________, 2025</p>
+<p><strong>BETWEEN:</strong></p>
+<p><strong>ASSIGNOR(S):</strong> [Names of all
+developers/contributors]<br />
+Address: _______________________</p>
+<p><strong>AND</strong></p>
+<p><strong>ASSIGNEE:</strong> Barkai Brinson LLC<br />
+Owner: Barkai Brinson<br />
+Address: _______________________</p>
+<h3 id="recitals">RECITALS</h3>
+<p>WHEREAS, the Assignor(s) have developed, created, and contributed to
+a software platform known as “Wealth Automation Platform” (the
+“Software”);</p>
+<p>WHEREAS, the Assignee desires to acquire all right, title, and
+interest in and to the Software;</p>
+<p>NOW, THEREFORE, in consideration of the mutual covenants contained
+herein, the parties agree as follows:</p>
+<h3 id="assignment-of-rights">1. ASSIGNMENT OF RIGHTS</h3>
+<p>The Assignor(s) hereby irrevocably assign, transfer, and convey to
+the Assignee:</p>
+<ol type="a">
+<li>All intellectual property rights in the Software, including but not
+limited to:
+<ul>
+<li>All copyrights and copyright registrations</li>
+<li>All patent rights and applications</li>
+<li>All trade secret rights</li>
+<li>All trademark rights and registrations</li>
+<li>All source code, object code, and executable files</li>
+<li>All documentation, manuals, and related materials</li>
+<li>All derivative works and modifications</li>
+<li>All domain names and digital assets</li>
+</ul></li>
+<li>All rights to:
+<ul>
+<li>Reproduce the Software</li>
+<li>Prepare derivative works</li>
+<li>Distribute copies</li>
+<li>Perform and display the Software publicly</li>
+<li>Sublicense and transfer these rights</li>
+</ul></li>
+</ol>
+<h3 id="ownership-declaration">2. OWNERSHIP DECLARATION</h3>
+<p>The Assignee, Barkai Brinson LLC, is hereby declared the sole and
+exclusive owner of:</p>
+<ul>
+<li>The “Wealth Automation Platform” software application</li>
+<li>All source code, databases, and technical infrastructure</li>
+<li>All user interfaces, designs, and visual elements</li>
+<li>All AI models, algorithms, and proprietary processes</li>
+<li>All documentation and instructional materials</li>
+<li>All trademarks, service marks, and branding elements</li>
+</ul>
+<h3 id="warranty-of-ownership">3. WARRANTY OF OWNERSHIP</h3>
+<p>The Assignor(s) warrant that: - They have full right and authority to
+make this assignment - The Software is original work or properly
+licensed - There are no encumbrances or conflicting claims - All
+necessary rights from third parties have been obtained</p>
+<h3 id="further-assurances">4. FURTHER ASSURANCES</h3>
+<p>The Assignor(s) agree to execute any additional documents necessary
+to perfect the Assignee’s ownership rights.</p>
+<p><strong>[SIGNATURE PAGES FOLLOW]</strong></p>
+<hr />
+<h2 id="copyright-registration-template">2. COPYRIGHT REGISTRATION
+TEMPLATE</h2>
+<p><strong>TEMPLATE - FILE WITH U.S. COPYRIGHT OFFICE THROUGH
+ATTORNEY</strong></p>
+<h3 id="u.s.-copyright-office-registration">U.S. COPYRIGHT OFFICE
+REGISTRATION</h3>
+<p><strong>Title of Work:</strong> Wealth Automation Platform</p>
+<p><strong>Nature of Work:</strong> Computer Program / Software
+Application</p>
+<p><strong>Year of Creation:</strong> 2025</p>
+<p><strong>Year of Publication:</strong> 2025</p>
+<p><strong>Copyright Claimant:</strong><br />
+Barkai Brinson LLC<br />
+Owner: Barkai Brinson<br />
+Address: _______________________</p>
+<p><strong>Rights Claimed:</strong> - Computer program code (source and
+object) - User interface design - Documentation and manuals - Database
+structure and content - Visual elements and graphics - AI training data
+and models</p>
+<p><strong>Description of Work:</strong> A comprehensive AI-powered
+wealth management and lifestyle automation platform featuring financial
+tracking, portfolio management, AI-driven insights, payment processing,
+health monitoring, CRM functionality, and integrated services for
+billionaire-level wealth automation.</p>
+<p><strong>Technical Specifications:</strong> - Platform: Node.js v20.x,
+React 18 - Database: PostgreSQL - AI Integration: OpenAI GPT-4o, GPT-5 -
+Payment Processing: Stripe - Authentication: OIDC</p>
+<p><strong>Previous Registration:</strong> None</p>
+<p><strong>Derivative Work:</strong> Original work</p>
+<hr />
+<h2 id="end-user-license-agreement-eula">3. END USER LICENSE AGREEMENT
+(EULA)</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="wealth-automation-platform---end-user-license-agreement">WEALTH
+AUTOMATION PLATFORM - END USER LICENSE AGREEMENT</h3>
+<p><strong>Effective Date:</strong> _______________, 2025</p>
+<p><strong>License Grantor:</strong> Barkai Brinson LLC<br />
+<strong>Owner:</strong> Barkai Brinson</p>
+<p>This End User License Agreement (“Agreement”) is a legal agreement
+between you (either an individual or a single entity) and Barkai Brinson
+LLC for the use of the Wealth Automation Platform software
+(“Software”).</p>
+<h3 id="license-grant">1. LICENSE GRANT</h3>
+<p>Barkai Brinson LLC grants you a limited, non-exclusive,
+non-transferable license to use the Software subject to the terms of
+this Agreement.</p>
+<h3 id="ownership">2. OWNERSHIP</h3>
+<p>The Software is owned by Barkai Brinson LLC and is protected by
+United States copyright laws and international treaty provisions. Barkai
+Brinson LLC retains all rights not expressly granted to you in this
+Agreement.</p>
+<h3 id="restrictions">3. RESTRICTIONS</h3>
+<p>You may not: - Reverse engineer, decompile, or disassemble the
+Software - Remove any proprietary notices or labels - Rent, lease, or
+lend the Software - Create derivative works - Transfer or sublicense
+your rights</p>
+<h3 id="subscription-tiers">4. SUBSCRIPTION TIERS</h3>
+<p><strong>Free Tier:</strong> Limited features, no payment
+required<br />
+<strong>Premium Tier:</strong> Enhanced features, $[Amount]/month<br />
+<strong>Enterprise Tier:</strong> Full features, custom pricing</p>
+<h3 id="data-privacy">5. DATA PRIVACY</h3>
+<p>Your data is protected under our Privacy Policy. We use
+enterprise-grade encryption and security measures.</p>
+<h3 id="termination">6. TERMINATION</h3>
+<p>This license is effective until terminated. Your rights will
+terminate immediately without notice if you fail to comply with any term
+of this Agreement.</p>
+<h3 id="disclaimer-of-warranty">7. DISCLAIMER OF WARRANTY</h3>
+<p>THE SOFTWARE IS PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND. BARKAI
+BRINSON LLC DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED.</p>
+<h3 id="limitation-of-liability">8. LIMITATION OF LIABILITY</h3>
+<p>IN NO EVENT SHALL BARKAI BRINSON LLC BE LIABLE FOR ANY SPECIAL,
+INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER.</p>
+<h3 id="governing-law">9. GOVERNING LAW</h3>
+<p>This Agreement shall be governed by the laws of [State/Country].</p>
+<p><strong>BY USING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU HAVE READ
+THIS AGREEMENT AND AGREE TO BE BOUND BY ITS TERMS.</strong></p>
+<hr />
+<h2 id="terms-of-service">4. TERMS OF SERVICE</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="wealth-automation-platform---terms-of-service">WEALTH AUTOMATION
+PLATFORM - TERMS OF SERVICE</h3>
+<p><strong>Last Updated:</strong> _______________, 2025</p>
+<p><strong>Service Provider:</strong> Barkai Brinson LLC<br />
+<strong>Owner:</strong> Barkai Brinson</p>
+<h3 id="acceptance-of-terms">1. ACCEPTANCE OF TERMS</h3>
+<p>By accessing or using the Wealth Automation Platform, you agree to be
+bound by these Terms of Service.</p>
+<h3 id="service-description">2. SERVICE DESCRIPTION</h3>
+<p>The Platform provides: - AI-powered wealth management tools -
+Financial tracking and portfolio analytics - Digital accounting and CRM
+systems - Health monitoring and lifestyle optimization - Payment
+processing via Stripe - Multi-agent AI orchestration - NFT vault and
+Web3 wallet integration</p>
+<h3 id="user-accounts">3. USER ACCOUNTS</h3>
+<ul>
+<li>You must provide accurate registration information</li>
+<li>You are responsible for maintaining account security</li>
+<li>One account per user/entity</li>
+<li>Accounts are non-transferable</li>
+</ul>
+<h3 id="acceptable-use">4. ACCEPTABLE USE</h3>
+<p>You agree NOT to: - Violate any laws or regulations - Infringe on
+intellectual property rights - Transmit harmful code or malware -
+Attempt unauthorized access - Use for illegal financial activities -
+Abuse or overload system resources</p>
+<h3 id="payment-terms">5. PAYMENT TERMS</h3>
+<ul>
+<li>Subscription fees are billed monthly/annually</li>
+<li>All fees are non-refundable except as required by law</li>
+<li>Prices subject to change with 30 days notice</li>
+<li>Payment processed through Stripe</li>
+<li>Failed payments may result in service suspension</li>
+</ul>
+<h3 id="intellectual-property">6. INTELLECTUAL PROPERTY</h3>
+<p>All content, features, and functionality are owned by Barkai Brinson
+LLC and protected by copyright, trademark, and other intellectual
+property laws.</p>
+<h3 id="data-usage">7. DATA USAGE</h3>
+<ul>
+<li>We collect and process data per our Privacy Policy</li>
+<li>You retain ownership of your uploaded data</li>
+<li>We have a license to use data to provide services</li>
+<li>Data may be used to improve AI models (anonymized)</li>
+</ul>
+<h3 id="service-modifications">8. SERVICE MODIFICATIONS</h3>
+<p>We reserve the right to modify or discontinue the Service with
+reasonable notice.</p>
+<h3 id="termination-1">9. TERMINATION</h3>
+<p>We may terminate or suspend your account for: - Violation of Terms of
+Service - Fraudulent activity - Non-payment - Legal requirements</p>
+<h3 id="indemnification">10. INDEMNIFICATION</h3>
+<p>You agree to indemnify and hold harmless Barkai Brinson LLC from any
+claims arising from your use of the Service.</p>
+<h3 id="dispute-resolution">11. DISPUTE RESOLUTION</h3>
+<p>Disputes shall be resolved through binding arbitration in
+[Jurisdiction].</p>
+<h3 id="contact">12. CONTACT</h3>
+<p>For questions about these Terms:<br />
+Barkai Brinson LLC<br />
+Email: [Contact Email]<br />
+Address: [Business Address]</p>
+<hr />
+<h2 id="privacy-policy">5. PRIVACY POLICY</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="wealth-automation-platform---privacy-policy">WEALTH AUTOMATION
+PLATFORM - PRIVACY POLICY</h3>
+<p><strong>Effective Date:</strong> _______________, 2025</p>
+<p><strong>Data Controller:</strong> Barkai Brinson LLC<br />
+<strong>Owner:</strong> Barkai Brinson</p>
+<h3 id="information-we-collect">1. INFORMATION WE COLLECT</h3>
+<p><strong>Personal Information:</strong> - Name, email address, phone
+number - Payment information (processed by Stripe) - Authentication
+credentials - Profile information</p>
+<p><strong>Financial Data:</strong> - Portfolio holdings and
+transactions - Bank account information (via Plaid) - Cryptocurrency
+wallet addresses - Investment history and preferences</p>
+<p><strong>Health Data:</strong> - Activity and exercise metrics - Vital
+signs and health measurements - Sleep and nutrition data - Wellness
+goals and preferences</p>
+<p><strong>Usage Data:</strong> - Platform interaction logs - Feature
+usage analytics - AI conversation history - System performance
+metrics</p>
+<p><strong>Technical Data:</strong> - IP addresses and device
+information - Browser type and settings - Cookies and similar
+technologies</p>
+<h3 id="how-we-use-your-information">2. HOW WE USE YOUR INFORMATION</h3>
+<ul>
+<li>Provide and maintain the Service</li>
+<li>Process transactions and payments</li>
+<li>Personalize AI recommendations</li>
+<li>Improve platform features</li>
+<li>Ensure security and prevent fraud</li>
+<li>Comply with legal obligations</li>
+<li>Communicate service updates</li>
+</ul>
+<h3 id="data-sharing">3. DATA SHARING</h3>
+<p>We share data with:</p>
+<p><strong>Service Providers:</strong> - OpenAI (AI processing) - Stripe
+(payment processing) - Plaid (bank connectivity) - Microsoft Graph
+(Office 365 integration) - Google (email integration)</p>
+<p><strong>Legal Requirements:</strong> - Court orders or subpoenas -
+Legal compliance obligations - Protection of rights and safety</p>
+<p><strong>Business Transfers:</strong> - Mergers or acquisitions -
+Asset sales</p>
+<p>We DO NOT sell your personal data to third parties.</p>
+<h3 id="data-security">4. DATA SECURITY</h3>
+<ul>
+<li>End-to-end encryption for sensitive data</li>
+<li>HTTPS/TLS for all transmissions</li>
+<li>Secure authentication (OIDC)</li>
+<li>Regular security audits</li>
+<li>CSRF and rate limiting protection</li>
+<li>Database encryption at rest</li>
+</ul>
+<h3 id="data-retention">5. DATA RETENTION</h3>
+<ul>
+<li>Active accounts: Data retained while account is active</li>
+<li>Deleted accounts: 90-day retention for recovery</li>
+<li>Legal holds: Extended retention as required</li>
+<li>Backups: 30-day rolling retention</li>
+</ul>
+<h3 id="your-rights">6. YOUR RIGHTS</h3>
+<p><strong>Right to Access:</strong> Request copy of your data<br />
+<strong>Right to Correction:</strong> Update inaccurate
+information<br />
+<strong>Right to Deletion:</strong> Request data deletion<br />
+<strong>Right to Portability:</strong> Export your data<br />
+<strong>Right to Opt-Out:</strong> Decline marketing communications</p>
+<h3 id="international-transfers">7. INTERNATIONAL TRANSFERS</h3>
+<p>Data may be transferred to and processed in countries outside your
+residence. We ensure adequate safeguards are in place.</p>
+<h3 id="childrens-privacy">8. CHILDREN’S PRIVACY</h3>
+<p>The Service is not intended for users under 18. We do not knowingly
+collect data from children.</p>
+<h3 id="cookie-policy">9. COOKIE POLICY</h3>
+<p>We use cookies for: - Authentication and sessions - Security (CSRF
+tokens) - Analytics and performance - User preferences</p>
+<h3 id="updates-to-policy">10. UPDATES TO POLICY</h3>
+<p>We may update this Privacy Policy. Continued use after changes
+constitutes acceptance.</p>
+<h3 id="contact-1">11. CONTACT</h3>
+<p>For privacy inquiries:<br />
+Barkai Brinson LLC<br />
+Privacy Officer<br />
+Email: [Privacy Email]<br />
+Address: [Business Address]</p>
+<hr />
+<h2 id="service-level-agreement-sla">6. SERVICE LEVEL AGREEMENT
+(SLA)</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="wealth-automation-platform---service-level-agreement">WEALTH
+AUTOMATION PLATFORM - SERVICE LEVEL AGREEMENT</h3>
+<p><strong>Effective Date:</strong> _______________, 2025</p>
+<p><strong>Service Provider:</strong> Barkai Brinson LLC<br />
+<strong>Owner:</strong> Barkai Brinson</p>
+<h3 id="service-availability">1. SERVICE AVAILABILITY</h3>
+<p><strong>Uptime Guarantee:</strong> - <strong>Free Tier:</strong> 95%
+monthly uptime - <strong>Premium Tier:</strong> 99% monthly uptime -
+<strong>Enterprise Tier:</strong> 99.9% monthly uptime</p>
+<p><strong>Planned Maintenance:</strong> - Scheduled during low-traffic
+periods - 48-hour advance notice - Maximum 4 hours per month</p>
+<h3 id="performance-standards">2. PERFORMANCE STANDARDS</h3>
+<p><strong>Response Times:</strong> - API requests: &lt; 500ms (median)
+- AI responses: &lt; 3 seconds (streaming) - Database queries: &lt;
+100ms (average) - Page load: &lt; 2 seconds</p>
+<p><strong>Throughput:</strong> - Rate limits: 1000 requests/15 min
+(standard users) - AI endpoints: 50 requests/15 min - Concurrent users:
+Autoscaling enabled</p>
+<h3 id="support-response-times">3. SUPPORT RESPONSE TIMES</h3>
+<p><strong>Free Tier:</strong> - Email support: 48-72 hour response -
+Self-service documentation</p>
+<p><strong>Premium Tier:</strong> - Email support: 24-hour response -
+Live chat: Business hours - Priority ticket queue</p>
+<p><strong>Enterprise Tier:</strong> - 24/7 email and chat support -
+4-hour critical issue response - Dedicated account manager - Phone
+support available</p>
+<h3 id="data-backup-recovery">4. DATA BACKUP &amp; RECOVERY</h3>
+<p><strong>Backup Schedule:</strong> - Real-time database replication -
+Daily full backups (retained 30 days) - Point-in-time recovery
+available</p>
+<p><strong>Recovery Time Objectives:</strong> - Critical systems: 1 hour
+- Non-critical systems: 4 hours - Data loss tolerance: &lt; 5
+minutes</p>
+<h3 id="security-commitments">5. SECURITY COMMITMENTS</h3>
+<ul>
+<li>SSL/TLS encryption for all data in transit</li>
+<li>AES-256 encryption for data at rest</li>
+<li>Annual security audits</li>
+<li>Penetration testing quarterly</li>
+<li>Vulnerability patching within 48 hours</li>
+</ul>
+<h3 id="monitoring-reporting">6. MONITORING &amp; REPORTING</h3>
+<ul>
+<li>24/7 system monitoring</li>
+<li>Monthly uptime reports</li>
+<li>Performance dashboards</li>
+<li>Incident post-mortems</li>
+</ul>
+<h3 id="service-credits">7. SERVICE CREDITS</h3>
+<p><strong>Downtime Credits:</strong> - 99.9%-99.0% uptime: 10% monthly
+fee credit - 99.0%-95.0% uptime: 25% monthly fee credit - &lt;95%
+uptime: 50% monthly fee credit</p>
+<p><strong>Claiming Credits:</strong> - Submit within 30 days of
+incident - Maximum credit: 50% of monthly fee - Credits applied to next
+billing cycle</p>
+<h3 id="exclusions">8. EXCLUSIONS</h3>
+<p>SLA does not cover outages caused by: - Scheduled maintenance - User
+error or misconfiguration - Third-party service failures - Force majeure
+events - Internet connectivity issues - DDoS attacks</p>
+<h3 id="incident-management">9. INCIDENT MANAGEMENT</h3>
+<p><strong>Severity Levels:</strong> - <strong>Critical:</strong>
+Platform down, affects all users - <strong>High:</strong> Major feature
+unavailable - <strong>Medium:</strong> Minor feature degraded -
+<strong>Low:</strong> Cosmetic or documentation issues</p>
+<p><strong>Escalation Procedures:</strong> - Automatic alerting for
+critical issues - Engineering team mobilization - Regular status updates
+- Post-incident review</p>
+<h3 id="contact-2">10. CONTACT</h3>
+<p>For SLA inquiries:<br />
+Barkai Brinson LLC<br />
+Technical Support<br />
+Email: [Support Email]<br />
+Status Page: [URL]</p>
+<hr />
+<h2 id="non-disclosure-agreement-nda-template">7. NON-DISCLOSURE
+AGREEMENT (NDA) TEMPLATE</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW</strong></p>
+<h3 id="mutual-non-disclosure-agreement">MUTUAL NON-DISCLOSURE
+AGREEMENT</h3>
+<p><strong>THIS AGREEMENT</strong> is made effective as of
+_______________, 2025</p>
+<p><strong>BETWEEN:</strong></p>
+<p><strong>Barkai Brinson LLC</strong><br />
+Owner: Barkai Brinson<br />
+Address: _______________________</p>
+<p><strong>AND</strong></p>
+<p><strong>[PARTY NAME]</strong><br />
+Address: _______________________</p>
+<h3 id="definition-of-confidential-information">1. DEFINITION OF
+CONFIDENTIAL INFORMATION</h3>
+<p>“Confidential Information” includes: - Source code and software
+architecture - AI models and algorithms - Business plans and strategies
+- Customer data and lists - Financial information - Trade secrets and
+proprietary processes - Technical documentation - Product roadmaps</p>
+<h3 id="obligations">2. OBLIGATIONS</h3>
+<p>The Receiving Party agrees to: - Maintain strict confidentiality -
+Use information only for authorized purposes - Limit access to
+need-to-know personnel - Implement reasonable security measures - Not
+reverse engineer or decompile software</p>
+<h3 id="exclusions-1">3. EXCLUSIONS</h3>
+<p>This Agreement does not apply to information that: - Is publicly
+available - Was known prior to disclosure - Is independently developed -
+Is rightfully received from a third party - Must be disclosed by law</p>
+<h3 id="term">4. TERM</h3>
+<p>This Agreement shall remain in effect for 5 years from the Effective
+Date.</p>
+<h3 id="remedies">5. REMEDIES</h3>
+<p>Breach of this Agreement may result in irreparable harm. The
+Disclosing Party is entitled to equitable relief, including injunction
+and specific performance.</p>
+<h3 id="return-of-materials">6. RETURN OF MATERIALS</h3>
+<p>Upon request or termination, the Receiving Party shall return or
+destroy all Confidential Information.</p>
+<p><strong>[SIGNATURE PAGES FOLLOW]</strong></p>
+<hr />
+<h2 id="attorney-signature-pages">8. ATTORNEY SIGNATURE PAGES</h2>
+<p><strong>TEMPLATE - REQUIRES ATTORNEY REVIEW AND
+EXECUTION</strong></p>
+<h3 id="ownership-assignment---signature-page">OWNERSHIP ASSIGNMENT -
+SIGNATURE PAGE</h3>
+<p><strong>ASSIGNOR(S):</strong></p>
+<hr />
+<p>Signature</p>
+<hr />
+<p>Printed Name</p>
+<hr />
+<p>Date</p>
+<p><strong>ASSIGNEE:</strong></p>
+<hr />
+<p>Barkai Brinson<br />
+Owner, Barkai Brinson LLC</p>
+<hr />
+<p>Date</p>
+<p><strong>WITNESS:</strong></p>
+<hr />
+<p>Attorney Signature</p>
+<hr />
+<p>Attorney Name (Printed)</p>
+<hr />
+<p>Bar Number &amp; State</p>
+<hr />
+<p>Date</p>
+<hr />
+<h3 id="nda---signature-page">NDA - SIGNATURE PAGE</h3>
+<p><strong>DISCLOSING PARTY:</strong></p>
+<hr />
+<p>Barkai Brinson<br />
+Owner, Barkai Brinson LLC</p>
+<hr />
+<p>Date</p>
+<p><strong>RECEIVING PARTY:</strong></p>
+<hr />
+<p>Signature</p>
+<hr />
+<p>Printed Name</p>
+<hr />
+<p>Date</p>
+<hr />
+<h2 id="copyright-notice-templates">9. COPYRIGHT NOTICE TEMPLATES</h2>
+<h3 id="software-copyright-notice">Software Copyright Notice</h3>
+<pre><code>Copyright © 2025 Barkai Brinson LLC. All Rights Reserved.
+
+WEALTH AUTOMATION PLATFORM
+
+This software and associated documentation are proprietary to 
+Barkai Brinson LLC and are protected by United States and 
+international copyright laws.
+
+Owner: Barkai Brinson
+Entity: Barkai Brinson LLC
+
+Unauthorized copying, modification, distribution, or use of this 
+software, via any medium, is strictly prohibited without express 
+written permission from Barkai Brinson LLC.
+
+For licensing inquiries: [Contact Email]</code></pre>
+<h3 id="source-code-header-template">Source Code Header Template</h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Wealth Automation Platform</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * Copyright © 2025 Barkai Brinson LLC. All Rights Reserved.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * Owner: Barkai Brinson</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"> * This source code is proprietary and confidential.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"> * Unauthorized copying or distribution is strictly prohibited.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@license</span><span class="co"> Proprietary</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@copyright</span><span class="co"> </span><span class="do">2025</span><span class="co"> </span><span class="do">Barkai</span><span class="co"> </span><span class="do">Brinson</span><span class="co"> </span><span class="do">LLC</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span></code></pre></div>
+<hr />
+<h1 id="part-ii-user-manual-1">PART II: USER MANUAL</h1>
+<hr />
+<h2 id="platform-overview">1. PLATFORM OVERVIEW</h2>
+<h3 id="what-is-the-wealth-automation-platform">What is the Wealth
+Automation Platform?</h3>
+<p>The Wealth Automation Platform is a comprehensive AI-powered system
+designed for billionaire-level wealth management and lifestyle
+optimization. It combines cutting-edge artificial intelligence with
+secure financial tools to automate every aspect of wealth management,
+from portfolio tracking to daily routines.</p>
+<h3 id="core-capabilities">Core Capabilities</h3>
+<p><strong>Financial Management:</strong> - Real-time portfolio tracking
+across multiple asset classes - AI-powered investment recommendations -
+Automated tax event tracking - Digital double-entry accounting system -
+Multi-currency support with live exchange rates</p>
+<p><strong>AI Intelligence:</strong> - GPT-5 powered daily briefings -
+Multi-agent AI orchestration - Personalized investment strategies -
+Anomaly detection and risk alerts - Natural language financial
+queries</p>
+<p><strong>Lifestyle Automation:</strong> - AI-driven email management -
+Smart routine builder with success templates - Health monitoring and AI
+sync - Calendar optimization - Task automation and prioritization</p>
+<p><strong>Payment &amp; Banking:</strong> - Stripe payment processing -
+Fiat wallet management - Web3 wallet integration (Coinbase, MetaMask,
+WalletConnect) - NFT vault (Ethereum, Polygon, Solana, Hedera) -
+Cryptocurrency tracking</p>
+<p><strong>Business Tools:</strong> - Complete CRM system - Receipt
+manager with OCR - Digital accountant - Microsoft Office 365 integration
+- Discord bot for team management</p>
+<h3 id="system-architecture">System Architecture</h3>
+<p><strong>Frontend:</strong> React 18 with TypeScript, Vite,
+TailwindCSS<br />
+<strong>Backend:</strong> Express.js REST API, Node.js v20.x<br />
+<strong>Database:</strong> PostgreSQL with Drizzle ORM<br />
+<strong>AI:</strong> OpenAI GPT-5, GPT-4o, Claude 3.5 Sonnet<br />
+<strong>Security:</strong> OIDC auth, CSRF protection, rate
+limiting<br />
+<strong>Payments:</strong> Stripe integration with webhooks</p>
+<hr />
+<h2 id="getting-started">2. GETTING STARTED</h2>
+<h3 id="account-creation-login">2.1 Account Creation &amp; Login</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Login Screen]</strong></p>
+<p><strong>Step 1: Access the Platform</strong> - Navigate to your
+platform URL - Click “Log In with Replit” button - Authenticate with
+your credentials</p>
+<p><strong>Step 2: First-Time Setup</strong> - Complete your profile
+information - Set your timezone and preferences - Choose your
+subscription tier</p>
+<p><strong>Subscription Tiers:</strong></p>
+<p><strong>Free Tier</strong> (No payment required) - Basic portfolio
+tracking - Limited AI queries (10/day) - Standard health monitoring -
+Email viewing (read-only) - 1 connected wallet</p>
+<p><strong>Premium Tier</strong> ($XX/month) - Unlimited AI interactions
+- Advanced portfolio analytics - AI email drafting - 5 connected wallets
+- Priority support - Tax optimization tools</p>
+<p><strong>Enterprise Tier</strong> (Custom pricing) - Everything in
+Premium - Multi-agent AI orchestration - Unlimited wallets and accounts
+- Dedicated account manager - Custom integrations - API access -
+White-label options</p>
+<h3 id="dashboard-overview">2.2 Dashboard Overview</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Main Dashboard]</strong></p>
+<p><strong>Key Dashboard Elements:</strong></p>
+<ol type="1">
+<li><strong>Sidebar Navigation</strong> (Left)
+<ul>
+<li>Dashboard (Home)</li>
+<li>Digital Accountant</li>
+<li>Personal Wallet</li>
+<li>NFT Vault</li>
+<li>Productivity Hub</li>
+<li>AI Intelligence</li>
+<li>Health Monitoring</li>
+<li>CRM</li>
+<li>Settings</li>
+</ul></li>
+<li><strong>Top Header</strong> (Right)
+<ul>
+<li>Live time/date display</li>
+<li>Online/offline status indicator</li>
+<li>Advanced calculator</li>
+<li>Web search</li>
+<li>ChatGPT assistant</li>
+<li>Theme toggle (Dark/Light)</li>
+<li>Notifications bell</li>
+<li>Profile menu</li>
+</ul></li>
+<li><strong>Main Content Area</strong>
+<ul>
+<li>Daily AI briefing</li>
+<li>Portfolio summary cards</li>
+<li>Recent transactions</li>
+<li>Quick actions</li>
+<li>Wealth metrics visualization</li>
+</ul></li>
+<li><strong>Quick Stats Panel</strong>
+<ul>
+<li>Total net worth</li>
+<li>24h change percentage</li>
+<li>Portfolio performance chart</li>
+<li>Asset allocation pie chart</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="feature-by-feature-instructions">3. FEATURE-BY-FEATURE
+INSTRUCTIONS</h2>
+<h3 id="daily-briefing-wealth-dashboard">3.1 DAILY BRIEFING &amp; WEALTH
+DASHBOARD</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Daily Briefing]</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>View Daily Briefing</strong>
+<ul>
+<li>AI-generated summary refreshes every morning at 6 AM</li>
+<li>Includes market updates, portfolio changes, calendar events</li>
+<li>Personalized recommendations based on your goals</li>
+</ul></li>
+<li><strong>Customize Briefing</strong>
+<ul>
+<li>Click “Settings” in briefing card</li>
+<li>Select topics: Markets, Portfolio, Health, Tasks, Email</li>
+<li>Set delivery time preference</li>
+<li>Choose notification method</li>
+</ul></li>
+<li><strong>Portfolio Overview</strong>
+<ul>
+<li>View total net worth across all accounts</li>
+<li>Asset allocation breakdown</li>
+<li>Performance charts (1D, 1W, 1M, 1Y, All)</li>
+<li>Recent transactions list</li>
+</ul></li>
+<li><strong>Quick Actions</strong>
+<ul>
+<li>Add transaction</li>
+<li>Connect new account</li>
+<li>Run AI portfolio analysis</li>
+<li>Generate tax report</li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="digital-accountant">3.2 DIGITAL ACCOUNTANT</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Chart of Accounts]</strong></p>
+<p>The Digital Accountant provides professional double-entry
+bookkeeping.</p>
+<p><strong>3.2.1 Chart of Accounts</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>View Accounts</strong>
+<ul>
+<li>Navigate to Digital Accountant → Chart of Accounts</li>
+<li>Accounts organized by type: Assets, Liabilities, Equity, Revenue,
+Expenses</li>
+</ul></li>
+<li><strong>Create New Account</strong>
+<ul>
+<li>Click “+ Add Account” button</li>
+<li>Enter account code (e.g., 1000)</li>
+<li>Enter account name (e.g., “Cash - Checking”)</li>
+<li>Select account type</li>
+<li>Choose parent account (if sub-account)</li>
+<li>Click “Create Account”</li>
+</ul></li>
+<li><strong>Edit Account</strong>
+<ul>
+<li>Click on account row</li>
+<li>Update name or type</li>
+<li>Click “Save Changes”</li>
+</ul></li>
+</ol>
+<p><strong>Account Code Structure:</strong> - 1000-1999: Assets -
+2000-2999: Liabilities - 3000-3999: Equity - 4000-4999: Revenue -
+5000-5999: Expenses</p>
+<p><strong>[SCREENSHOT PLACEHOLDER: Journal Entries]</strong></p>
+<p><strong>3.2.2 Journal Entries</strong></p>
+<p><strong>How to Create Entry:</strong></p>
+<ol type="1">
+<li>Click “New Journal Entry”</li>
+<li>Enter date of transaction</li>
+<li>Add description</li>
+<li>Add debit line:
+<ul>
+<li>Select account</li>
+<li>Enter amount</li>
+</ul></li>
+<li>Add credit line:
+<ul>
+<li>Select account</li>
+<li>Enter amount (must equal debit)</li>
+</ul></li>
+<li>Click “Post Entry”</li>
+</ol>
+<p><strong>Note:</strong> System enforces double-entry validation.
+Debits must equal credits.</p>
+<p><strong>[SCREENSHOT PLACEHOLDER: Financial Reports]</strong></p>
+<p><strong>3.2.3 Financial Reports</strong></p>
+<p><strong>Available Reports:</strong> - Balance Sheet - Income
+Statement (P&amp;L) - Cash Flow Statement - Trial Balance - Account
+Ledger</p>
+<p><strong>How to Generate:</strong></p>
+<ol type="1">
+<li>Navigate to Reports tab</li>
+<li>Select report type</li>
+<li>Choose date range</li>
+<li>Click “Generate Report”</li>
+<li>Export as PDF or CSV</li>
+</ol>
+<hr />
+<h3 id="personal-wallet">3.3 PERSONAL WALLET</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Wallet Dashboard]</strong></p>
+<p><strong>3.3.1 Fiat Wallet</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Add Funds</strong>
+<ul>
+<li>Click “Deposit” button</li>
+<li>Enter amount</li>
+<li>Select payment method (Stripe)</li>
+<li>Complete payment</li>
+<li>Funds appear instantly</li>
+</ul></li>
+<li><strong>Withdraw Funds</strong>
+<ul>
+<li>Click “Withdraw” button</li>
+<li>Enter amount</li>
+<li>Select bank account</li>
+<li>Confirm withdrawal</li>
+<li>Processing time: 1-3 business days</li>
+</ul></li>
+<li><strong>View Transactions</strong>
+<ul>
+<li>All deposits and withdrawals listed</li>
+<li>Filter by date, type, status</li>
+<li>Export transaction history</li>
+</ul></li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: Web3 Wallets]</strong></p>
+<p><strong>3.3.2 Web3 Wallets</strong></p>
+<p><strong>Supported Wallets:</strong> - MetaMask (Ethereum, Polygon) -
+Coinbase Wallet - WalletConnect (multi-chain) - Hedera Hashgraph</p>
+<p><strong>How to Connect:</strong></p>
+<ol type="1">
+<li><strong>Connect MetaMask</strong>
+<ul>
+<li>Click “Connect Wallet”</li>
+<li>Select “MetaMask”</li>
+<li>Approve connection in MetaMask popup</li>
+<li>Select network (Ethereum/Polygon)</li>
+<li>Wallet address now displayed</li>
+</ul></li>
+<li><strong>Connect Coinbase Wallet</strong>
+<ul>
+<li>Click “Connect Wallet”</li>
+<li>Select “Coinbase Wallet”</li>
+<li>Scan QR code with mobile app</li>
+<li>Approve connection</li>
+</ul></li>
+<li><strong>View Balances</strong>
+<ul>
+<li>All connected wallets shown</li>
+<li>Real-time balance updates</li>
+<li>Support for 100+ tokens</li>
+<li>Price in USD displayed</li>
+</ul></li>
+<li><strong>Send Crypto</strong>
+<ul>
+<li>Select wallet</li>
+<li>Click “Send”</li>
+<li>Enter recipient address</li>
+<li>Enter amount</li>
+<li>Confirm transaction in wallet</li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="nft-vault">3.4 NFT VAULT</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: NFT Gallery]</strong></p>
+<p><strong>Supported Blockchains:</strong> - Ethereum (Mainnet) -
+Polygon - Solana - Hedera (HTS)</p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>View NFT Collection</strong>
+<ul>
+<li>Navigate to NFT Vault</li>
+<li>All NFTs from connected wallets displayed</li>
+<li>Grid view or list view</li>
+<li>Filter by blockchain, collection, rarity</li>
+</ul></li>
+<li><strong>NFT Details</strong>
+<ul>
+<li>Click on any NFT</li>
+<li>View metadata (name, description, attributes)</li>
+<li>See ownership history</li>
+<li>Check floor price (if available)</li>
+<li>View on blockchain explorer</li>
+</ul></li>
+<li><strong>Transfer NFT</strong>
+<ul>
+<li>Click NFT → “Transfer”</li>
+<li>Enter recipient address</li>
+<li>Confirm blockchain and gas fees</li>
+<li>Approve in wallet</li>
+<li>Transaction confirmed</li>
+</ul></li>
+<li><strong>Add NFT Manually</strong>
+<ul>
+<li>Click “+ Add NFT”</li>
+<li>Enter contract address</li>
+<li>Enter token ID</li>
+<li>Select blockchain</li>
+<li>Click “Add to Vault”</li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="productivity-hub">3.5 PRODUCTIVITY HUB</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Productivity Dashboard]</strong></p>
+<p><strong>3.5.1 Notes with AI Analysis</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Create Note</strong>
+<ul>
+<li>Click “+ New Note”</li>
+<li>Enter title</li>
+<li>Type or paste content</li>
+<li>Add tags for organization</li>
+<li>Click “Save”</li>
+</ul></li>
+<li><strong>AI Analysis</strong>
+<ul>
+<li>Open any note</li>
+<li>Click “Analyze with AI”</li>
+<li>AI provides:
+<ul>
+<li>Summary</li>
+<li>Key points extraction</li>
+<li>Action items</li>
+<li>Related topics</li>
+</ul></li>
+<li>Analysis saved with note</li>
+</ul></li>
+<li><strong>Upload Documents</strong>
+<ul>
+<li>Click “Upload” icon</li>
+<li>Select PDF, DOCX, or TXT file</li>
+<li>AI extracts text using OCR</li>
+<li>Searchable content created</li>
+</ul></li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: Receipt Manager]</strong></p>
+<p><strong>3.5.2 Receipt Manager</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Upload Receipt</strong>
+<ul>
+<li>Click “+ Add Receipt”</li>
+<li>Take photo or upload image</li>
+<li>AI OCR extracts:
+<ul>
+<li>Merchant name</li>
+<li>Date</li>
+<li>Total amount</li>
+<li>Line items</li>
+<li>Tax amount</li>
+</ul></li>
+</ul></li>
+<li><strong>Review &amp; Edit</strong>
+<ul>
+<li>Verify extracted data</li>
+<li>Make corrections if needed</li>
+<li>Add category (meals, travel, supplies)</li>
+<li>Link to CRM contact if business expense</li>
+<li>Click “Save Receipt”</li>
+</ul></li>
+<li><strong>Generate Expense Report</strong>
+<ul>
+<li>Click “Generate Report”</li>
+<li>Select date range</li>
+<li>Choose categories</li>
+<li>AI generates insights:
+<ul>
+<li>Spending trends</li>
+<li>Top merchants</li>
+<li>Category breakdown</li>
+<li>Tax deductible amounts</li>
+</ul></li>
+<li>Export as PDF</li>
+</ul></li>
+<li><strong>CRM Integration</strong>
+<ul>
+<li>Link receipts to deals</li>
+<li>Track client entertainment expenses</li>
+<li>Auto-categorize business vs personal</li>
+<li>Generate client billing reports</li>
+</ul></li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: Email Manager]</strong></p>
+<p><strong>3.5.3 Email Manager</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Connect Email (Google/Microsoft)</strong>
+<ul>
+<li>Navigate to Email Manager</li>
+<li>Click “Connect Account”</li>
+<li>Select Google or Microsoft</li>
+<li>Authorize OAuth access</li>
+<li>Emails sync automatically</li>
+</ul></li>
+<li><strong>AI Email Categorization</strong>
+<ul>
+<li>Emails automatically sorted:
+<ul>
+<li>🔴 Urgent &amp; Important</li>
+<li>🟡 Important</li>
+<li>🟢 Normal</li>
+<li>⚪ Low Priority</li>
+<li>🗑️ Spam/Promotional</li>
+</ul></li>
+<li>Click category to view filtered emails</li>
+</ul></li>
+<li><strong>AI Draft Responses</strong>
+<ul>
+<li>Open any email</li>
+<li>Click “Draft Reply”</li>
+<li>AI generates response based on:
+<ul>
+<li>Email content</li>
+<li>Your writing style</li>
+<li>Historical responses</li>
+</ul></li>
+<li>Edit draft as needed</li>
+<li>Click “Send” or “Save Draft”</li>
+</ul></li>
+<li><strong>Email Actions</strong>
+<ul>
+<li>Archive email</li>
+<li>Star/Flag important</li>
+<li>Create task from email</li>
+<li>Add to calendar</li>
+<li>Forward to team</li>
+</ul></li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: Routine Builder]</strong></p>
+<p><strong>3.5.4 Routine Builder</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Create Custom Routine</strong>
+<ul>
+<li>Click “New Routine”</li>
+<li>Enter routine name (e.g., “Morning Success”)</li>
+<li>Add activities:
+<ul>
+<li>Set time (6:00 AM)</li>
+<li>Activity name (Meditation)</li>
+<li>Duration (15 minutes)</li>
+<li>Notes/Instructions</li>
+</ul></li>
+<li>Click “Save Routine”</li>
+</ul></li>
+<li><strong>Use Success Templates</strong>
+<ul>
+<li>Browse pre-built routines:
+<ul>
+<li>Billionaire Morning Routine</li>
+<li>Peak Performance Workday</li>
+<li>Evening Wind-Down</li>
+<li>Weekend Optimization</li>
+</ul></li>
+<li>Click “Use Template”</li>
+<li>Customize to your needs</li>
+</ul></li>
+<li><strong>AI Daily Reports</strong>
+<ul>
+<li>Complete routine activities</li>
+<li>Mark each task as done</li>
+<li>At end of day, AI generates:
+<ul>
+<li>Completion percentage</li>
+<li>Time analysis</li>
+<li>Productivity insights</li>
+<li>Recommendations for improvement</li>
+</ul></li>
+<li>View weekly trends</li>
+</ul></li>
+<li><strong>Routine Reminders</strong>
+<ul>
+<li>Enable notifications</li>
+<li>Get alerts 5 minutes before activity</li>
+<li>Smart reminders based on location</li>
+<li>Integrate with calendar</li>
+</ul></li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: Calendar &amp; Tasks]</strong></p>
+<p><strong>3.5.5 Calendar &amp; Tasks</strong></p>
+<p><strong>Calendar Features:</strong></p>
+<ol type="1">
+<li><strong>View Events</strong>
+<ul>
+<li>Day, Week, Month views</li>
+<li>Color-coded categories</li>
+<li>Integrated with Google/Microsoft Calendar</li>
+</ul></li>
+<li><strong>Create Event</strong>
+<ul>
+<li>Click “+ New Event”</li>
+<li>Enter title, date, time</li>
+<li>Add location</li>
+<li>Set reminders</li>
+<li>Invite attendees</li>
+<li>Click “Create”</li>
+</ul></li>
+<li><strong>AI Calendar Recommendations</strong>
+<ul>
+<li>Click “AI Optimize”</li>
+<li>AI suggests:
+<ul>
+<li>Best meeting times</li>
+<li>Focus time blocks</li>
+<li>Buffer between meetings</li>
+<li>Travel time adjustments</li>
+</ul></li>
+<li>Accept or modify suggestions</li>
+</ul></li>
+</ol>
+<p><strong>Task Management:</strong></p>
+<ol type="1">
+<li><strong>Create Task</strong>
+<ul>
+<li>Click “+ New Task”</li>
+<li>Enter task name</li>
+<li>Set due date</li>
+<li>Choose priority (High/Medium/Low)</li>
+<li>Assign to project</li>
+<li>Click “Create”</li>
+</ul></li>
+<li><strong>AI Task Generation</strong>
+<ul>
+<li>Describe a goal: “Plan Q1 marketing strategy”</li>
+<li>AI breaks down into tasks:
+<ul>
+<li>Research competitors</li>
+<li>Define budget</li>
+<li>Create content calendar</li>
+<li>Review with team</li>
+</ul></li>
+<li>Each with suggested deadlines</li>
+<li>Click “Add All Tasks”</li>
+</ul></li>
+<li><strong>Task Views</strong>
+<ul>
+<li>Today’s tasks</li>
+<li>Upcoming (7 days)</li>
+<li>Overdue</li>
+<li>By project</li>
+<li>Kanban board view</li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="ai-intelligence-hub">3.6 AI INTELLIGENCE HUB</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: AI Hub Dashboard]</strong></p>
+<p><strong>3.6.1 Portfolio Reports</strong></p>
+<p><strong>How to Generate:</strong></p>
+<ol type="1">
+<li>Click “Generate Portfolio Report”</li>
+<li>AI analyzes your holdings</li>
+<li>Report includes:
+<ul>
+<li>Performance summary</li>
+<li>Risk analysis</li>
+<li>Asset correlation</li>
+<li>Sector exposure</li>
+<li>Recommendations</li>
+</ul></li>
+<li>Download PDF or view online</li>
+</ol>
+<p><strong>3.6.2 Trading Recommendations</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li>Navigate to “Trading Signals”</li>
+<li>AI monitors markets 24/7</li>
+<li>Recommendations show:
+<ul>
+<li>BUY/SELL/HOLD signals</li>
+<li>Entry/exit prices</li>
+<li>Risk/reward ratio</li>
+<li>Supporting analysis</li>
+</ul></li>
+<li>Set alerts for specific assets</li>
+<li>Execute trades directly (if broker connected)</li>
+</ol>
+<p><strong>[SCREENSHOT PLACEHOLDER: AI Terminal]</strong></p>
+<p><strong>3.6.3 Terminal Access</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li>Click “Open Terminal”</li>
+<li>Command-line interface for advanced users</li>
+<li>Available commands:
+<ul>
+<li><code>/portfolio</code> - Show holdings</li>
+<li><code>/analyze [ticker]</code> - Deep dive analysis</li>
+<li><code>/tax</code> - Tax lot optimizer</li>
+<li><code>/rebalance</code> - Generate rebalancing plan</li>
+<li><code>/export [format]</code> - Export data</li>
+</ul></li>
+<li>Type <code>/help</code> for full command list</li>
+</ol>
+<p><strong>3.6.4 Multi-Agent AI</strong></p>
+<p><strong>How to Use:</strong></p>
+<ol type="1">
+<li><strong>Ask Complex Question</strong>
+<ul>
+<li>Type: “Should I invest in AI startups given current market?”</li>
+<li>Click “Multi-Agent Analysis”</li>
+</ul></li>
+<li><strong>AI Orchestration</strong>
+<ul>
+<li>Multiple AI agents collaborate:
+<ul>
+<li>Research Agent: Gathers market data</li>
+<li>Analysis Agent: Evaluates opportunities</li>
+<li>Risk Agent: Assesses downside</li>
+<li>Strategy Agent: Creates plan</li>
+<li>Critique Agent: Challenges assumptions</li>
+</ul></li>
+</ul></li>
+<li><strong>Review Consensus</strong>
+<ul>
+<li>See each agent’s perspective</li>
+<li>Final recommendation with confidence score</li>
+<li>Supporting evidence and sources</li>
+<li>Action plan with steps</li>
+</ul></li>
+</ol>
+<p><strong>3.6.5 AI Videos (Personalized)</strong></p>
+<p><strong>How to Create:</strong></p>
+<ol type="1">
+<li>Click “Generate AI Video”</li>
+<li>Select template:
+<ul>
+<li>Daily Briefing Video</li>
+<li>Portfolio Update</li>
+<li>Market Analysis</li>
+<li>Educational Content</li>
+</ul></li>
+<li>AI creates personalized video with:
+<ul>
+<li>Your data visualizations</li>
+<li>Voiceover narration</li>
+<li>Professional graphics</li>
+</ul></li>
+<li>Download or share</li>
+</ol>
+<hr />
+<h3 id="health-monitoring">3.7 HEALTH MONITORING</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Health Dashboard]</strong></p>
+<p><strong>Tracked Metrics:</strong> - Steps &amp; Activity - Exercise
+Sessions - Vital Signs (HR, BP, Temp) - Mindfulness &amp; Meditation -
+Sleep Quality - Nutrition &amp; Food</p>
+<p><strong>3.7.1 Manual Entry</strong></p>
+<p><strong>How to Log:</strong></p>
+<ol type="1">
+<li><strong>Steps</strong>
+<ul>
+<li>Click “+ Add Steps”</li>
+<li>Enter count</li>
+<li>Select date</li>
+<li>Click “Save”</li>
+</ul></li>
+<li><strong>Exercise</strong>
+<ul>
+<li>Click “+ Log Exercise”</li>
+<li>Select type (Running, Gym, Yoga)</li>
+<li>Enter duration</li>
+<li>Enter intensity (Light/Moderate/Vigorous)</li>
+<li>Add notes</li>
+<li>Click “Save”</li>
+</ul></li>
+<li><strong>Vitals</strong>
+<ul>
+<li>Click “+ Add Vitals”</li>
+<li>Enter heart rate</li>
+<li>Enter blood pressure</li>
+<li>Enter temperature</li>
+<li>Select measurement time</li>
+<li>Click “Save”</li>
+</ul></li>
+<li><strong>Sleep</strong>
+<ul>
+<li>Click “+ Log Sleep”</li>
+<li>Enter bedtime</li>
+<li>Enter wake time</li>
+<li>Rate quality (1-10)</li>
+<li>Add notes (dreams, interruptions)</li>
+<li>Click “Save”</li>
+</ul></li>
+<li><strong>Food</strong>
+<ul>
+<li>Click “+ Log Meal”</li>
+<li>Enter meal name or scan barcode</li>
+<li>Enter quantity</li>
+<li>AI estimates calories and nutrients</li>
+<li>Click “Save”</li>
+</ul></li>
+</ol>
+<p><strong>3.7.2 AI Sync Integration</strong></p>
+<p><strong>Supported Devices:</strong> - Apple Health - Google Fit -
+Fitbit - Garmin - Oura Ring - Whoop</p>
+<p><strong>How to Connect:</strong></p>
+<ol type="1">
+<li>Click “Connect Device”</li>
+<li>Select your device/app</li>
+<li>Authorize data sharing</li>
+<li>Automatic syncing begins</li>
+<li>Historical data imported</li>
+</ol>
+<p><strong>3.7.3 Health Insights</strong></p>
+<p><strong>AI Analysis:</strong></p>
+<ol type="1">
+<li><strong>Daily Insights</strong>
+<ul>
+<li>Activity level vs goals</li>
+<li>Sleep quality trends</li>
+<li>Calorie balance</li>
+<li>Recovery recommendations</li>
+</ul></li>
+<li><strong>Weekly Reports</strong>
+<ul>
+<li>7-day activity summary</li>
+<li>Exercise consistency</li>
+<li>Sleep debt calculation</li>
+<li>Nutrition balance</li>
+</ul></li>
+<li><strong>Health Alerts</strong>
+<ul>
+<li>Unusual heart rate</li>
+<li>Insufficient sleep</li>
+<li>Low activity warning</li>
+<li>Dehydration alert</li>
+</ul></li>
+<li><strong>AI Recommendations</strong>
+<ul>
+<li>Personalized workout plans</li>
+<li>Sleep optimization tips</li>
+<li>Nutrition improvements</li>
+<li>Stress management techniques</li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="crm-customer-relationship-management">3.8 CRM (Customer
+Relationship Management)</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: CRM Dashboard]</strong></p>
+<p><strong>3.8.1 Organizations</strong></p>
+<p><strong>How to Add:</strong></p>
+<ol type="1">
+<li>Click “+ New Organization”</li>
+<li>Enter company name</li>
+<li>Add industry</li>
+<li>Enter website</li>
+<li>Add address</li>
+<li>Add phone/email</li>
+<li>Upload logo</li>
+<li>Click “Create”</li>
+</ol>
+<p><strong>How to Manage:</strong> - View all organizations in list/grid
+- Search and filter - Click organization to view details - See all
+associated contacts and deals - View activity timeline - Edit or
+archive</p>
+<p><strong>3.8.2 Contacts</strong></p>
+<p><strong>How to Add:</strong></p>
+<ol type="1">
+<li>Click “+ New Contact”</li>
+<li>Enter name</li>
+<li>Enter email and phone</li>
+<li>Select organization (if applicable)</li>
+<li>Add job title</li>
+<li>Add social profiles (LinkedIn, Twitter)</li>
+<li>Add notes</li>
+<li>Click “Create”</li>
+</ol>
+<p><strong>Features:</strong> - Import from CSV - Sync with
+Google/Microsoft contacts - Automatic duplicate detection - Contact
+scoring (engagement level) - Last interaction tracking</p>
+<p><strong>3.8.3 Leads</strong></p>
+<p><strong>How to Create:</strong></p>
+<ol type="1">
+<li>Click “+ New Lead”</li>
+<li>Enter lead source (Website, Referral, Cold Outreach)</li>
+<li>Add contact information</li>
+<li>Select lead status:
+<ul>
+<li>New</li>
+<li>Contacted</li>
+<li>Qualified</li>
+<li>Unqualified</li>
+</ul></li>
+<li>Set priority</li>
+<li>Assign to team member</li>
+<li>Click “Create”</li>
+</ol>
+<p><strong>Lead Management:</strong> - Track through sales pipeline -
+Convert lead to deal - Log all interactions - Set follow-up reminders -
+AI lead scoring</p>
+<p><strong>3.8.4 Deals</strong></p>
+<p><strong>How to Create:</strong></p>
+<ol type="1">
+<li>Click “+ New Deal”</li>
+<li>Enter deal name</li>
+<li>Select organization/contact</li>
+<li>Enter deal value</li>
+<li>Select pipeline stage:
+<ul>
+<li>Prospecting</li>
+<li>Qualification</li>
+<li>Proposal</li>
+<li>Negotiation</li>
+<li>Closed Won/Lost</li>
+</ul></li>
+<li>Set expected close date</li>
+<li>Add notes</li>
+<li>Click “Create”</li>
+</ol>
+<p><strong>Deal Features:</strong> - Visual pipeline (Kanban view) -
+Drag-and-drop stage changes - Win probability tracking - Revenue
+forecasting - Integration with Digital Accountant (auto-create
+invoices)</p>
+<p><strong>3.8.5 Activities</strong></p>
+<p><strong>How to Log:</strong></p>
+<ol type="1">
+<li>Click “+ Log Activity”</li>
+<li>Select type:
+<ul>
+<li>Call</li>
+<li>Email</li>
+<li>Meeting</li>
+<li>Task</li>
+<li>Note</li>
+</ul></li>
+<li>Link to contact/organization/deal</li>
+<li>Enter details</li>
+<li>Set date/time</li>
+<li>Click “Save”</li>
+</ol>
+<p><strong>Activity Tracking:</strong> - Complete activity history -
+Team activity feed - Automated email logging - Meeting notes with AI
+summary - Follow-up task creation</p>
+<hr />
+<h3 id="integrations">3.9 INTEGRATIONS</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Integrations Page]</strong></p>
+<p><strong>3.9.1 Microsoft Office 365</strong></p>
+<p><strong>How to Connect:</strong></p>
+<ol type="1">
+<li>Navigate to Settings → Integrations</li>
+<li>Click “Connect Microsoft”</li>
+<li>Sign in with Microsoft account</li>
+<li>Grant permissions:
+<ul>
+<li>Email (Outlook)</li>
+<li>Files (OneDrive)</li>
+<li>Calendar</li>
+</ul></li>
+<li>Click “Allow”</li>
+<li>Integration active</li>
+</ol>
+<p><strong>Features:</strong> - Read Outlook emails - Access OneDrive
+files - Sync calendar events - Auto-save attachments - Create tasks from
+emails</p>
+<p><strong>3.9.2 Discord Bot</strong></p>
+<p><strong>How to Setup:</strong></p>
+<ol type="1">
+<li>Go to Settings → Integrations</li>
+<li>Click “Setup Discord Bot”</li>
+<li>Click “Add to Server”</li>
+<li>Select your Discord server</li>
+<li>Authorize bot permissions</li>
+<li>Bot joins server</li>
+</ol>
+<p><strong>Bot Commands:</strong> - <code>/schedule</code> - Schedule
+message - <code>/moderate</code> - Enable AI moderation -
+<code>/generate</code> - AI message generation - <code>/edit</code> -
+Edit scheduled message - <code>/cancel</code> - Cancel scheduled
+message</p>
+<p><strong>3.9.3 Stripe Payments</strong></p>
+<p><strong>Pre-configured</strong> for subscriptions and wallet
+deposits.</p>
+<p><strong>Features:</strong> - Secure payment processing - Automatic
+subscription billing - Webhook integration for instant updates - Support
+for 135+ currencies - PCI compliance</p>
+<hr />
+<h3 id="settings-preferences">3.10 SETTINGS &amp; PREFERENCES</h3>
+<p><strong>[SCREENSHOT PLACEHOLDER: Settings Page]</strong></p>
+<p><strong>3.10.1 Profile Settings</strong></p>
+<ul>
+<li>Update name and email</li>
+<li>Upload profile picture</li>
+<li>Set timezone</li>
+<li>Language preference</li>
+<li>Date/time format</li>
+</ul>
+<p><strong>3.10.2 Security Settings</strong></p>
+<ul>
+<li>Change password</li>
+<li>Two-factor authentication (2FA)</li>
+<li>Active sessions management</li>
+<li>Login history</li>
+<li>Connected devices</li>
+</ul>
+<p><strong>3.10.3 Notification Settings</strong></p>
+<ul>
+<li>Email notifications</li>
+<li>Push notifications</li>
+<li>SMS alerts (Premium+)</li>
+<li>Notification schedule (quiet hours)</li>
+<li>Per-feature notification toggles</li>
+</ul>
+<p><strong>3.10.4 Subscription Management</strong></p>
+<ul>
+<li>View current plan</li>
+<li>Upgrade/downgrade</li>
+<li>Payment method</li>
+<li>Billing history</li>
+<li>Cancel subscription</li>
+</ul>
+<p><strong>3.10.5 Data &amp; Privacy</strong></p>
+<ul>
+<li>Export your data</li>
+<li>Delete account</li>
+<li>Privacy settings</li>
+<li>Cookie preferences</li>
+<li>Third-party app permissions</li>
+</ul>
+<hr />
+<h2 id="advanced-features">4. ADVANCED FEATURES</h2>
+<h3 id="api-access-enterprise-only">4.1 API Access (Enterprise
+Only)</h3>
+<p><strong>How to Get API Key:</strong></p>
+<ol type="1">
+<li>Navigate to Settings → API</li>
+<li>Click “Generate API Key”</li>
+<li>Copy key (shown once only)</li>
+<li>Store securely</li>
+</ol>
+<p><strong>API Documentation:</strong> - Full REST API - GraphQL
+endpoint - WebSocket streaming - Rate limits: 10,000 req/hour -
+Comprehensive docs at: [API URL]</p>
+<h3 id="webhooks">4.2 Webhooks</h3>
+<p><strong>How to Setup:</strong></p>
+<ol type="1">
+<li>Go to Settings → Webhooks</li>
+<li>Click “+ New Webhook”</li>
+<li>Enter endpoint URL</li>
+<li>Select events to subscribe:
+<ul>
+<li>Transaction created</li>
+<li>Portfolio updated</li>
+<li>Payment received</li>
+<li>Task completed</li>
+</ul></li>
+<li>Copy webhook secret</li>
+<li>Click “Create”</li>
+</ol>
+<h3 id="custom-integrations">4.3 Custom Integrations</h3>
+<p><strong>Available for Enterprise:</strong> - Custom OAuth apps -
+Private API endpoints - White-label deployment - Custom domain - SSO
+integration</p>
+<h3 id="automation-rules">4.4 Automation Rules</h3>
+<p><strong>How to Create:</strong></p>
+<ol type="1">
+<li>Navigate to Automations</li>
+<li>Click “+ New Rule”</li>
+<li>Set trigger:
+<ul>
+<li>Portfolio value changes by X%</li>
+<li>New email from VIP</li>
+<li>Task overdue</li>
+<li>Health metric threshold</li>
+</ul></li>
+<li>Set action:
+<ul>
+<li>Send notification</li>
+<li>Create task</li>
+<li>Generate report</li>
+<li>Execute trade</li>
+</ul></li>
+<li>Click “Activate Rule”</li>
+</ol>
+<hr />
+<h2 id="troubleshooting">5. TROUBLESHOOTING</h2>
+<h3 id="login-issues">5.1 Login Issues</h3>
+<p><strong>Problem:</strong> Cannot log in</p>
+<p><strong>Solutions:</strong> 1. Clear browser cache and cookies 2. Try
+incognito/private mode 3. Check CAPS LOCK is off 4. Reset password 5.
+Contact support if issue persists</p>
+<h3 id="wallet-connection-issues">5.2 Wallet Connection Issues</h3>
+<p><strong>Problem:</strong> MetaMask won’t connect</p>
+<p><strong>Solutions:</strong> 1. Update MetaMask to latest version 2.
+Check network selection (Ethereum Mainnet) 3. Disable other wallet
+extensions temporarily 4. Try different browser 5. Clear MetaMask
+cache</p>
+<p><strong>Problem:</strong> Incorrect wallet balance</p>
+<p><strong>Solutions:</strong> 1. Click “Refresh Balance” button 2. Wait
+1-2 minutes for blockchain sync 3. Check transaction on blockchain
+explorer 4. Contact support with wallet address</p>
+<h3 id="ai-response-issues">5.3 AI Response Issues</h3>
+<p><strong>Problem:</strong> AI not responding</p>
+<p><strong>Solutions:</strong> 1. Check internet connection 2. Verify
+API key status (Settings → Integrations) 3. Try refreshing page 4. Check
+rate limits (50 requests/15 min) 5. Contact support</p>
+<h3 id="payment-issues">5.4 Payment Issues</h3>
+<p><strong>Problem:</strong> Payment failed</p>
+<p><strong>Solutions:</strong> 1. Verify card details are correct 2.
+Check sufficient funds 3. Contact bank (may be blocking payment) 4. Try
+different payment method 5. Contact support with error code</p>
+<h3 id="data-sync-issues">5.5 Data Sync Issues</h3>
+<p><strong>Problem:</strong> Email not syncing</p>
+<p><strong>Solutions:</strong> 1. Disconnect and reconnect email account
+2. Check OAuth permissions 3. Verify email password hasn’t changed 4.
+Check storage quota 5. Contact support</p>
+<h3 id="performance-issues">5.6 Performance Issues</h3>
+<p><strong>Problem:</strong> Slow loading</p>
+<p><strong>Solutions:</strong> 1. Clear browser cache 2. Disable browser
+extensions 3. Check internet speed 4. Try different browser 5. Check
+status page for outages</p>
+<h3 id="getting-help">5.7 Getting Help</h3>
+<p><strong>Support Channels:</strong></p>
+<p><strong>Free Tier:</strong> - Help documentation - Community forum -
+Email: support@[domain].com - Response: 48-72 hours</p>
+<p><strong>Premium Tier:</strong> - Priority email support - Live chat
+(business hours) - Response: 24 hours</p>
+<p><strong>Enterprise Tier:</strong> - 24/7 support - Dedicated account
+manager - Phone support - Response: 4 hours (critical issues)</p>
+<hr />
+<h2 id="technical-specifications">6. TECHNICAL SPECIFICATIONS</h2>
+<h3 id="system-requirements">6.1 System Requirements</h3>
+<p><strong>Supported Browsers:</strong> - Chrome 90+ (Recommended) -
+Firefox 88+ - Safari 14+ - Edge 90+</p>
+<p><strong>Mobile:</strong> - iOS 14+ - Android 10+ - Progressive Web
+App (PWA) available</p>
+<p><strong>Internet:</strong> - Minimum: 5 Mbps - Recommended: 25+ Mbps
+- WebSocket support required</p>
+<h3 id="data-storage">6.2 Data Storage</h3>
+<p><strong>Database:</strong> - PostgreSQL 16.x - Automatic backups
+every 24 hours - 30-day backup retention - Point-in-time recovery</p>
+<p><strong>File Storage:</strong> - Documents: 5GB (Free), 50GB
+(Premium), Unlimited (Enterprise) - Receipts: Unlimited - NFT metadata:
+Cached locally</p>
+<h3 id="security-specifications">6.3 Security Specifications</h3>
+<p><strong>Encryption:</strong> - TLS 1.3 for all connections - AES-256
+for data at rest - End-to-end encryption for sensitive data</p>
+<p><strong>Authentication:</strong> - OpenID Connect (OIDC) - Session
+timeout: 24 hours - Optional 2FA</p>
+<p><strong>Compliance:</strong> - SOC 2 Type II (in progress) - GDPR
+compliant - CCPA compliant - PCI DSS Level 1 (via Stripe)</p>
+<h3 id="performance-metrics">6.4 Performance Metrics</h3>
+<p><strong>API Response Times:</strong> - P50: &lt; 200ms - P95: &lt;
+500ms - P99: &lt; 1000ms</p>
+<p><strong>AI Response Times:</strong> - Simple queries: &lt; 2 seconds
+- Complex analysis: &lt; 10 seconds - Multi-agent: &lt; 30 seconds</p>
+<p><strong>Uptime:</strong> - Target: 99.9% (Enterprise) - Actual:
+99.95% (last 12 months)</p>
+<h3 id="rate-limits">6.5 Rate Limits</h3>
+<p><strong>Standard Users:</strong> - API: 1000 requests / 15 minutes -
+AI endpoints: 50 requests / 15 minutes</p>
+<p><strong>Enterprise:</strong> - API: 10,000 requests / hour - AI
+endpoints: Unlimited</p>
+<h3 id="data-export">6.6 Data Export</h3>
+<p><strong>Available Formats:</strong> - JSON - CSV - PDF - Excel
+(XLSX)</p>
+<p><strong>What Can Be Exported:</strong> - All personal data -
+Transaction history - Portfolio holdings - Health metrics - CRM data -
+Email archives</p>
+<hr />
+<h1 id="part-iii-technical-documentation-1">PART III: TECHNICAL
+DOCUMENTATION</h1>
+<hr />
+<h2 id="system-architecture-1">1. SYSTEM ARCHITECTURE</h2>
+<h3 id="technology-stack">1.1 Technology Stack</h3>
+<p><strong>Frontend:</strong></p>
+<pre><code>- React 18.3.1
+- TypeScript 5.6.3
+- Vite 5.4.20
+- TailwindCSS 3.4.17
+- Shadcn/ui (Radix UI)
+- TanStack Query 5.90.2
+- Wouter 3.3.5 (routing)
+- Framer Motion 11.13.1</code></pre>
+<p><strong>Backend:</strong></p>
+<pre><code>- Node.js 20.x
+- Express.js 4.21.2
+- TypeScript 5.6.3
+- Passport.js 0.7.0
+- Express Session 1.18.1</code></pre>
+<p><strong>Database:</strong></p>
+<pre><code>- PostgreSQL 16.x (Neon Serverless)
+- Drizzle ORM 0.39.1
+- Drizzle Kit 0.31.4</code></pre>
+<p><strong>AI/ML:</strong></p>
+<pre><code>- OpenAI API 6.0.0 (GPT-5, GPT-4o)
+- Anthropic Claude 3.5 Sonnet (optional)
+- Cohere API (optional)</code></pre>
+<p><strong>Payment:</strong></p>
+<pre><code>- Stripe 19.0.0
+- @stripe/stripe-js 8.0.0
+- @stripe/react-stripe-js 5.0.0</code></pre>
+<p><strong>Security:</strong></p>
+<pre><code>- Helmet.js 8.1.0
+- CSRF-CSRF 4.0.3
+- Express Rate Limit 8.1.0
+- CORS 2.8.5
+- Cookie Parser 1.4.7</code></pre>
+<p><strong>Web3:</strong></p>
+<pre><code>- Ethers.js 6.15.0
+- Wagmi 2.17.5
+- Viem 2.37.12
+- @web3modal/wagmi 5.1.11</code></pre>
+<h3 id="architecture-diagram">1.2 Architecture Diagram</h3>
+<pre><code>[User Browser] 
+    ↓ HTTPS/WSS
+[Load Balancer]
+    ↓
+[Vite Frontend Server] ←→ [Express Backend API]
+                              ↓
+                         [PostgreSQL Database]
+                              ↓
+[External Services:]
+├── OpenAI API (AI)
+├── Stripe (Payments)
+├── Google/Microsoft (OAuth)
+├── Alchemy (NFT Data)
+└── Redis (Caching)</code></pre>
+<h3 id="database-schema">1.3 Database Schema</h3>
+<p><strong>Core Tables:</strong> - <code>users</code> - User accounts
+and profiles - <code>sessions</code> - Authentication sessions -
+<code>portfolios</code> - Asset holdings - <code>transactions</code> -
+Financial transactions - <code>accounts</code> - Chart of accounts
+(accounting) - <code>journal_entries</code> - Double-entry bookkeeping -
+<code>invoices</code> - Invoices and billing - <code>payments</code> -
+Payment records - <code>wallets</code> - Wallet connections -
+<code>nfts</code> - NFT vault items - <code>health_metrics</code> -
+Health tracking data - <code>tasks</code> - Task management -
+<code>calendar_events</code> - Calendar entries - <code>notes</code> -
+User notes - <code>receipts</code> - Receipt manager -
+<code>crm_organizations</code> - CRM companies -
+<code>crm_contacts</code> - CRM contacts - <code>crm_deals</code> -
+Sales pipeline - <code>subscription_plans</code> - Subscription tiers -
+<code>user_subscriptions</code> - User plan assignments</p>
+<h3 id="api-routes">1.4 API Routes</h3>
+<p><strong>Authentication:</strong></p>
+<pre><code>POST   /api/auth/login
+POST   /api/auth/logout
+GET    /api/auth/user
+GET    /api/auth/session</code></pre>
+<p><strong>Portfolio:</strong></p>
+<pre><code>GET    /api/portfolio
+POST   /api/portfolio/holdings
+GET    /api/portfolio/performance
+POST   /api/portfolio/transactions</code></pre>
+<p><strong>Accounting:</strong></p>
+<pre><code>GET    /api/accounting/accounts
+POST   /api/accounting/accounts
+GET    /api/accounting/journal-entries
+POST   /api/accounting/journal-entries
+GET    /api/accounting/reports/balance-sheet
+GET    /api/accounting/reports/income-statement</code></pre>
+<p><strong>Wallet:</strong></p>
+<pre><code>GET    /api/wallet/balance
+POST   /api/wallet/deposit
+POST   /api/wallet/withdraw
+GET    /api/wallet/transactions</code></pre>
+<p><strong>NFT:</strong></p>
+<pre><code>GET    /api/nft/items
+GET    /api/nft/wallets
+POST   /api/nft/connect-wallet
+POST   /api/nft/transfer</code></pre>
+<p><strong>AI:</strong></p>
+<pre><code>POST   /api/ai/chat
+POST   /api/ai/briefing
+POST   /api/ai/analyze
+POST   /api/ai/multi-agent
+WS     /ws/ai-chat</code></pre>
+<p><strong>CRM:</strong></p>
+<pre><code>GET    /api/crm/organizations
+POST   /api/crm/organizations
+GET    /api/crm/contacts
+POST   /api/crm/contacts
+GET    /api/crm/deals
+POST   /api/crm/deals</code></pre>
+<p><strong>Subscription:</strong></p>
+<pre><code>GET    /api/subscription/plans
+POST   /api/subscription/checkout
+POST   /api/subscription/cancel
+GET    /api/subscription/status
+POST   /api/stripe/webhook</code></pre>
+<h3 id="security-implementation">1.5 Security Implementation</h3>
+<p><strong>CSRF Protection:</strong> - Double CSRF tokens - Cookie:
+<code>__Host.x-csrf-token</code> - Header: <code>x-csrf-token</code> -
+All state-changing requests protected</p>
+<p><strong>Rate Limiting:</strong> - General: 1000 req / 15 min - AI
+endpoints: 50 req / 15 min - Per-IP tracking</p>
+<p><strong>CORS:</strong> - Explicit origin validation - Credentials
+support - Preflight caching: 10 minutes</p>
+<p><strong>Session Security:</strong> - HTTP-only cookies - Secure flag
+(HTTPS) - SameSite: Strict - 24-hour rolling timeout - PostgreSQL
+session store</p>
+<p><strong>Content Security Policy:</strong></p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">defaultSrc</span><span class="op">:</span> [<span class="st">&quot;&#39;self&#39;&quot;</span>]<span class="op">,</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">scriptSrc</span><span class="op">:</span> [<span class="st">&quot;&#39;self&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;&#39;unsafe-inline&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;&#39;unsafe-eval&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;https://js.stripe.com&quot;</span>]<span class="op">,</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">styleSrc</span><span class="op">:</span> [<span class="st">&quot;&#39;self&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;&#39;unsafe-inline&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;https://fonts.googleapis.com&quot;</span>]<span class="op">,</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">connectSrc</span><span class="op">:</span> [<span class="st">&quot;&#39;self&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;https:&quot;</span><span class="op">,</span> <span class="st">&quot;wss:&quot;</span><span class="op">,</span> <span class="st">&quot;https://api.stripe.com&quot;</span>]<span class="op">,</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">frameSrc</span><span class="op">:</span> [<span class="st">&quot;&#39;self&#39;&quot;</span><span class="op">,</span> <span class="st">&quot;https://js.stripe.com&quot;</span>]<span class="op">,</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="performance-optimizations">1.6 Performance Optimizations</h3>
+<p><strong>AI Response Caching:</strong> - LRU Cache: 1000 items, 50MB
+limit - TTL: 60 minutes - SHA256 hash keys - 95%+ cache hit rate</p>
+<p><strong>Database Optimization:</strong> - Connection pooling -
+Prepared statements - Indexed queries - Query result caching</p>
+<p><strong>Frontend Optimization:</strong> - Code splitting - Lazy
+loading - Image optimization - Gzip compression - Service worker
+caching</p>
+<p><strong>WebSocket Streaming:</strong> - Real-time AI responses -
+Automatic reconnection - Message queuing - 80% perceived performance
+improvement</p>
+<hr />
+<h2 id="integration-guide">2. INTEGRATION GUIDE</h2>
+<h3 id="openai-integration">2.1 OpenAI Integration</h3>
+<p><strong>Setup:</strong></p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> OpenAI <span class="im">from</span> <span class="st">&#39;openai&#39;</span><span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> openai <span class="op">=</span> <span class="kw">new</span> <span class="fu">OpenAI</span>({</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">apiKey</span><span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">OPENAI_API_KEY</span><span class="op">,</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">// GPT-5 for daily briefing</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> briefing <span class="op">=</span> <span class="cf">await</span> openai<span class="op">.</span><span class="at">chat</span><span class="op">.</span><span class="at">completions</span><span class="op">.</span><span class="fu">create</span>({</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">model</span><span class="op">:</span> <span class="st">&quot;gpt-5-turbo&quot;</span><span class="op">,</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">messages</span><span class="op">:</span> [</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    { <span class="dt">role</span><span class="op">:</span> <span class="st">&quot;system&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> <span class="st">&quot;You are a wealth management AI assistant.&quot;</span> }<span class="op">,</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    { <span class="dt">role</span><span class="op">:</span> <span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="dt">content</span><span class="op">:</span> <span class="st">&quot;Generate my daily briefing.&quot;</span> }</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  ]<span class="op">,</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co">// GPT-4o Vision for receipt OCR</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> analysis <span class="op">=</span> <span class="cf">await</span> openai<span class="op">.</span><span class="at">chat</span><span class="op">.</span><span class="at">completions</span><span class="op">.</span><span class="fu">create</span>({</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="dt">model</span><span class="op">:</span> <span class="st">&quot;gpt-4o&quot;</span><span class="op">,</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="dt">messages</span><span class="op">:</span> [</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">role</span><span class="op">:</span> <span class="st">&quot;user&quot;</span><span class="op">,</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">content</span><span class="op">:</span> [</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>        { <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;text&quot;</span><span class="op">,</span> <span class="dt">text</span><span class="op">:</span> <span class="st">&quot;Extract receipt data&quot;</span> }<span class="op">,</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>        { <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;image_url&quot;</span><span class="op">,</span> <span class="dt">image_url</span><span class="op">:</span> { <span class="dt">url</span><span class="op">:</span> imageUrl } }</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>      ]</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  ]<span class="op">,</span></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h3 id="stripe-integration">2.2 Stripe Integration</h3>
+<p><strong>Setup:</strong></p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> Stripe <span class="im">from</span> <span class="st">&#39;stripe&#39;</span><span class="op">;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> stripe <span class="op">=</span> <span class="kw">new</span> <span class="fu">Stripe</span>(<span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">STRIPE_SECRET_KEY</span>)<span class="op">;</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Create checkout session</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> session <span class="op">=</span> <span class="cf">await</span> stripe<span class="op">.</span><span class="at">checkout</span><span class="op">.</span><span class="at">sessions</span><span class="op">.</span><span class="fu">create</span>({</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">mode</span><span class="op">:</span> <span class="st">&#39;subscription&#39;</span><span class="op">,</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">line_items</span><span class="op">:</span> [</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">price</span><span class="op">:</span> <span class="st">&#39;price_premium_monthly&#39;</span><span class="op">,</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">quantity</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  ]<span class="op">,</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">success_url</span><span class="op">:</span> <span class="st">&#39;https://yourapp.com/success&#39;</span><span class="op">,</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">cancel_url</span><span class="op">:</span> <span class="st">&#39;https://yourapp.com/cancel&#39;</span><span class="op">,</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="co">// Webhook handling</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>app<span class="op">.</span><span class="fu">post</span>(<span class="st">&#39;/api/stripe/webhook&#39;</span><span class="op">,</span> <span class="kw">async</span> (req<span class="op">,</span> res) <span class="kw">=&gt;</span> {</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> sig <span class="op">=</span> req<span class="op">.</span><span class="at">headers</span>[<span class="st">&#39;stripe-signature&#39;</span>]<span class="op">;</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> <span class="bu">event</span> <span class="op">=</span> stripe<span class="op">.</span><span class="at">webhooks</span><span class="op">.</span><span class="fu">constructEvent</span>(</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>    req<span class="op">.</span><span class="at">body</span><span class="op">,</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">,</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">STRIPE_WEBHOOK_SECRET</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">switch</span> (<span class="bu">event</span><span class="op">.</span><span class="at">type</span>) {</span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="st">&#39;checkout.session.completed&#39;</span><span class="op">:</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Handle successful subscription</span></span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>      <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="st">&#39;invoice.payment_failed&#39;</span><span class="op">:</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Handle failed payment</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>      <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h3 id="microsoft-graph-api">2.3 Microsoft Graph API</h3>
+<p><strong>Setup:</strong></p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { ConfidentialClientApplication } <span class="im">from</span> <span class="st">&#39;@azure/msal-node&#39;</span><span class="op">;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Client } <span class="im">from</span> <span class="st">&#39;@microsoft/microsoft-graph-client&#39;</span><span class="op">;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> msalClient <span class="op">=</span> <span class="kw">new</span> <span class="fu">ConfidentialClientApplication</span>({</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">auth</span><span class="op">:</span> {</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">clientId</span><span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">MS_CLIENT_ID</span><span class="op">,</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">clientSecret</span><span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">MS_CLIENT_SECRET</span><span class="op">,</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">authority</span><span class="op">:</span> <span class="vs">`https://login.microsoftonline.com/</span><span class="sc">${</span><span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">MS_TENANT_ID</span><span class="sc">}</span><span class="vs">`</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">// Get emails</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> client <span class="op">=</span> Client<span class="op">.</span><span class="fu">init</span>({</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">authProvider</span><span class="op">:</span> (done) <span class="kw">=&gt;</span> {</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">done</span>(<span class="kw">null</span><span class="op">,</span> accessToken)<span class="op">;</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> emails <span class="op">=</span> <span class="cf">await</span> client</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">api</span>(<span class="st">&#39;/me/messages&#39;</span>)</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">top</span>(<span class="dv">10</span>)</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">get</span>()<span class="op">;</span></span></code></pre></div>
+<h3 id="web3-integration">2.4 Web3 Integration</h3>
+<p><strong>MetaMask Connection:</strong></p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { useConnect<span class="op">,</span> useAccount } <span class="im">from</span> <span class="st">&#39;wagmi&#39;</span><span class="op">;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { MetaMaskConnector } <span class="im">from</span> <span class="st">&#39;wagmi/connectors/metaMask&#39;</span><span class="op">;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">WalletConnect</span>() {</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> { connect } <span class="op">=</span> <span class="fu">useConnect</span>({</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    connector<span class="op">:</span> <span class="kw">new</span> <span class="fu">MetaMaskConnector</span>()<span class="op">,</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  })<span class="op">;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> { address<span class="op">,</span> isConnected } <span class="op">=</span> <span class="fu">useAccount</span>()<span class="op">;</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> (</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>button onClick<span class="op">=</span>{() <span class="kw">=&gt;</span> <span class="fu">connect</span>()}<span class="op">&gt;</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>      {isConnected <span class="op">?</span> address <span class="op">:</span> <span class="st">&#39;Connect MetaMask&#39;</span>}</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;/</span>button<span class="op">&gt;</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>NFT Data (Alchemy):</strong></p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> options <span class="op">=</span> {</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;GET&#39;</span><span class="op">,</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">headers</span><span class="op">:</span> { <span class="dt">accept</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> response <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`https://eth-mainnet.g.alchemy.com/nft/v3/</span><span class="sc">${</span>ALCHEMY_KEY<span class="sc">}</span><span class="vs">/getNFTsForOwner?owner=</span><span class="sc">${</span>address<span class="sc">}</span><span class="vs">`</span><span class="op">,</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  options</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>)<span class="op">;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> nfts <span class="op">=</span> <span class="cf">await</span> response<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span></code></pre></div>
+<hr />
+<h2 id="deployment">3. DEPLOYMENT</h2>
+<h3 id="environment-variables">3.1 Environment Variables</h3>
+<p><strong>Required:</strong></p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="va">NODE_ENV</span><span class="op">=</span>production</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="va">PORT</span><span class="op">=</span>5000</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="va">DATABASE_URL</span><span class="op">=</span>postgresql://...</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="va">SESSION_SECRET</span><span class="op">=&lt;</span>32-char-hex<span class="op">&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="va">CSRF_SECRET</span><span class="op">=&lt;</span>32-char-hex<span class="op">&gt;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>sk-...</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="va">STRIPE_SECRET_KEY</span><span class="op">=</span>sk_live_...</span></code></pre></div>
+<p><strong>Optional:</strong></p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="va">REDIS_URL</span><span class="op">=</span>redis://...</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="va">ANTHROPIC_KEY</span><span class="op">=</span>sk-ant-...</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="va">TAVILY_API_KEY</span><span class="op">=</span>tvly-...</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="va">ALPHA_VANTAGE_API_KEY</span><span class="op">=</span>...</span></code></pre></div>
+<h3 id="build-process">3.2 Build Process</h3>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install dependencies</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install <span class="at">--production</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Build frontend</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Start production server</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run start</span></code></pre></div>
+<h3 id="database-migration">3.3 Database Migration</h3>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Push schema changes</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run db:push</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Or force push</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run db:push <span class="at">--</span> <span class="at">--force</span></span></code></pre></div>
+<h3 id="monitoring">3.4 Monitoring</h3>
+<p><strong>Health Endpoint:</strong></p>
+<pre><code>GET /api/health</code></pre>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;healthy&quot;</span><span class="fu">,</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;uptime&quot;</span><span class="fu">:</span> <span class="dv">86400</span><span class="fu">,</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;database&quot;</span><span class="fu">:</span> <span class="st">&quot;connected&quot;</span><span class="fu">,</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ai&quot;</span><span class="fu">:</span> <span class="st">&quot;operational&quot;</span><span class="fu">,</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;cache&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;hitRate&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="er">.</span><span class="dv">95</span><span class="fu">,</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">45000000</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="appendix-a-glossary">APPENDIX A: GLOSSARY</h2>
+<p><strong>AI Multi-Agent:</strong> Multiple AI models working together
+to solve complex problems</p>
+<p><strong>Bonding Curve:</strong> Mathematical pricing model where
+price increases with demand</p>
+<p><strong>Chart of Accounts:</strong> Organized list of all accounts
+used in accounting</p>
+<p><strong>CSRF:</strong> Cross-Site Request Forgery security
+protection</p>
+<p><strong>Double-Entry Bookkeeping:</strong> Accounting system where
+every transaction affects two accounts</p>
+<p><strong>ERC-721:</strong> Ethereum standard for NFTs</p>
+<p><strong>OIDC:</strong> OpenID Connect authentication protocol</p>
+<p><strong>OCR:</strong> Optical Character Recognition for extracting
+text from images</p>
+<p><strong>Rebalancing:</strong> Adjusting portfolio allocations to
+target percentages</p>
+<p><strong>SLA:</strong> Service Level Agreement defining uptime and
+support commitments</p>
+<p><strong>Smart Contract:</strong> Self-executing code on
+blockchain</p>
+<p><strong>Web3:</strong> Decentralized internet using blockchain
+technology</p>
+<hr />
+<h2 id="appendix-b-contact-information">APPENDIX B: CONTACT
+INFORMATION</h2>
+<p><strong>Owner &amp; Legal Entity:</strong> Barkai Brinson LLC<br />
+Owner: Barkai Brinson<br />
+Address: [To be filled by attorney]<br />
+Email: [To be filled]<br />
+Phone: [To be filled]</p>
+<p><strong>Technical Support:</strong> Email: support@[domain].com<br />
+Status Page: [URL]<br />
+Documentation: [URL]</p>
+<p><strong>Legal Counsel:</strong> [Attorney Name]<br />
+[Law Firm]<br />
+[Address]<br />
+[Phone]<br />
+[Email]</p>
+<p><strong>Copyright Registration:</strong> U.S. Copyright Office<br />
+Registration Number: [To be filed]<br />
+Date: [To be filed]</p>
+<hr />
+<h2 id="appendix-c-screenshot-placeholders">APPENDIX C: SCREENSHOT
+PLACEHOLDERS</h2>
+<p><strong>Note:</strong> This manual is designed for printing. Before
+final printing, replace the following placeholders with actual
+screenshots:</p>
+<ol type="1">
+<li><label><input type="checkbox" />Login Screen</label></li>
+<li><label><input type="checkbox" />Main Dashboard</label></li>
+<li><label><input type="checkbox" />Daily Briefing</label></li>
+<li><label><input type="checkbox" />Chart of Accounts</label></li>
+<li><label><input type="checkbox" />Journal Entries</label></li>
+<li><label><input type="checkbox" />Financial Reports</label></li>
+<li><label><input type="checkbox" />Wallet Dashboard</label></li>
+<li><label><input type="checkbox" />Web3 Wallets</label></li>
+<li><label><input type="checkbox" />NFT Gallery</label></li>
+<li><label><input type="checkbox" />Productivity Dashboard</label></li>
+<li><label><input type="checkbox" />Notes with AI</label></li>
+<li><label><input type="checkbox" />Receipt Manager</label></li>
+<li><label><input type="checkbox" />Email Manager</label></li>
+<li><label><input type="checkbox" />Routine Builder</label></li>
+<li><label><input type="checkbox" />Calendar &amp; Tasks</label></li>
+<li><label><input type="checkbox" />AI Hub Dashboard</label></li>
+<li><label><input type="checkbox" />AI Terminal</label></li>
+<li><label><input type="checkbox" />Health Dashboard</label></li>
+<li><label><input type="checkbox" />CRM Dashboard</label></li>
+<li><label><input type="checkbox" />Integrations Page</label></li>
+<li><label><input type="checkbox" />Settings Page</label></li>
+</ol>
+<p><strong>Screenshot Guidelines:</strong> - Resolution: 1920x1080
+minimum - Format: PNG with transparency where applicable - Include UI
+elements and realistic data (anonymized) - Highlight key features with
+annotations - Use consistent theme (dark mode recommended)</p>
+<hr />
+<h2 id="appendix-d-legal-checklist">APPENDIX D: LEGAL CHECKLIST</h2>
+<p><strong>Before Using Legal Documents:</strong></p>
+<ul class="task-list">
+<li><label><input type="checkbox" />Review all templates with licensed
+attorney</label></li>
+<li><label><input type="checkbox" />Customize for specific
+jurisdiction</label></li>
+<li><label><input type="checkbox" />Update all placeholder
+information</label></li>
+<li><label><input type="checkbox" />Obtain proper signatures and
+notarization</label></li>
+<li><label><input type="checkbox" />File copyright registration with
+U.S. Copyright Office</label></li>
+<li><label><input type="checkbox" />Register trademarks if
+applicable</label></li>
+<li><label><input type="checkbox" />Ensure compliance with local
+laws</label></li>
+<li><label><input type="checkbox" />Update privacy policy for
+GDPR/CCPA</label></li>
+<li><label><input type="checkbox" />Review insurance
+coverage</label></li>
+<li><label><input type="checkbox" />Establish entity (LLC) if not
+already done</label></li>
+</ul>
+<p><strong>Ongoing Legal Maintenance:</strong></p>
+<ul class="task-list">
+<li><label><input type="checkbox" />Annual legal review</label></li>
+<li><label><input type="checkbox" />Update terms as features
+change</label></li>
+<li><label><input type="checkbox" />Monitor regulatory
+changes</label></li>
+<li><label><input type="checkbox" />Maintain corporate
+records</label></li>
+<li><label><input type="checkbox" />File annual reports</label></li>
+<li><label><input type="checkbox" />Review insurance
+annually</label></li>
+<li><label><input type="checkbox" />Update copyright
+notices</label></li>
+</ul>
+<hr />
+<h2 id="certification">CERTIFICATION</h2>
+<p><strong>This manual certifies that:</strong></p>
+<p>The Wealth Automation Platform, including all source code,
+documentation, designs, algorithms, and intellectual property, is the
+sole and exclusive property of <strong>Barkai Brinson LLC</strong>,
+owned by <strong>Barkai Brinson</strong>.</p>
+<p>All legal documents contained herein are templates and must be
+finalized by qualified legal counsel before use.</p>
+<p><strong>Document Version:</strong> 1.0<br />
+<strong>Date:</strong> _______________, 2025<br />
+<strong>Last Updated:</strong> [Date]</p>
+<hr />
+<p><strong>END OF MANUAL</strong></p>
+<hr />
+<p><strong>IMPORTANT:</strong> This document is a comprehensive
+template. All legal sections require review and customization by a
+licensed attorney before use. Copyright registration must be filed with
+the U.S. Copyright Office. Trademark registration should be pursued
+through USPTO. Consult with qualified legal counsel for all legal
+matters.</p>
+<p><strong>Copyright © 2025 Barkai Brinson LLC. All Rights
+Reserved.</strong></p>
+</body>
+</html>

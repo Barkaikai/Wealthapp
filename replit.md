@@ -62,3 +62,18 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Redis (Upstash or self-hosted):** Caching layer for Multi-Agent AI short-term memory.
 - **Google Fonts:** Typography (Inter, JetBrains Mono).
 - **Recharts:** Financial data visualization.
+
+## Recent Updates (October 10, 2025)
+
+### Critical Fixes
+1. ✅ **AI Note Analysis Persistence** - Notes now save AI-generated insights to database. Added analysis fields (summary, keyPoints, actionItems, sentiment, categories, analysisModel, analyzedAt) to notes table. Analysis results persist across page refreshes, solving the "AI generator not linked" issue.
+
+2. ✅ **CSRF Cookie Configuration** - Fixed CSRF protection for development by setting `secure: false` in dev mode (was requiring HTTPS). Cookie name adjusted: "x-csrf-token" in development, "__Host.x-csrf-token" in production.
+
+3. ✅ **Login Flow** - Verified and tested OIDC authentication flow working correctly with proper session handling.
+
+### Technical Details
+- **Notes AI Analysis**: POST /api/notes/:id/analyze now updates note with AI insights using GPT-4o-mini
+- **Database Schema**: Notes table extended with AI analysis fields (shared/schema.ts)
+- **CSRF Protection**: Environment-aware cookie configuration (server/index.ts line 101-105)
+- **Storage Layer**: updateNote method handles Partial<InsertNote> including all new analysis fields

@@ -94,8 +94,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount health tracking routes (before subscription middleware to keep them unauthenticated)
   app.use('/api', healthRoutes);
   
-  // Attach subscription data to all authenticated requests (after health routes)
-  app.use('/api', isAuthenticated, attachSubscription);
+  // Attach subscription data to all authenticated requests (except auth routes)
+  app.use('/api', (req, res, next) => {
+    // Skip authentication for auth-related routes (req.path is relative to /api)
+    const authRoutes = ['/login', '/callback', '/logout', '/csrf-token'];
+    if (authRoutes.includes(req.path)) {
+      return next();
+    }
+    // Apply authentication and subscription middleware
+    isAuthenticated(req, res, (err) => {
+      if (err) return next(err);
+      attachSubscription(req, res, next);
+    });
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

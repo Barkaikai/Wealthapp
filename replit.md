@@ -66,13 +66,14 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 ## Recent Updates (October 10, 2025)
 
 ### Critical Fixes
-1. ✅ **AI Note Analysis Persistence** - Notes now save AI-generated insights to database. Added analysis fields (summary, keyPoints, actionItems, sentiment, categories, analysisModel, analyzedAt) to notes table. Analysis results persist across page refreshes, solving the "AI generator not linked" issue.
+1. ✅ **Login Authentication Fixed** - Resolved critical login blocker where authentication middleware was blocking /api/login, /api/callback, and /api/logout routes. Fixed by adding route exclusion logic in server/routes.ts (lines 101-112) to skip authentication for auth-related endpoints. OIDC flow now works correctly with Replit domains.
 
-2. ✅ **CSRF Cookie Configuration** - Fixed CSRF protection for development by setting `secure: false` in dev mode (was requiring HTTPS). Cookie name adjusted: "x-csrf-token" in development, "__Host.x-csrf-token" in production.
+2. ✅ **AI Note Analysis Persistence** - Notes now save AI-generated insights to database. Added analysis fields (summary, keyPoints, actionItems, sentiment, categories, analysisModel, analyzedAt) to notes table. Analysis results persist across page refreshes, solving the "AI generator not linked" issue.
 
-3. ✅ **Login Flow** - Verified and tested OIDC authentication flow working correctly with proper session handling.
+3. ✅ **CSRF Cookie Configuration** - Fixed CSRF protection for development by setting `secure: false` in dev mode (was requiring HTTPS). Cookie name adjusted: "x-csrf-token" in development, "__Host.x-csrf-token" in production.
 
 ### Technical Details
+- **Authentication Fix**: Modified global authentication middleware to exclude auth routes (/login, /callback, /logout, /csrf-token) from authentication checks. Routes now properly skip isAuthenticated for auth endpoints (server/routes.ts line 103).
 - **Notes AI Analysis**: POST /api/notes/:id/analyze now updates note with AI insights using GPT-4o-mini
 - **Database Schema**: Notes table extended with AI analysis fields (shared/schema.ts)
 - **CSRF Protection**: Environment-aware cookie configuration (server/index.ts line 101-105)

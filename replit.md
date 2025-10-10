@@ -74,9 +74,15 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 
 3. ✅ **CSRF Cookie Configuration** - Fixed CSRF protection for development by setting `secure: false` in dev mode (was requiring HTTPS). Cookie name adjusted: "x-csrf-token" in development, "__Host.x-csrf-token" in production.
 
+### Automation Features
+4. ✅ **Automated Email Sync** - Platform now automatically syncs Gmail emails hourly at :00 minutes using node-cron scheduler. Email processing runs for all users with defensive error handling to prevent cascade failures.
+
+5. ✅ **Automated Routine Reports** - Daily routine reports generated automatically at 9 PM (21:00) for all users. AI-powered personalized reports include template matching, recommendations, and focus areas using GPT-4o-mini.
+
 ### Technical Details
 - **Authentication Fix**: Modified global authentication middleware to exclude auth routes (/login, /callback, /logout, /csrf-token) from authentication checks. Routes now properly skip isAuthenticated for auth endpoints (server/routes.ts line 103).
 - **Notes AI Analysis**: POST /api/notes/:id/analyze now updates note with AI insights using GPT-4o-mini
-- **Database Schema**: Notes table extended with AI analysis fields (shared/schema.ts)
+- **Database Schema**: Notes table extended with AI analysis fields (shared/schema.ts). Added routine_reports table with userId FK, generatedAt timestamp, and proper indexing.
 - **CSRF Protection**: Environment-aware cookie configuration (server/index.ts line 101-105)
-- **Storage Layer**: updateNote method handles Partial<InsertNote> including all new analysis fields
+- **Storage Layer**: updateNote method handles Partial<InsertNote> including all new analysis fields. Added getAllUsers(), getRoutineReports(), getLatestRoutineReport(), and createRoutineReport() methods.
+- **Automation Scheduler**: server/automationScheduler.ts implements cron-based scheduling (hourly email sync at :00, daily routine reports at 9 PM). Uses storage interface for user/routine/report access with per-user error isolation.

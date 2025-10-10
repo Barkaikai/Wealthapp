@@ -11,6 +11,8 @@ import { validateEnvironment, logEnvironmentStatus } from "./env";
 import { setupAIWebSocket } from "./aiWebSocket";
 import OpenAI from "openai";
 import cors from "cors";
+import { storage } from "./storage";
+import { automationScheduler } from "./automationScheduler";
 
 // ============================================
 // ENVIRONMENT VALIDATION (BEFORE APP CREATION)
@@ -206,5 +208,10 @@ app.use((req, res, next) => {
     
     // Start health monitor after server is listening
     healthMonitor.start();
+    
+    // Initialize and start automation scheduler
+    automationScheduler.setStorage(storage);
+    automationScheduler.start();
+    log("✓ Automation scheduler started (email sync & routine reports)");
   });
 })();

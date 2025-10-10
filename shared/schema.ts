@@ -105,6 +105,24 @@ export const insertRoutineSchema = createInsertSchema(routines).omit({
 export type InsertRoutine = z.infer<typeof insertRoutineSchema>;
 export type Routine = typeof routines.$inferSelect;
 
+// Routine Reports table for AI-generated daily reports
+export const routineReports = pgTable("routine_reports", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  templateUsed: text("template_used").notNull(), // Which template was used
+  report: text("report").notNull(), // Main analysis text
+  recommendations: text("recommendations").notNull(), // JSON array of recommendations
+  focusAreas: text("focus_areas").notNull(), // JSON array of focus areas
+  generatedAt: timestamp("generated_at").notNull(),
+}, (table) => [index("idx_routine_reports_user_id").on(table.userId)]);
+
+export const insertRoutineReportSchema = createInsertSchema(routineReports).omit({
+  id: true,
+});
+
+export type InsertRoutineReport = z.infer<typeof insertRoutineReportSchema>;
+export type RoutineReport = typeof routineReports.$inferSelect;
+
 // Emails table (cached from Gmail)
 export const emails = pgTable("emails", {
   id: text("id").primaryKey(), // Gmail message ID

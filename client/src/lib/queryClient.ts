@@ -28,6 +28,35 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Cache for CSRF token
+let csrfTokenCache: string | null = null;
+
+async function getCsrfToken(forceRefresh = false): Promise<string | null> {
+  // Return cached token if available and not forcing refresh
+  if (csrfTokenCache && !forceRefresh) {
+    return csrfTokenCache;
+  }
+
+  try {
+    const res = await fetch('/api/csrf-token', {
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      csrfTokenCache = data.csrfToken;
+      return csrfTokenCache;
+    }
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+  }
+  return null;
+}
+
+// Helper to reset CSRF token cache (useful for auth/session transitions)
+export function resetCsrfToken() {
+  csrfTokenCache = null;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -56,16 +85,11 @@ export async function apiRequest(
   }
 
   try {
-    // Get CSRF token from cookie for state-changing requests
+    // Get CSRF token for state-changing requests
     const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
     
     if (method !== 'GET') {
-      // Extract CSRF token from __Host.x-csrf-token cookie
-      const csrfToken = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('__Host.x-csrf-token='))
-        ?.split('=')[1];
-      
+      const csrfToken = await getCsrfToken();
       if (csrfToken) {
         headers['x-csrf-token'] = csrfToken;
       }
@@ -81,6 +105,31 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     return res;
   } catch (error: any) {
+    // If we get a 403 (potentially CSRF token issue), try refreshing token and retry once
+    if (error?.status === 403 && method !== 'GET') {
+      try {
+        const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
+        const freshToken = await getCsrfToken(true); // Force refresh
+        
+        if (freshToken) {
+          headers['x-csrf-token'] = freshToken;
+        }
+
+        const retryRes = await fetch(url, {
+          method,
+          headers,
+          body: data ? JSON.stringify(data) : undefined,
+          credentials: "include",
+        });
+
+        await throwIfResNotOk(retryRes);
+        return retryRes;
+      } catch (retryError) {
+        // If retry also fails, throw the retry error
+        throw retryError;
+      }
+    }
+
     // If fetch fails and it's a mutation, queue it
     if (!navigator.onLine && method !== 'GET') {
       await queueMutation(url, method, data, {

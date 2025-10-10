@@ -1,76 +1,18 @@
 # Wealth Automation Platform
 
 ## Overview
-This production-ready AI-powered platform is designed for billionaire-level wealth management and lifestyle optimization. It automates financial tracking, email management, daily routines, and decision-making with minimal human input. Key capabilities include aggregating assets across various platforms, AI-driven email categorization and reply drafting, generating daily briefings with portfolio insights, and building optimized daily routines. The platform provides an ultra-premium experience with a luxury aesthetic and advanced AI functionalities for comprehensive life automation, including a full double-entry Digital Accountant, comprehensive CRM, robust health monitoring system, and real-money Stripe payments.
-
-## Production Status
-**Status:** ✅ Production-Ready (October 5, 2025)
-- Zero LSP errors
-- Comprehensive testing completed for auth, dashboard, accounting, and token economy
-- Rate limiting optimized for modern SPA (1000 req/15min)
-- AI endpoint rate limiting (50 req/15min) applied to all 11 AI endpoints
-- CSRF protection enabled with secure tokens
-- CORS explicitly configured with origin validation
-- Session timeout: 24 hours with rolling sessions
-- Foreign key handling fixed for user management
-- Double-entry accounting validation working
-- Stripe payment integration functional with CSP configured
-- Bonding curve pricing system operational
-- Canonical user ID resolution with LRU caching (10k users, 1hr TTL, 95%+ hit rate)
-- Log rotation system (10MB max file size, 7-day retention, 10-file limit)
-- AI data forwarding integration for comprehensive app monitoring and learning
-- 27 critical payment/subscription/wallet routes migrated to canonical user pattern
-- **Security audit completed (October 5, 2025)** - See SECURITY_AUDIT_REPORT.md
-
-**Recent Bug Fixes (October 4, 2025 - Latest Session):**
-1. ✅ **CRITICAL:** Email conflict bug - Fixed server crashes when OIDC login attempted to create user with email that already exists. Implemented email-priority upsert logic in `storage.upsertUser()` (lines 477-558) that prioritizes email lookup over OIDC sub, preventing unique constraint violations and ensuring stable authentication across OIDC provider changes
-2. ✅ **CRITICAL:** Session mismatch bug - Fixed `/api/auth/user` endpoint to use `getCanonicalUserId()` instead of directly accessing `claims.sub` (server/routes.ts line 97), resolving 404 errors when user's OIDC sub changes but email remains the same. Canonical resolution maps new auth IDs to existing database users via LRU cache
-3. ✅ `/api/subscription/checkout` - Fixed subscription checkout to use `getSubscriptionPlanById(planId)` instead of `getActivePlan(tier)`, resolving 404 errors when upgrading to Premium/Enterprise tiers (server/routes.ts line 4511)
-4. ✅ Stripe Test Price IDs - Configured test Stripe price IDs for Premium and Enterprise tiers in database (price_test_monthly_premium, price_test_monthly_enterprise, etc.) to enable checkout flow testing
-5. ✅ `/api/accounting/journal-entries` - Added GET and POST alias endpoints for journal entries API compatibility (server/routes.ts lines 2670, 2682)
-6. ✅ `/api/nft/items` - Added GET alias endpoint for NFT items API compatibility (server/routes.ts line 3553)
-7. ✅ Active plan validation - Enhanced subscription checkout to verify plan.isActive before processing payment
-
-**Previous Bug Fixes (October 4, 2025 - Earlier):**
-1. ✅ `/api/subscription/tiers` - Added alias endpoint for compatibility
-2. ✅ `/api/wealth-forge/balance` - Added dedicated balance endpoint
-3. ✅ `/api/nft/wallets` - Fixed storage method name (getWalletConnections)
-4. ✅ `/api/auth/user` - Auto-upsert from OIDC claims for test bypass scenarios
-5. ✅ `/api/wallet/balance` - Added wallet balance alias endpoint
-6. ✅ Digital Accountant Account Ledger - Fixed query URL construction with account code
-
-**Known Limitations (By Design):**
-- Stripe Integration: Test price IDs configured for development; real Stripe products/prices must be created in Stripe Dashboard and IDs updated in subscription_plans table for production use
-- `/api/health/summary` - Aggregated health metrics endpoint (planned enhancement)
-- `/integrations` - Frontend page for managing integrations (planned enhancement)
+This AI-powered platform is designed for high-net-worth individuals, offering automated financial tracking, email management, daily routine optimization, and AI-driven decision support. It provides comprehensive wealth management, including asset aggregation, AI-powered email categorization and reply drafting, personalized daily briefings with portfolio insights, and optimized routine generation. The platform features an ultra-premium experience with a luxury aesthetic, integrating a double-entry Digital Accountant, CRM, health monitoring, and real-money Stripe payments for comprehensive life automation and financial management.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Local Development Setup
-For developers who want to run this platform outside of Replit on their local machine, see **[RUN_LOCALLY.md](RUN_LOCALLY.md)** for comprehensive setup instructions including:
-- System requirements (Node.js v20.x, PostgreSQL v16.x)
-- Step-by-step installation guide
-- Complete environment variable configuration
-- Database initialization
-- Development and production commands
-- Troubleshooting common issues
-- Notes on Replit-specific dependencies that may require alternatives locally
-
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend uses React 18 with TypeScript, Vite, Wouter for routing, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3 principles, featuring a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, and WCAG AA compliance. A Coinbase-inspired blue theme is used, with wealth-themed background images, and a mobile/desktop view switcher.
+The frontend utilizes React 18, TypeScript, Vite, Wouter, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3, featuring a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, and WCAG AA compliance. A Coinbase-inspired blue theme, wealth-themed background images, and a mobile/desktop view switcher are incorporated.
 
 ### Technical Implementations
-The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface for advanced users. Performance optimizations include:
-- **AI Response Caching:** LRU cache with 1,000 item capacity, 50MB limit, 60-minute TTL, SHA256 hash-based keys for security, achieving 95%+ latency reduction for repeated queries.
-- **AI Request Queue Manager:** Parallel processing up to 5 concurrent requests with 100ms aggregation window and 30-second timeout protection for stable API usage.
-- **WebSocket Streaming Server:** Real-time AI response streaming at `/ws/ai-chat` with automatic cache integration, comprehensive error handling, and 80%+ perceived performance improvement.
-- **Canonical User ID Caching:** LRU cache (10,000 users, 1-hour TTL) reduces database load by ~95% for active users, prevents foreign key violations across authentication providers.
-- **Structured App Logging:** JSON Lines format with filesystem persistence, automatic log rotation (10MB/7-day limits), tracks all app actions, errors, and decisions for AI learning.
-- **AI Data Forwarding:** Real-time and batch event forwarding to AI systems for pattern detection, user behavior analysis, and automated decision-making.
-- **Gzip compression middleware** and lazy-loading of page components with React.lazy and Suspense.
+The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface. Performance optimizations include AI response caching (LRU, 60-min TTL), an AI request queue manager, WebSocket streaming for real-time AI responses, canonical user ID caching, structured JSON logging with rotation, AI data forwarding for learning, and Gzip compression with lazy-loaded components.
 
 ### Feature Specifications
 The platform offers:
@@ -78,35 +20,26 @@ The platform offers:
 - **Digital Accountant:** Double-entry bookkeeping with Chart of Accounts, Journal Entries, Invoices, Payments, and Financial Reports.
 - **Personal Wallet:** Integrated Fiat Wallet and Web3 Wallets (Coinbase, Hedera, MetaMask, WalletConnect).
 - **NFT Vault:** Multi-chain NFT management (Ethereum, Polygon, Solana, Hedera) with MetaMask integration.
-- **Discord AI Manager:** Discord bot integration with AI-powered message generation, editing, content moderation, and scheduling.
-- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR, CRM integration, AI-powered report generation), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation, and AI Calendar Recommendations.
+- **Discord AI Manager:** Discord bot with AI-powered message generation, editing, content moderation, and scheduling.
+- **Productivity Hub:** Consolidated Notes (with AI analysis), Receipt Manager (OCR, CRM integration, AI reports), Email Manager (AI categorization and drafts), Routine Builder (with success leader templates and AI daily reports), Calendar Events, Tasks, AI Task Generation, and AI Calendar Recommendations.
 - **AI Intelligence:** Unified hub for Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration.
 - **Health Monitoring:** Comprehensive tracking for Steps, Exercise, Vitals, Mindfulness, Sleep, Food, and AI Sync with insights.
 - **CRM:** Manages organizations, contacts, leads, deals, and activities with CRUD operations and accounting integration.
 - **Microsoft Integration:** OAuth-based connection to Office 365, Outlook, OneDrive, and Calendar via Graph API.
 - **Header Tools:** Live time/date, online/offline status, advanced calculator, web search, and ChatGPT assistant.
 - **Subscription System:** Freemium/premium monetization with three tiers (Free, Premium, Enterprise), Stripe integration, multi-currency revenue tracking, comprehensive feature gating, and subscription management UI.
-- **Wealth Forge Token Economy:** Solana-based mining coin system with bonding curve pricing for real token purchases, token redemption vault, global leaderboard, and Stripe payment integration.
+- **Wealth Forge Token Economy:** Solana-based mining coin system with bonding curve pricing, token redemption vault, global leaderboard, and Stripe payment integration.
 
 ### System Design Choices
-The system is built for scalability and security, employing Helmet.js for HTTP headers, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are designed for user-centric data with appropriate indexing. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI to generate personalized daily reports. The Digital Accountant enforces double-entry validation. The CRM integrates with the Digital Accountant for deal tracking and with the Receipt Manager for expense tracking. Receipt reports use GPT-4o to generate AI-powered insights, trends, and recommendations based on spending patterns.
-
-**Data Integrity & Monitoring:**
-- Canonical user ID resolution prevents foreign key violations when OIDC sub differs from database ID
-- All financial routes (payments, subscriptions, wallet operations) use canonical IDs for data consistency
-- Comprehensive logging system captures all app events, errors, and user actions in structured JSON format
-- AI data forwarding enables continuous learning from app behavior and automated system optimization
-- Log rotation ensures sustainable filesystem usage with automatic cleanup of old logs
-- System monitoring endpoints provide real-time visibility into cache performance and AI data forwarding stats
+The system is designed for scalability and security, employing Helmet.js, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are optimized for user-centric data with appropriate indexing. AI integration is central, providing personalized insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder integrates AI for personalized daily reports. The Digital Accountant enforces double-entry validation. The CRM integrates with the Digital Accountant and Receipt Manager for comprehensive financial tracking. Receipt reports leverage GPT-4o for AI-powered insights into spending patterns. Data integrity is ensured through canonical user ID resolution, comprehensive logging, AI data forwarding, and log rotation.
 
 ## External Dependencies
 
 ### AI Services
 - **OpenAI GPT-5:** Daily briefing generation, email automation, lifestyle recommendations, educational content.
-- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation, AI Calendar Recommendations, Multi-Agent orchestrator primary provider.
+- **OpenAI GPT-4o:** AI Intelligence Hub, ChatGPT assistant, AI Health Sync, Routine Builder AI integration, AI Videos, AI Task Generation, AI Calendar Recommendations, Multi-Agent orchestrator primary provider. Receipt report generation.
 - **OpenAI GPT-4o-mini:** Cost-optimized AI analysis for text documents and notes, Multi-Agent responses and critiques.
 - **OpenAI GPT-4o Vision:** OCR and analysis of images in Notepad and Receipt Manager.
-- **OpenAI GPT-4o:** Receipt report generation with spending insights, trend analysis, and recommendations.
 - **Anthropic Claude 3.5 Sonnet:** (Optional) Secondary AI provider for Multi-Agent system.
 - **Cohere:** (Optional) Tertiary AI provider for diverse response generation.
 
@@ -120,7 +53,6 @@ The system is built for scalability and security, employing Helmet.js for HTTP h
 - **Alpha Vantage API:** Real-time stock prices and currency exchange rates.
 - **CoinGecko API:** Cryptocurrency prices.
 - **Stripe:** Payment processing for subscriptions, wallet deposits, withdrawals, and webhook-based billing management.
-- **Plaid:** (Planned) Bank account aggregation.
 
 ### Third-Party Services
 - **Replit Auth (OIDC):** User authentication.

@@ -56,9 +56,24 @@ export async function apiRequest(
   }
 
   try {
+    // Get CSRF token from cookie for state-changing requests
+    const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
+    
+    if (method !== 'GET') {
+      // Extract CSRF token from __Host.x-csrf-token cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('__Host.x-csrf-token='))
+        ?.split('=')[1];
+      
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
     const res = await fetch(url, {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
+      headers,
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });

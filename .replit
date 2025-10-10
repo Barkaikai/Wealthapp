@@ -8,7 +8,7 @@ packages = ["pandoc"]
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
+build = ["sh", "-c", "node build-production.js"]
 run = ["npm", "run", "start"]
 
 [[ports]]

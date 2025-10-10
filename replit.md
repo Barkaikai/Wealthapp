@@ -66,7 +66,9 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 ## Recent Updates (October 10, 2025)
 
 ### Critical Fixes
-1. ✅ **Login Authentication Fixed** - Resolved critical login blocker where authentication middleware was blocking /api/login, /api/callback, and /api/logout routes. Fixed by adding route exclusion logic in server/routes.ts (lines 101-112) to skip authentication for auth-related endpoints. OIDC flow now works correctly with Replit domains.
+1. ✅ **Login Authentication Fixed** - Resolved critical login blocker with two fixes:
+   - Fixed authentication middleware blocking /api/login, /api/callback, and /api/logout routes by adding route exclusion logic in server/routes.ts (lines 101-112)
+   - Fixed hostname detection issue where localhost access failed with "Unknown authentication strategy" error. Updated server/replitAuth.ts (lines 140-153) to always use primary Replit domain for authentication regardless of access method (localhost, webview, etc.)
 
 2. ✅ **AI Note Analysis Persistence** - Notes now save AI-generated insights to database. Added analysis fields (summary, keyPoints, actionItems, sentiment, categories, analysisModel, analyzedAt) to notes table. Analysis results persist across page refreshes, solving the "AI generator not linked" issue.
 

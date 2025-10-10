@@ -26,7 +26,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia',
   typescript: true,
 });
-import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema, insertAccountSchema, insertJournalLineSchema, insertInvoiceSchema, insertBankTransactionSchema } from "@shared/schema";
+import { insertAssetSchema, insertEventSchema, insertRoutineSchema, insertAIContentSchema, insertTransactionSchema, insertWealthAlertSchema, insertFinancialGoalSchema, insertLiabilitySchema, insertCalendarEventSchema, insertTaskSchema, insertHealthMetricSchema, insertWalletConnectionSchema, insertVoiceCommandSchema, insertNoteSchema, insertDocumentSchema, insertPortfolioReportSchema, insertTradingRecommendationSchema, insertTaxEventSchema, insertRebalancingRecommendationSchema, insertAnomalyDetectionSchema, insertReceiptSchema, insertAccountSchema, insertJournalLineSchema, insertInvoiceSchema, insertBankTransactionSchema, insertPaymentMethodSchema } from "@shared/schema";
 import { analyzeReceiptImage } from "./receiptOCR";
 import multer from "multer";
 import { fileStorage } from "./fileStorage";
@@ -2610,6 +2610,18 @@ ${processedText}`;
     } catch (error) {
       console.error("Error fetching payment methods:", error);
       res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  app.post('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = await getCanonicalUserId(req.user.claims);
+      const methodData = insertPaymentMethodSchema.parse({ ...req.body, userId });
+      const method = await storage.createPaymentMethod(methodData);
+      res.json(method);
+    } catch (error: any) {
+      console.error("Error creating payment method:", error);
+      res.status(400).json({ message: error.message || "Failed to create payment method" });
     }
   });
 

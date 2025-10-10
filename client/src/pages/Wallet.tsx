@@ -142,9 +142,11 @@ export default function WalletPage() {
       setShowAddPaymentDialog(false);
     },
     onError: (error: any) => {
+      // Refresh the payment methods list to clear any optimistic updates
+      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
       toast({
         title: "Failed to Add Payment Method",
-        description: error.message,
+        description: error.message || "Please check your input and try again",
         variant: "destructive",
       });
     },
@@ -518,18 +520,37 @@ export default function WalletPage() {
                           e.preventDefault();
                           const formData = new FormData(e.currentTarget);
                           const type = formData.get('type') as string;
+                          const stripePaymentMethodId = formData.get('stripePaymentMethodId') as string;
+                          
+                          // Extract info from test payment method ID or use provided values
+                          let brand = formData.get('brand') as string || '';
+                          let last4 = formData.get('last4') as string || '';
+                          
+                          // Auto-populate from common Stripe test tokens
+                          if (stripePaymentMethodId === 'pm_card_visa') {
+                            brand = 'Visa';
+                            last4 = '4242';
+                          } else if (stripePaymentMethodId === 'pm_card_mastercard') {
+                            brand = 'Mastercard';
+                            last4 = '4444';
+                          } else if (stripePaymentMethodId === 'pm_card_amex') {
+                            brand = 'American Express';
+                            last4 = '8431';
+                          }
+                          
                           addPaymentMethodMutation.mutate({
                             type,
                             provider: 'stripe',
-                            last4: formData.get('last4'),
-                            brand: formData.get('brand'),
-                            bankName: formData.get('bankName'),
-                            accountType: formData.get('accountType'),
-                            nickname: formData.get('nickname'),
+                            stripePaymentMethodId,
+                            last4: last4 || formData.get('last4'),
+                            brand: brand || formData.get('brand'),
+                            bankName: formData.get('bankName') || undefined,
+                            accountType: formData.get('accountType') || undefined,
+                            nickname: formData.get('nickname') || undefined,
                             isDefault: 'false',
                             isVerified: 'true',
-                            expiryMonth: type === 'card' ? parseInt(formData.get('expiryMonth') as string) : undefined,
-                            expiryYear: type === 'card' ? parseInt(formData.get('expiryYear') as string) : undefined,
+                            expiryMonth: type === 'card' ? parseInt(formData.get('expiryMonth') as string || '12') : undefined,
+                            expiryYear: type === 'card' ? parseInt(formData.get('expiryYear') as string || '2030') : undefined,
                           });
                         }} className="space-y-4">
                           <div className="space-y-2">
@@ -543,6 +564,19 @@ export default function WalletPage() {
                                 <SelectItem value="bank_account">Bank Account</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="stripePaymentMethodId">Stripe Payment Method ID</Label>
+                            <Input
+                              id="stripePaymentMethodId"
+                              name="stripePaymentMethodId"
+                              placeholder="pm_card_visa (test) or actual PM ID"
+                              required
+                              data-testid="input-stripe-pm-id"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Test: pm_card_visa, pm_card_mastercard, pm_card_amex
+                            </p>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="nickname">Nickname (Optional)</Label>

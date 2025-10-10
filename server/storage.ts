@@ -3,6 +3,7 @@ import {
   assets,
   events,
   routines,
+  routineReports,
   emails,
   briefings,
   aiContent,
@@ -50,6 +51,8 @@ import {
   type InsertEvent,
   type Routine,
   type InsertRoutine,
+  type RoutineReport,
+  type InsertRoutineReport,
   type Email,
   type InsertEmail,
   type Briefing,
@@ -214,6 +217,7 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
   
   // Asset operations
   getAssets(userId: string): Promise<Asset[]>;
@@ -230,6 +234,11 @@ export interface IStorage {
   createRoutine(routine: InsertRoutine): Promise<Routine>;
   updateRoutine(id: number, userId: string, routine: Partial<InsertRoutine>): Promise<Routine>;
   deleteRoutine(id: number, userId: string): Promise<void>;
+  
+  // Routine Report operations
+  getRoutineReports(userId: string): Promise<RoutineReport[]>;
+  getLatestRoutineReport(userId: string): Promise<RoutineReport | undefined>;
+  createRoutineReport(report: InsertRoutineReport): Promise<RoutineReport>;
   
   // Email operations
   getEmails(userId: string): Promise<Email[]>;
@@ -563,6 +572,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   // Asset operations
   async getAssets(userId: string): Promise<Asset[]> {
     return await db.select().from(assets).where(eq(assets.userId, userId)).orderBy(desc(assets.createdAt));
@@ -641,6 +654,26 @@ export class DatabaseStorage implements IStorage {
     if (result.length === 0) {
       throw new Error("Routine not found or you don't have permission to delete it");
     }
+  }
+
+  // Routine Report operations
+  async getRoutineReports(userId: string): Promise<RoutineReport[]> {
+    return await db.select().from(routineReports).where(eq(routineReports.userId, userId)).orderBy(desc(routineReports.generatedAt));
+  }
+
+  async getLatestRoutineReport(userId: string): Promise<RoutineReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(routineReports)
+      .where(eq(routineReports.userId, userId))
+      .orderBy(desc(routineReports.generatedAt))
+      .limit(1);
+    return report;
+  }
+
+  async createRoutineReport(report: InsertRoutineReport): Promise<RoutineReport> {
+    const [newReport] = await db.insert(routineReports).values(report).returning();
+    return newReport;
   }
 
   // Email operations

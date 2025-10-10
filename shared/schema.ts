@@ -476,6 +476,14 @@ export const notes = pgTable("notes", {
   tags: text("tags").array(), // Array of tags for organization
   folder: text("folder").default('default'), // Folder organization
   isPinned: text("is_pinned").notNull().default('false'),
+  // AI Analysis fields
+  summary: text("summary"),
+  keyPoints: text("key_points").array(),
+  actionItems: text("action_items").array(),
+  sentiment: text("sentiment"), // 'positive', 'negative', 'neutral'
+  categories: text("categories").array(),
+  analysisModel: text("analysis_model"), // Model used for analysis
+  analyzedAt: timestamp("analyzed_at"), // When the analysis was performed
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [index("idx_notes_user_id").on(table.userId)]);

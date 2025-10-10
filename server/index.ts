@@ -95,11 +95,11 @@ if (process.env.CSRF_SECRET) {
       // Use session ID if available, otherwise use a combination of IP and user agent
       return (req.session as any)?.id || `${req.ip}-${req.get('user-agent')}`;
     },
-    cookieName: "__Host.x-csrf-token",
+    cookieName: process.env.NODE_ENV === 'production' ? "__Host.x-csrf-token" : "x-csrf-token",
     cookieOptions: {
       sameSite: "strict",
       path: "/",
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
     },
   });

@@ -110,6 +110,11 @@ if (process.env.CSRF_SECRET) {
     next();
   });
 
+  // Endpoint to get CSRF token
+  app.get("/api/csrf-token", (req, res) => {
+    res.json({ csrfToken: res.locals.csrfToken });
+  });
+
   // Protect all state-changing API routes
   app.use("/api/*", (req, res, next) => {
     if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {

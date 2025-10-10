@@ -1257,7 +1257,18 @@ ${processedText}`;
         throw new Error('Invalid analysis response from AI');
       }
 
-      console.log('AI analysis completed successfully');
+      // Save analysis results to the note
+      const updatedNote = await storage.updateNote(id, userId, {
+        summary: analysis.summary,
+        keyPoints: analysis.keyPoints,
+        actionItems: analysis.actionItems || [],
+        sentiment: analysis.sentiment,
+        categories: analysis.categories,
+        analysisModel: 'gpt-4o-mini',
+        analyzedAt: new Date(),
+      });
+
+      console.log('AI analysis completed and saved successfully');
       res.json(analysis);
     } catch (error: any) {
       console.error("Error analyzing note:", error);

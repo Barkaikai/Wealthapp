@@ -49,6 +49,7 @@ export default function WalletPage() {
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [web3DialogOpen, setWeb3DialogOpen] = useState(false);
+  const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false);
 
   // Fiat wallet queries
   const { data: wallet, isLoading: walletLoading } = useQuery<Wallet>({
@@ -124,6 +125,28 @@ export default function WalletPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/wallets'] });
       toast({ title: "Wallet connected successfully" });
       setWeb3DialogOpen(false);
+    },
+  });
+
+  // Payment method mutation
+  const addPaymentMethodMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('POST', '/api/payment-methods', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
+      toast({
+        title: "Payment Method Added",
+        description: "Your payment method has been added successfully.",
+      });
+      setShowAddPaymentDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Add Payment Method",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -479,10 +502,145 @@ export default function WalletPage() {
                       <CardTitle>Payment Methods</CardTitle>
                       <CardDescription>Manage your cards and bank accounts</CardDescription>
                     </div>
-                    <Button size="sm" data-testid="button-add-payment-method">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Method
-                    </Button>
+                    <Dialog open={showAddPaymentDialog} onOpenChange={setShowAddPaymentDialog}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-payment-method">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Method
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Payment Method</DialogTitle>
+                          <DialogDescription>Add a card or bank account for deposits</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const type = formData.get('type') as string;
+                          addPaymentMethodMutation.mutate({
+                            type,
+                            provider: 'stripe',
+                            last4: formData.get('last4'),
+                            brand: formData.get('brand'),
+                            bankName: formData.get('bankName'),
+                            accountType: formData.get('accountType'),
+                            nickname: formData.get('nickname'),
+                            isDefault: 'false',
+                            isVerified: 'true',
+                            expiryMonth: type === 'card' ? parseInt(formData.get('expiryMonth') as string) : undefined,
+                            expiryYear: type === 'card' ? parseInt(formData.get('expiryYear') as string) : undefined,
+                          });
+                        }} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Payment Type</Label>
+                            <Select name="type" defaultValue="card" required>
+                              <SelectTrigger data-testid="select-payment-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="card">Credit/Debit Card</SelectItem>
+                                <SelectItem value="bank_account">Bank Account</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nickname">Nickname (Optional)</Label>
+                            <Input
+                              id="nickname"
+                              name="nickname"
+                              placeholder="e.g., Personal Card"
+                              data-testid="input-nickname"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="brand">Brand/Bank</Label>
+                              <Input
+                                id="brand"
+                                name="brand"
+                                placeholder="Visa, Chase, etc."
+                                data-testid="input-brand"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="last4">Last 4 Digits</Label>
+                              <Input
+                                id="last4"
+                                name="last4"
+                                placeholder="1234"
+                                maxLength={4}
+                                required
+                                data-testid="input-last4"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="bankName">Bank Name (if bank account)</Label>
+                              <Input
+                                id="bankName"
+                                name="bankName"
+                                placeholder="e.g., Chase"
+                                data-testid="input-bank-name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="accountType">Account Type</Label>
+                              <Select name="accountType">
+                                <SelectTrigger data-testid="select-account-type">
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="checking">Checking</SelectItem>
+                                  <SelectItem value="savings">Savings</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="expiryMonth">Expiry Month (if card)</Label>
+                              <Input
+                                id="expiryMonth"
+                                name="expiryMonth"
+                                type="number"
+                                placeholder="MM"
+                                min="1"
+                                max="12"
+                                data-testid="input-expiry-month"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="expiryYear">Expiry Year (if card)</Label>
+                              <Input
+                                id="expiryYear"
+                                name="expiryYear"
+                                type="number"
+                                placeholder="YYYY"
+                                min="2024"
+                                data-testid="input-expiry-year"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={addPaymentMethodMutation.isPending}
+                            data-testid="button-save-payment-method"
+                          >
+                            {addPaymentMethodMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Adding...
+                              </>
+                            ) : (
+                              "Add Payment Method"
+                            )}
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </CardHeader>
                 <CardContent>

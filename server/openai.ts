@@ -74,6 +74,7 @@ function calculatePortfolioAnalytics(assets: any[]): PortfolioAnalytics {
 export async function generateDailyBriefing(
   assets: any[],
   events: any[],
+  notes: any[],
   marketContext?: any,
   previousBriefing?: any
 ): Promise<{
@@ -108,6 +109,35 @@ export async function generateDailyBriefing(
     if (e.createdAt) parts.push(new Date(e.createdAt).toLocaleDateString());
     return parts.join(' - ');
   }).join('\n');
+  
+  // Format notes with AI analysis insights
+  const notesWithInsights = notes.slice(0, 10).map(n => {
+    const parts = [`"${n.title}"`];
+    
+    // Include AI analysis if available
+    if (n.summary) {
+      parts.push(`Summary: ${n.summary}`);
+    }
+    if (n.keyPoints && n.keyPoints.length > 0) {
+      parts.push(`Key points: ${n.keyPoints.join('; ')}`);
+    }
+    if (n.actionItems && n.actionItems.length > 0) {
+      parts.push(`Actions: ${n.actionItems.join('; ')}`);
+    }
+    if (n.categories && n.categories.length > 0) {
+      parts.push(`[${n.categories.join(', ')}]`);
+    }
+    
+    // Add excerpt if no AI analysis
+    if (!n.summary && n.content) {
+      const excerpt = n.content.substring(0, 120).replace(/\n/g, ' ');
+      parts.push(`${excerpt}${n.content.length > 120 ? '...' : ''}`);
+    }
+    
+    return parts.join(' | ');
+  }).join('\n');
+  
+  const notesSection = notesWithInsights ? `\n\nRECENT NOTES WITH AI INSIGHTS:\n${notesWithInsights}` : '';
   
   // Format market context
   let marketInfo = '';
@@ -148,28 +178,31 @@ ASSET DETAILS:
 ${assetDetails || 'No assets tracked'}
 
 RECENT EVENTS:
-${recentEvents || 'No recent events'}${marketInfo}${historicalContext}
+${recentEvents || 'No recent events'}${notesSection}${marketInfo}${historicalContext}
 
 ━━━━━━━━━━━━━━━━
 
 INSTRUCTIONS:
-Generate a briefing with three sections. Be specific, quantitative, and actionable.
+Generate a briefing with three sections. Be specific, quantitative, and actionable. **Incorporate insights from user notes where relevant**.
 
 1. **highlights** (2-4 items): Positive observations, achievements, or opportunities
    - Reference specific assets, percentages, and dollar amounts
    - Highlight strong performers and portfolio strengths
+   - Include relevant insights from notes (investment ideas, research findings)
    - Note beneficial market conditions or diversification improvements
    - Example: "Bitcoin position up 8.3% to $125,000, outperforming broader crypto market by 3.2%"
 
 2. **risks** (1-3 items): Potential concerns, vulnerabilities, or threats
    - Identify concentrated positions (>30% in single asset type)
    - Note significant decliners with specific percentages
+   - Consider concerns mentioned in notes
    - Highlight lack of diversification or recent market volatility
    - Example: "Tech stock allocation at 45% exceeds recommended 30% threshold, increasing sector risk exposure"
 
 3. **actions** (2-4 items): Concrete, prioritized recommendations
    - Provide specific steps (rebalance percentages, sync prices, review positions)
    - Suggest portfolio adjustments based on allocation imbalances
+   - Address action items from notes if financially relevant
    - Recommend timely actions based on market conditions
    - Example: "Rebalance portfolio by reducing crypto allocation from 35% to 25%, redirecting $50K to bonds"
 

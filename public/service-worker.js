@@ -17,7 +17,7 @@ const MAX_API_ENTRIES = 50;
 const MAX_IMAGE_ENTRIES = 30;
 
 // Cache expiration times (in seconds)
-const API_CACHE_DURATION = 5 * 60; // 5 minutes
+const API_CACHE_DURATION = 1 * 60; // 1 minute (reduced for fresher data)
 const IMAGE_CACHE_DURATION = 24 * 60 * 60; // 24 hours
 
 // Install event - precache static assets

@@ -135,19 +135,21 @@ app.use(express.urlencoded({ extended: false }));
 
 // Add cache control headers BEFORE routes to prevent aggressive browser caching
 app.use((req, res, next) => {
+  // Service worker should NEVER be cached (check first!)
+  if (req.path === '/service-worker.js') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
   // For API routes, prevent caching to ensure fresh data
-  if (req.path.startsWith('/api/')) {
+  else if (req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   }
-  // For static assets (except service worker), allow short caching
-  else if (req.path !== '/service-worker.js') {
-    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
-  }
-  // Service worker should never be cached
+  // For other static assets, allow short caching
   else {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
   }
   next();
 });

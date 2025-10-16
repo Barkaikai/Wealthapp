@@ -133,6 +133,25 @@ if (process.env.CSRF_SECRET) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add cache control headers BEFORE routes to prevent aggressive browser caching
+app.use((req, res, next) => {
+  // For API routes, prevent caching to ensure fresh data
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  // For static assets (except service worker), allow short caching
+  else if (req.path !== '/service-worker.js') {
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+  }
+  // Service worker should never be cached
+  else {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -176,25 +195,6 @@ app.use((req, res, next) => {
   // } else {
   //   log("⚠️  AI WebSocket disabled - OPENAI_API_KEY not configured");
   // }
-
-  // Add cache control headers to prevent aggressive browser caching
-  app.use((req, res, next) => {
-    // For API routes, prevent caching to ensure fresh data
-    if (req.path.startsWith('/api/')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
-    // For static assets (except service worker), allow short caching
-    else if (req.path !== '/service-worker.js') {
-      res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
-    }
-    // Service worker should never be cached
-    else {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    }
-    next();
-  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

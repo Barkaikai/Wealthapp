@@ -151,10 +151,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       console.log(`Starting briefing generation for user ${userId}`);
       
-      // Gather comprehensive data for accurate briefing
-      const [assets, events, marketContext, previousBriefing] = await Promise.all([
+      // Gather comprehensive data for accurate briefing (including notes with AI analysis)
+      const [assets, events, notes, marketContext, previousBriefing] = await Promise.all([
         storage.getAssets(userId),
         storage.getEvents(userId),
+        storage.getNotes(userId),
         getMarketOverview().catch((err) => {
           console.warn('Market data unavailable:', err.message);
           return null;
@@ -162,11 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getLatestBriefing(userId).catch(() => null),
       ]);
       
-      console.log(`Briefing data gathered: ${assets.length} assets, ${events.length} events, market data: ${marketContext ? 'available' : 'unavailable'}`);
+      console.log(`Briefing data gathered: ${assets.length} assets, ${events.length} events, ${notes.length} notes, market data: ${marketContext ? 'available' : 'unavailable'}`);
       
       const { highlights, risks, actions } = await generateDailyBriefing(
         assets, 
         events, 
+        notes,
         marketContext,
         previousBriefing
       );

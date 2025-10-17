@@ -184,26 +184,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Override process.exit to prevent crashes and log what's calling it
-const originalExit = process.exit;
-process.exit = ((code?: number) => {
-  console.error(`⚠️  process.exit(${code}) called - preventing exit. Stack trace:`);
-  console.error(new Error().stack);
-  // Don't actually exit - let server keep running
-  return undefined as never;
-}) as typeof process.exit;
-
-// Add handlers for uncaught errors
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // Don't exit - try to keep server running
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit - try to keep server running
-});
-
 (async () => {
   try {
     const server = await registerRoutes(app);

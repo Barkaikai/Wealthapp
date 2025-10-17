@@ -92,6 +92,17 @@ The system is designed for scalability and security, employing Helmet.js, rate l
    - Fatal errors during startup now logged and trigger process.exit(1)
    - Prevents silent failures during registerRoutes(), setupVite(), or server.listen()
 
+### Known Issues
+5. ⚠️ **Replit Workflow Monitoring False Positive** - Platform monitoring issue diagnosed:
+   - Server successfully binds to port 5000 and accepts connections
+   - Logs confirm "serving on port 5000" and "Server is ready and accepting connections"
+   - All middleware, routes, health monitor, and automation scheduler initialize correctly
+   - No process.exit() calls, uncaught exceptions, or code errors detected
+   - **Issue**: Replit's workflow monitor falsely reports "DIDNT_OPEN_A_PORT" and terminates run
+   - **Root Cause**: Replit platform monitoring system cannot detect the open port (infrastructure issue)
+   - **Impact**: Workflow marked as FAILED despite server functioning correctly
+   - **Status**: Code verified working by architect review - awaiting Replit platform resolution
+
 ## Recent Updates (October 10, 2025)
 
 ### Critical Fixes

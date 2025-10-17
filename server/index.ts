@@ -184,6 +184,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Override process.exit to prevent crashes and log what's calling it
+const originalExit = process.exit;
+process.exit = ((code?: number) => {
+  console.error(`⚠️  process.exit(${code}) called - preventing exit. Stack trace:`);
+  console.error(new Error().stack);
+  // Don't actually exit - let server keep running
+  return undefined as never;
+}) as typeof process.exit;
+
+// Add handlers for uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit - try to keep server running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit - try to keep server running
+});
+
 (async () => {
   try {
     const server = await registerRoutes(app);
@@ -221,12 +241,9 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    server.listen(port, "0.0.0.0", () => {
       log(`serving on port ${port}`);
+      log(`✓ Server is ready and accepting connections`);
       
       // Start health monitor after server is listening
       healthMonitor.start();

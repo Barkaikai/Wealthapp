@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image, Bot, Crown } from "lucide-react";
+import { LayoutDashboard, Wallet, Mail, Calendar, BookOpen, Settings, TrendingUp, CheckSquare, Activity, Coins, FileText, Brain, Receipt, LogOut, Download, Video, CreditCard, Terminal, Calculator, Users, DollarSign, Zap, Cpu, LifeBuoy, Image, Bot, Crown, HardDrive } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -112,6 +112,11 @@ const menuGroups = [
         title: "Settings",
         url: "/settings",
         icon: Settings,
+      },
+      {
+        title: "Storage",
+        url: "/storage-settings",
+        icon: HardDrive,
       },
     ],
   },

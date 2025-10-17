@@ -116,6 +116,11 @@ if (process.env.CSRF_SECRET) {
   app.get("/api/csrf-token", (req, res) => {
     res.json({ csrfToken: res.locals.csrfToken });
   });
+  
+  // Health check endpoint for Replit monitoring (must respond quickly)
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: Date.now() });
+  });
 
   // Protect all state-changing API routes
   app.use("/api/*", (req, res, next) => {
@@ -221,17 +226,23 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
+    
+    // Initialize services BEFORE starting the server to ensure immediate readiness
+    log("Initializing background services...");
+    
+    // Start health monitor
+    healthMonitor.start();
+    log("✓ Health monitor started");
+    
+    // Initialize and start automation scheduler
+    automationScheduler.setStorage(storage);
+    automationScheduler.start();
+    log("✓ Automation scheduler started (email sync & routine reports)");
+    
+    // Now start the server - it will be immediately ready to accept connections
     server.listen(port, "0.0.0.0", () => {
       log(`serving on port ${port}`);
       log(`✓ Server is ready and accepting connections`);
-      
-      // Start health monitor after server is listening
-      healthMonitor.start();
-      
-      // Initialize and start automation scheduler
-      automationScheduler.setStorage(storage);
-      automationScheduler.start();
-      log("✓ Automation scheduler started (email sync & routine reports)");
     });
   } catch (error) {
     console.error("Fatal error during server startup:", error);

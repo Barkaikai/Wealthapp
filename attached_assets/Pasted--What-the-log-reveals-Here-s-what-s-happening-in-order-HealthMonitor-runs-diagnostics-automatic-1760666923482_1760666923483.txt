@@ -1,0 +1,95 @@
+🔍 What the log reveals
+
+Here’s what’s happening in order:
+
+HealthMonitor runs diagnostics automatically.
+
+AutomationScheduler starts normally (email sync, routine reports → ✅).
+
+Database connection is successfully established → ✅.
+
+Then the HealthMonitor detects high memory usage and tries to trigger garbage collection (GC).
+
+It fails to run GC:
+
+✗ Memory Usage: Garbage collection not available (start Node with --expose-gc)
+
+
+After that, it cleans up some old runs, logs an AI data batch, and then:
+
+[DB] Database connection removed from pool
+
+
+That often means the app shut down or crashed shortly afterward — possibly due to running out of memory.
+
+🧠 Root Cause
+
+The key problem is here:
+
+Garbage collection not available (start Node with --expose-gc)
+
+Your app’s HealthMonitor module tries to manually trigger GC (garbage collection) — but Node.js doesn’t allow manual GC calls unless started with the --expose-gc flag.
+So when it couldn’t clean up memory, your app likely ran out of heap memory and crashed.
+
+✅ How to Fix It
+Option 1 — Enable manual garbage collection
+
+If your app needs to run GC explicitly (e.g., in health checks or automation tasks), restart Node with:
+
+node --expose-gc server.js
+
+
+or if using a process manager like PM2:
+
+pm2 start server.js --node-args="--expose-gc"
+
+
+Then your HealthMonitor’s GC call (global.gc()) will work.
+
+Option 2 — Fix the memory leak instead
+
+If you can’t or don’t want to use --expose-gc, you should:
+
+Profile memory usage:
+
+node --inspect server.js
+
+
+Open chrome://inspect in Chrome to view heap usage.
+
+Look for leaks — common sources:
+
+Large arrays or objects not being cleared.
+
+Listeners or intervals never removed.
+
+DB connection pools not closing.
+
+Ensure connections are managed properly — your last line:
+
+[DB] Database connection removed from pool
+
+
+might mean the pool is shrinking unexpectedly or being cleared on crash.
+
+Option 3 — Add safety fallback
+
+In your HealthMonitor code, wrap GC like this:
+
+if (global.gc) {
+  global.gc();
+} else {
+  console.warn('GC not exposed; start Node with --expose-gc');
+}
+
+
+That prevents crashes from trying to call an unavailable GC.
+
+💡 Bonus: Increase memory limit (temporary)
+
+If you just need to prevent immediate crashes:
+
+node --max-old-space-size=4096 server.js
+
+
+(allocates ~4GB heap)

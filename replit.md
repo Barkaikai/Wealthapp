@@ -63,6 +63,35 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Google Fonts:** Typography (Inter, JetBrains Mono).
 - **Recharts:** Financial data visualization.
 
+## Recent Updates (October 17, 2025)
+
+### Cache Control & Performance
+1. ✅ **Browser Caching Fixed** - Resolved aggressive browser caching requiring CTRL+SHIFT+R:
+   - Moved cache-control middleware to execute BEFORE routes registration (server/index.ts lines 139-158)
+   - Service worker check now executes first, ensuring `/service-worker.js` never caches
+   - API routes receive `no-store, no-cache` headers for fresh data
+   - Static assets cache for 5 minutes (max-age=300)
+   - Service worker API cache TTL reduced from 5 minutes to 1 minute (public/service-worker.js)
+
+2. ✅ **Notes Integration with Daily Briefing** - AI-analyzed notes now enhance daily briefings:
+   - Daily briefing endpoint (`/api/briefings/daily`) now fetches user notes
+   - `generateDailyBriefing` function accepts notes parameter with AI analysis
+   - AI briefing considers note summaries, key points, action items, and categories
+   - Personalized highlights and recommendations based on user's documented insights
+
+### Digital Accountant
+3. ✅ **Journal Entry System Verified** - Confirmed journal entry functionality working correctly:
+   - Both `/api/accounting/journal` and `/api/accounting/journal-entries` endpoints active
+   - Double-entry bookkeeping validation enforced (debits must equal credits)
+   - Frontend properly transforms boolean `isDebit` to integer (0/1) for database
+   - Account balance updates automatic on journal entry creation
+   - Duplicate routes retained for backward compatibility
+
+### Error Handling
+4. ✅ **Server Startup Error Handling** - Added try-catch wrapper to async server initialization:
+   - Fatal errors during startup now logged and trigger process.exit(1)
+   - Prevents silent failures during registerRoutes(), setupVite(), or server.listen()
+
 ## Recent Updates (October 10, 2025)
 
 ### Critical Fixes

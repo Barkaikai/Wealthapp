@@ -101,8 +101,12 @@ async function fetchAndCache(
   cacheConfig: { ttl: number; type: 'briefing' | 'ai-insight' | 'portfolio' | 'user-data' },
   options?: RequestInit
 ): Promise<Response> {
-  // Check quota before fetching
-  await checkAndEvictIfNeeded();
+  // Check quota before fetching (best-effort, don't block on failure)
+  try {
+    await checkAndEvictIfNeeded();
+  } catch (error) {
+    console.warn(`[CachedFetch] Eviction check failed for ${url}:`, error);
+  }
 
   const response = await fetch(url, options);
 
@@ -110,20 +114,26 @@ async function fetchAndCache(
   if (response.ok) {
     const data = await response.clone().json();
     
-    // Store in device storage with TTL
-    await deviceStorage.setCache(
-      cacheKey,
-      data,
-      cacheConfig.ttl,
-      cacheConfig.type
-    );
+    // Store in device storage (best-effort, don't fail the request if storage fails)
+    try {
+      // Store in device storage with TTL
+      await deviceStorage.setCache(
+        cacheKey,
+        data,
+        cacheConfig.ttl,
+        cacheConfig.type
+      );
 
-    // Also store in persistent storage (no expiration, for fallback)
-    await deviceStorage.setPersistent(
-      cacheKey,
-      data,
-      cacheConfig.type
-    );
+      // Also store in persistent storage (no expiration, for fallback)
+      await deviceStorage.setPersistent(
+        cacheKey,
+        data,
+        cacheConfig.type
+      );
+    } catch (storageError) {
+      // Log the error but don't fail the request
+      console.warn(`[CachedFetch] Failed to cache data for ${url}:`, storageError);
+    }
 
     // Add cache header
     const headers = new Headers(response.headers);
@@ -159,22 +169,26 @@ async function revalidateInBackground(
     if (response.ok) {
       const data = await response.json();
       
-      // Update cache with fresh data
-      await deviceStorage.setCache(
-        cacheKey,
-        data,
-        cacheConfig.ttl,
-        cacheConfig.type
-      );
+      // Update cache with fresh data (best-effort)
+      try {
+        await deviceStorage.setCache(
+          cacheKey,
+          data,
+          cacheConfig.ttl,
+          cacheConfig.type
+        );
 
-      // Update persistent storage
-      await deviceStorage.setPersistent(
-        cacheKey,
-        data,
-        cacheConfig.type
-      );
+        // Update persistent storage
+        await deviceStorage.setPersistent(
+          cacheKey,
+          data,
+          cacheConfig.type
+        );
 
-      console.log(`[CachedFetch] Revalidation complete for ${url}`);
+        console.log(`[CachedFetch] Revalidation complete for ${url}`);
+      } catch (storageError) {
+        console.warn(`[CachedFetch] Failed to store revalidated data for ${url}:`, storageError);
+      }
     }
   } catch (error) {
     console.error(`[CachedFetch] Revalidation failed for ${url}:`, error);

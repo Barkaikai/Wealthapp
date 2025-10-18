@@ -179,37 +179,41 @@ app.use((req, res, next) => {
       throw err;
     });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-
     // ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
     
-    // Initialize services BEFORE starting the server to ensure immediate readiness
-    log("Initializing background services...");
-    
-    // Start health monitor
-    healthMonitor.start();
-    log("✓ Health monitor started");
-    
-    // Initialize and start automation scheduler
-    automationScheduler.setStorage(storage);
-    automationScheduler.start();
-    log("✓ Automation scheduler started (email sync & routine reports)");
-    
-    // Now start the server - it will be immediately ready to accept connections
-    server.listen(port, "0.0.0.0", () => {
+    // Start listening FIRST so Replit detects the port immediately
+    server.listen(port, "0.0.0.0", async () => {
       log(`serving on port ${port}`);
       log(`✓ Server is ready and accepting connections`);
+      
+      // Setup Vite or static serving AFTER port is open
+      try {
+        if (app.get("env") === "development") {
+          await setupVite(app, server);
+          log("✓ Vite development server ready");
+        } else {
+          serveStatic(app);
+          log("✓ Static file serving enabled");
+        }
+      } catch (error) {
+        console.error("Error setting up Vite:", error);
+      }
+      
+      // Initialize background services AFTER Vite is ready
+      log("Initializing background services...");
+      
+      // Start health monitor
+      healthMonitor.start();
+      log("✓ Health monitor started");
+      
+      // Initialize and start automation scheduler
+      automationScheduler.setStorage(storage);
+      automationScheduler.start();
+      log("✓ Automation scheduler started (email sync & routine reports)");
     });
   } catch (error) {
     console.error("Fatal error during server startup:", error);

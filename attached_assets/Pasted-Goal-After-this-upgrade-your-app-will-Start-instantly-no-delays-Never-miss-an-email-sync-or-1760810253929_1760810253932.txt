@@ -1,0 +1,183 @@
+Goal
+
+After this upgrade your app will:
+
+✅ Start instantly (no delays)
+✅ Never miss an email sync or report run
+✅ Automatically “catch up” on any missed jobs after restart
+✅ Keep tasks lightweight and database-tracked for safety
+
+⚙️ Implementation Plan
+
+We’ll add a TaskQueue system that:
+
+Stores scheduled jobs (like “email sync” or “daily report”) in the DB
+
+On startup, checks if any tasks were missed since last run
+
+Executes them asynchronously
+
+Lets your scheduler continue as usual
+
+🧩 1. Create taskQueue.js
+// taskQueue.js
+import { db } from "./db.js"; // assume you have a database connection
+import { runEmailSyncForAllUsers, runDailyReports } from "./tasks.js";
+
+export async function registerTask(name, cronExpression, actionFn) {
+  // Save a task definition if it doesn't exist
+  const task = await db.get("tasks").findOne({ name });
+  if (!task) {
+    await db.get("tasks").insert({
+      name,
+      cron: cronExpression,
+      lastRunAt: null,
+    });
+  }
+
+  // Return the handler for running the task
+  return async function runTask() {
+    const taskRecord = await db.get("tasks").findOne({ name });
+    const now = new Date();
+
+    console.log(`[TaskQueue] Running task: ${name}`);
+    try {
+      await actionFn();
+      await db.get("tasks").updateOne(
+        { name },
+        { $set: { lastRunAt: now } }
+      );
+      console.log(`[TaskQueue] ✓ ${name} completed at ${now.toISOString()}`);
+    } catch (err) {
+      console.error(`[TaskQueue] ✗ ${name} failed:`, err);
+    }
+  };
+}
+
+// Check for missed tasks (run after server starts)
+export async function catchUpMissedTasks() {
+  const tasks = await db.get("tasks").find({});
+  const now = new Date();
+
+  for (const t of tasks) {
+    if (!t.lastRunAt) continue;
+
+    // Example: hourly task missed more than 1 hour
+    if (t.name === "emailSync" && now - new Date(t.lastRunAt) > 3600_000) {
+      console.log("[TaskQueue] Missed hourly email sync — catching up...");
+      await runEmailSyncForAllUsers();
+    }
+
+    // Example: daily reports missed more than 24 hours
+    if (t.name === "dailyReport" && now - new Date(t.lastRunAt) > 86_400_000) {
+      console.log("[TaskQueue] Missed daily report — catching up...");
+      await runDailyReports();
+    }
+  }
+}
+
+🧠 2. Modify automationScheduler.js
+import cron from "node-cron";
+import { registerTask, catchUpMissedTasks } from "./taskQueue.js";
+import { runEmailSyncForAllUsers, runDailyReports } from "./tasks.js";
+
+export async function startAutomationScheduler(options = {}) {
+  const { runInitialSync = false } = options;
+
+  console.log("[AutomationScheduler] Starting automated tasks...");
+
+  // Register task definitions
+  const emailSyncTask = await registerTask(
+    "emailSync",
+    "0 * * * *",
+    runEmailSyncForAllUsers
+  );
+  const reportTask = await registerTask(
+    "dailyReport",
+    "0 21 * * *",
+    runDailyReports
+  );
+
+  // Catch up missed runs
+  await catchUpMissedTasks();
+
+  // Schedule future runs
+  cron.schedule("0 * * * *", emailSyncTask);
+  cron.schedule("0 21 * * *", reportTask);
+
+  // Optional immediate run
+  if (runInitialSync) await emailSyncTask();
+
+  console.log("[AutomationScheduler] ✓ Tasks scheduled and ready");
+}
+
+🧩 3. Keep the same startup code
+
+Your server.js stays like before:
+
+import express from "express";
+import { connectDB } from "./db.js";
+import { startAutomationScheduler } from "./automationScheduler.js";
+import { initHealthMonitor } from "./healthMonitor.js";
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(express.json());
+app.get("/", (req, res) => res.send("✅ Server is running fine!"));
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+  initializeBackgroundServices();
+});
+
+async function initializeBackgroundServices() {
+  await connectDB();
+  initHealthMonitor();
+  await startAutomationScheduler({ runInitialSync: false });
+}
+
+✅ What Happens Now
+
+The server starts instantly — no blocking loops.
+
+When the scheduler starts:
+
+It checks if any syncs/reports were missed (e.g., app was down overnight).
+
+If missed → runs them automatically.
+
+Then schedules future hourly/daily runs normally.
+
+Every task logs its success/failure and updates lastRunAt.
+
+🔒 Bonus: Simple DB Schema Example
+
+If you’re using MongoDB, you can define the tasks collection like:
+
+// db.js
+import { MongoClient } from "mongodb";
+const client = new MongoClient(process.env.MONGO_URL);
+await client.connect();
+export const db = client.db("automation");
+
+
+Your tasks documents will look like:
+
+{
+  "name": "emailSync",
+  "cron": "0 * * * *",
+  "lastRunAt": "2025-10-17T20:00:00.000Z"
+}
+
+⚡ Result
+
+After restart:
+
+🚀 Server listening on port 5000
+[DB] Database connection established
+[TaskQueue] Missed hourly email sync — catching up...
+[AutomationScheduler] ✓ Tasks scheduled and ready
+
+
+No more delays. No missed runs. Clean, automatic recovery.

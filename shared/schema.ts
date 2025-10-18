@@ -2030,3 +2030,30 @@ export const insertTaxRateSchema = createInsertSchema(taxRates).omit({
 
 export type InsertTaxRate = z.infer<typeof insertTaxRateSchema>;
 export type TaxRate = typeof taxRates.$inferSelect;
+
+// Scheduled Tasks - Track automated tasks for catchup and monitoring
+export const scheduledTasks = pgTable("scheduled_tasks", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).unique().notNull(), // e.g. "emailSync", "dailyReports"
+  description: text("description"),
+  cronExpression: varchar("cron_expression", { length: 100 }).notNull(), // e.g. "0 * * * *"
+  lastRunAt: timestamp("last_run_at"),
+  lastRunStatus: varchar("last_run_status", { length: 20 }), // success, failed, running
+  lastRunError: text("last_run_error"),
+  nextRunAt: timestamp("next_run_at"),
+  enabled: varchar("enabled", { length: 5 }).default('true'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_scheduled_tasks_name").on(table.name),
+  index("idx_scheduled_tasks_enabled").on(table.enabled)
+]);
+
+export const insertScheduledTaskSchema = createInsertSchema(scheduledTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertScheduledTask = z.infer<typeof insertScheduledTaskSchema>;
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;

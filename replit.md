@@ -14,6 +14,14 @@ The frontend uses React 18, TypeScript, Vite, Wouter, and TanStack Query. UI com
 ### Technical Implementations
 The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface. Performance optimizations include AI response caching (LRU, 60-min TTL), an AI request queue manager, WebSocket streaming for real-time AI responses, canonical user ID caching, structured JSON logging with rotation, AI data forwarding for learning, and Gzip compression with lazy-loaded components. Client-side caching uses IndexedDB with a DeviceStorageManager for offline resilience and performance.
 
+**Startup & Reliability Optimizations (Oct 2025):**
+- Server starts in ~1 second with instant port availability
+- Background services (health monitor, automation scheduler) delayed by 2 seconds to ensure immediate server readiness
+- Graceful shutdown system with proper resource cleanup (HTTP server, database connections, schedulers)
+- Database connection pool with singleton initialization pattern (no duplicate connections)
+- Safe garbage collection with fallback behavior when --expose-gc not available
+- SIGINT/SIGTERM handlers for clean process termination
+
 ### Feature Specifications
 The platform offers:
 - **Daily Briefing & Wealth Dashboard:** AI-powered reports, portfolio overview, and visualization.

@@ -13,6 +13,7 @@ import OpenAI from "openai";
 import cors from "cors";
 import { storage } from "./storage";
 import { automationScheduler } from "./automationScheduler";
+import { closeDB } from './db';
 
 // ============================================
 // ENVIRONMENT VALIDATION (BEFORE APP CREATION)
@@ -214,16 +215,21 @@ app.use((req, res, next) => {
       }
       
       // Initialize background services AFTER Vite is ready
+      // Delay background services to ensure port is fully open and detected
       log("Initializing background services...");
       
-      // Start health monitor
-      healthMonitor.start();
-      log("✓ Health monitor started");
+      setTimeout(() => {
+        // Start health monitor
+        healthMonitor.start();
+        log("✓ Health monitor started");
+        
+        // Initialize and start automation scheduler
+        automationScheduler.setStorage(storage);
+        automationScheduler.start();
+        log("✓ Automation scheduler started (email sync & routine reports)");
+      }, 2000); // 2 second delay to ensure port detection
       
-      // Initialize and start automation scheduler
-      automationScheduler.setStorage(storage);
-      automationScheduler.start();
-      log("✓ Automation scheduler started (email sync & routine reports)");
+      log("✓ Background services scheduled to start in 2s");
     });
   } catch (error) {
     console.error("Fatal error during server startup:", error);
@@ -241,3 +247,30 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   // Don't exit the process, just log the error
 });
+
+// Graceful shutdown handlers
+async function gracefulShutdown(signal: string) {
+  console.log(`\n🧘 Gracefully shutting down (${signal})...`);
+  
+  try {
+    // Stop accepting new requests
+    log('Stopping automation scheduler...');
+    automationScheduler.stop();
+    
+    // Stop health monitor
+    log('Stopping health monitor...');
+    healthMonitor.stop();
+    
+    // Close database connections
+    await closeDB();
+    
+    log('✓ Graceful shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

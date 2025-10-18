@@ -18,16 +18,29 @@ export const pool = new Pool({
   connectionTimeoutMillis: 10000,
 });
 
+// Track pool initialization
+let poolInitialized = false;
+
 pool.on('error', (err) => {
-  console.error('Unexpected database pool error:', err);
+  console.error('[DB] Unexpected database pool error:', err);
 });
 
 pool.on('connect', () => {
-  console.log('[DB] Database connection established');
+  if (!poolInitialized) {
+    console.log('[DB] Connection pool initialized successfully');
+    poolInitialized = true;
+  }
 });
 
 pool.on('remove', () => {
-  console.log('[DB] Database connection removed from pool');
+  // Silent - normal pool behavior, no need to log every connection removal
 });
 
 export const db = drizzle({ client: pool, schema });
+
+// Graceful shutdown
+export async function closeDB(): Promise<void> {
+  console.log('[DB] Closing database connection pool...');
+  await pool.end();
+  console.log('[DB] Connection pool closed successfully');
+}

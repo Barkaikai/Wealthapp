@@ -1,0 +1,87 @@
+✅ Full Fix (Two-Part Solution)
+🧩 1. Add Safe Garbage Collection Code
+
+Create or edit a file like healthMonitor.js (or wherever your GC logic lives) and wrap your global.gc() call safely:
+
+// healthMonitor.js
+export function tryGarbageCollect() {
+  try {
+    if (global.gc) {
+      console.log("[HealthMonitor] Running manual garbage collection...");
+      global.gc();
+      console.log("[HealthMonitor] ✅ Garbage collection complete.");
+    } else {
+      console.warn("[HealthMonitor] ⚠️ Garbage collection not exposed. Start Node with --expose-gc");
+    }
+  } catch (err) {
+    console.error("[HealthMonitor] Garbage collection failed:", err);
+  }
+}
+
+
+Then in your HealthMonitor or app startup file (for example, server.js or index.js), call it periodically:
+
+import { tryGarbageCollect } from "./healthMonitor.js";
+
+// run every 10 minutes
+setInterval(tryGarbageCollect, 10 * 60 * 1000);
+
+⚙️ 2. Run Node with --expose-gc
+
+Node must be started with this flag so global.gc() actually works.
+
+On Replit
+
+Go to the “Run” button settings (the gear icon next to the Run button at the top).
+Change the Run command from:
+
+node server.js
+
+
+to:
+
+node --expose-gc server.js
+
+Locally or in PM2
+
+If you’re running it outside Replit:
+
+node --expose-gc server.js
+
+
+or, with PM2:
+
+pm2 start server.js --node-args="--expose-gc"
+
+✅ Optional Bonus: Add Memory Auto-Cleanup
+
+If you also want the HealthMonitor to automatically clean up connections or logs when memory gets too high, you can extend it like this:
+
+import os from "os";
+
+export function autoMemoryCleanup(dbPool) {
+  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+  const total = os.totalmem() / 1024 / 1024;
+  const usagePercent = (used / total) * 100;
+
+  console.log(`[HealthMonitor] Memory usage: ${used.toFixed(2)} MB (${usagePercent.toFixed(2)}%)`);
+
+  if (usagePercent > 80) {
+    console.warn("[HealthMonitor] ⚠️ High memory detected, running cleanup...");
+    tryGarbageCollect();
+
+    // Optional DB cleanup
+    if (dbPool && dbPool.end) {
+      console.log("[HealthMonitor] Resetting DB connections...");
+      dbPool.end(); // gracefully close connections
+    }
+  }
+}
+
+🧠 In short:
+
+Add the safe tryGarbageCollect() code (above).
+
+Start Node with --expose-gc.
+
+(Optional) Use autoMemoryCleanup() to manage DB and cache when memory runs high.

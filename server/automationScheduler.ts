@@ -55,6 +55,14 @@ class AutomationScheduler {
     console.log('[AutomationScheduler] ✓ Email sync scheduled (hourly at :00)');
     console.log('[AutomationScheduler] ✓ Routine reports scheduled (daily at 9 PM)');
     console.log(`[AutomationScheduler] ✓ Queue concurrency set to ${this.emailSyncQueue.concurrency}`);
+
+    // Trigger initial email sync asynchronously (non-blocking) after a short delay
+    setTimeout(() => {
+      console.log('[AutomationScheduler] Triggering initial email sync (non-blocking)...');
+      this.enqueueAllUsersForSync().catch(err => {
+        console.error('[AutomationScheduler] Initial sync error:', err);
+      });
+    }, 5000); // 5 second delay to allow server to fully initialize
   }
 
   /**

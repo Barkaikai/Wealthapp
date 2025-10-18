@@ -1,18 +1,27 @@
 import cron from 'node-cron';
+import PQueue from 'p-queue';
 import type { IStorage } from './storage';
 import { syncAndCategorizeEmails } from './emailAutomation';
 import { generateRoutineReport } from './openai';
 import { appLogger } from './appLogger';
+import { GmailScopeError, GmailNotConnectedError } from './gmail';
 
 /**
  * Automation Scheduler Service
- * Handles automated email syncing and routine report generation
+ * Handles automated email syncing and routine report generation with async queue processing
  */
 class AutomationScheduler {
   private emailSyncJob: cron.ScheduledTask | null = null;
   private routineReportJob: cron.ScheduledTask | null = null;
   private storage: IStorage | null = null;
   private isRunning = false;
+  private emailSyncQueue: PQueue;
+
+  constructor() {
+    // Initialize queue with concurrency limit to prevent blocking
+    const concurrency = Number(process.env.SYNC_CONCURRENCY) || 5;
+    this.emailSyncQueue = new PQueue({ concurrency });
+  }
 
   setStorage(storage: IStorage): void {
     this.storage = storage;
@@ -30,9 +39,12 @@ class AutomationScheduler {
     this.isRunning = true;
     console.log('[AutomationScheduler] Starting automated tasks');
 
-    // Schedule email syncing every hour at :00
-    this.emailSyncJob = cron.schedule('0 * * * *', async () => {
-      await this.syncEmailsForAllUsers();
+    // Schedule email syncing every hour at :00 (non-blocking)
+    this.emailSyncJob = cron.schedule('0 * * * *', () => {
+      console.log('[AutomationScheduler] Hourly email sync triggered (enqueuing users)...');
+      this.enqueueAllUsersForSync().catch(err => {
+        console.error('[AutomationScheduler] Failed to enqueue hourly sync:', err);
+      });
     });
 
     // Schedule routine reports daily at 9 PM
@@ -42,10 +54,7 @@ class AutomationScheduler {
 
     console.log('[AutomationScheduler] ✓ Email sync scheduled (hourly at :00)');
     console.log('[AutomationScheduler] ✓ Routine reports scheduled (daily at 9 PM)');
-
-    // Disabled initial email sync to prevent startup delays
-    // Email sync will run on the hourly schedule instead
-    // setTimeout(() => this.syncEmailsForAllUsers(), 60000);
+    console.log(`[AutomationScheduler] ✓ Queue concurrency set to ${this.emailSyncQueue.concurrency}`);
   }
 
   /**
@@ -66,64 +75,86 @@ class AutomationScheduler {
       this.routineReportJob = null;
     }
 
+    // Clear the queue
+    this.emailSyncQueue.clear();
+
     this.isRunning = false;
     console.log('[AutomationScheduler] Stopped all automated tasks');
   }
 
   /**
-   * Sync emails for all active users
+   * Enqueue all users for email sync (non-blocking)
    */
-  private async syncEmailsForAllUsers(): Promise<void> {
+  private async enqueueAllUsersForSync(): Promise<void> {
     if (!this.storage) {
       console.warn('[AutomationScheduler] Storage not initialized, skipping email sync');
       return;
     }
 
     try {
-      console.log('[AutomationScheduler] Starting automated email sync for all users');
       const users = await this.storage.getAllUsers();
+      console.log(`[AutomationScheduler] Enqueuing ${users.length} users for email sync`);
       
-      let successCount = 0;
-      let errorCount = 0;
-
       for (const user of users) {
-        try {
-          const result = await syncAndCategorizeEmails(user.id, 20);
+        this.enqueueUserSync(user.id);
+      }
+    } catch (error: any) {
+      console.error('[AutomationScheduler] Failed to fetch users for sync:', error.message);
+    }
+  }
+
+  /**
+   * Enqueue a single user for email sync (non-blocking)
+   */
+  private enqueueUserSync(userId: string): void {
+    this.emailSyncQueue.add(async () => {
+      try {
+        const result = await syncAndCategorizeEmails(userId, 20);
+        
+        if (result.synced > 0) {
+          console.log(`[AutomationScheduler] Synced ${result.synced} emails for user ${userId}`);
           
-          if (result.synced > 0) {
-            console.log(`[AutomationScheduler] Synced ${result.synced} emails for user ${user.id}`);
-            
-            // Log to app logger
-            appLogger.log('info', 'automated_email_sync', {
-              userId: user.id,
-              synced: result.synced,
-              personal: result.personal,
-              finance: result.finance,
-              investments: result.investments,
-              draftsCreated: result.draftsCreated,
-            });
-          }
-          
-          successCount++;
-        } catch (error: any) {
-          errorCount++;
-          console.error(`[AutomationScheduler] Error syncing emails for user ${user.id}:`, error.message);
-          
-          // Don't throw - continue with other users
-          appLogger.log('error', 'automated_email_sync_error', {
-            userId: user.id,
-            error: error.message,
+          appLogger.log('info', 'automated_email_sync', {
+            userId,
+            synced: result.synced,
+            personal: result.personal,
+            finance: result.finance,
+            investments: result.investments,
+            draftsCreated: result.draftsCreated,
           });
         }
-      }
+      } catch (error: any) {
+        // Handle Gmail-specific errors gracefully
+        if (error instanceof GmailScopeError) {
+          // User needs to reconnect with proper scope - log once and skip
+          console.warn(`[AutomationScheduler] Gmail scope error for user ${userId} - skipping`);
+          return;
+        }
+        
+        if (error instanceof GmailNotConnectedError) {
+          // Gmail not connected - skip silently
+          return;
+        }
 
-      console.log(`[AutomationScheduler] Email sync complete: ${successCount} successful, ${errorCount} errors`);
-    } catch (error: any) {
-      console.error('[AutomationScheduler] Critical error in email sync:', error);
-      appLogger.log('error', 'automated_email_sync_critical', {
-        error: error.message,
-      });
-    }
+        // Log other errors but don't crash
+        console.error(`[AutomationScheduler] Error syncing emails for user ${userId}:`, error.message);
+        
+        appLogger.log('error', 'automated_email_sync_error', {
+          userId,
+          error: error.message,
+        });
+      }
+    }).catch(err => {
+      // Catch any unexpected queue errors
+      console.error(`[AutomationScheduler] Unexpected queue error for user ${userId}:`, err);
+    });
+  }
+
+  /**
+   * Sync emails for all active users (legacy method - now uses queue)
+   */
+  private async syncEmailsForAllUsers(): Promise<void> {
+    await this.enqueueAllUsersForSync();
   }
 
   /**

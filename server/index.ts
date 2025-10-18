@@ -167,9 +167,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Capture server instance for graceful shutdown
+let httpServer: ReturnType<typeof app.listen> | null = null;
+
 (async () => {
   try {
     const server = await registerRoutes(app);
+    httpServer = server;
     
     // Initialize WebSocket server for AI streaming
     // NOTE: Temporarily disabled - no client-side implementation yet
@@ -254,10 +258,23 @@ async function gracefulShutdown(signal: string) {
   
   try {
     // Stop accepting new requests
+    if (httpServer) {
+      log('Closing HTTP server...');
+      await new Promise<void>((resolve, reject) => {
+        httpServer!.close((err) => {
+          if (err) reject(err);
+          else {
+            log('✓ HTTP server closed');
+            resolve();
+          }
+        });
+      });
+    }
+    
+    // Stop background services
     log('Stopping automation scheduler...');
     automationScheduler.stop();
     
-    // Stop health monitor
     log('Stopping health monitor...');
     healthMonitor.stop();
     

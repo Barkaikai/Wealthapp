@@ -90,8 +90,18 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Health check endpoint for Replit monitoring (must respond quickly)
+// This MUST be before any other middleware to ensure fastest response
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: Date.now() });
+});
+
+// Additional health check on root for workflow detection
+app.get("/", (_req, res, next) => {
+  // Only respond to direct health checks (not SPA routes)
+  if (_req.headers['user-agent']?.includes('Replit') || _req.headers['x-replit-health-check']) {
+    return res.status(200).json({ status: "ok", timestamp: Date.now() });
+  }
+  next();
 });
 
 // Security: CSRF protection (conditional on CSRF_SECRET being set)

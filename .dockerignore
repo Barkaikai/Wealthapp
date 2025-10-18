@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Build artifacts
+dist
+.vite
+.cache
+
+# Development files
+.git
+.github
+.vscode
+.idea
+*.log
+logs
+*.sql
+
+# Assets (will be built into dist)
+attached_assets/*.jpeg
+attached_assets/*.jpg
+attached_assets/*.png
+attached_assets/*.gif
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+__tests__
+test
+
+# Documentation
+*.md
+!README.md
+
+# Temp files
+tmp
+temp
+.tmp

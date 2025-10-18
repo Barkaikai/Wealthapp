@@ -2,6 +2,7 @@ import { runFullDiagnostics, DiagnosticReport, DiagnosticResult } from "./diagno
 import { db } from "./db";
 import { diagnosticRuns, insertDiagnosticRunSchema } from "@shared/schema";
 import { desc, sql } from "drizzle-orm";
+import { tryGarbageCollect, getMemoryStats } from "./gcManager";
 
 interface HealthMonitorConfig {
   enabled: boolean;
@@ -228,45 +229,32 @@ class HealthMonitor {
         };
       }
 
-      // Memory issues - trigger garbage collection
+      // Memory issues - trigger garbage collection using safe GC manager
       if (result.category === 'Performance' && result.name === 'Memory Usage' && (result.status === 'warning' || result.status === 'error')) {
         console.log('[HealthMonitor] High memory usage detected, triggering garbage collection...');
         
-        const beforeMem = process.memoryUsage();
-        const beforeHeapMB = Math.round(beforeMem.heapUsed / 1024 / 1024);
+        const beforeStats = getMemoryStats();
+        const success = tryGarbageCollect();
         
-        // Trigger GC if available
-        if (global.gc) {
-          try {
-            global.gc();
-            
-            // Wait a moment for GC to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const afterMem = process.memoryUsage();
-            const afterHeapMB = Math.round(afterMem.heapUsed / 1024 / 1024);
-            const freedMB = beforeHeapMB - afterHeapMB;
-            
-            if (freedMB > 0) {
-              return {
-                checkName: result.name,
-                action: `Garbage collection freed ${freedMB}MB (${beforeHeapMB}MB → ${afterHeapMB}MB)`,
-                success: true,
-              };
-            } else {
-              return {
-                checkName: result.name,
-                action: `Garbage collection completed but memory still high (${afterHeapMB}MB)`,
-                success: false,
-                error: 'Memory remains elevated after GC',
-              };
-            }
-          } catch (error: any) {
+        if (success) {
+          // Wait for GC to complete
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
+          const afterStats = getMemoryStats();
+          const freedMB = beforeStats.heapUsedMB - afterStats.heapUsedMB;
+          
+          if (freedMB > 0) {
             return {
               checkName: result.name,
-              action: 'Attempted garbage collection',
+              action: `Garbage collection freed ${freedMB}MB (${beforeStats.heapUsedMB}MB → ${afterStats.heapUsedMB}MB)`,
+              success: true,
+            };
+          } else {
+            return {
+              checkName: result.name,
+              action: `Garbage collection completed but memory still high (${afterStats.heapUsedMB}MB)`,
               success: false,
-              error: error.message,
+              error: 'Memory remains elevated after GC',
             };
           }
         } else {
@@ -274,7 +262,7 @@ class HealthMonitor {
             checkName: result.name,
             action: 'Garbage collection not available (start Node with --expose-gc)',
             success: false,
-            error: 'GC not exposed',
+            error: 'GC not exposed - use ./start-dev.sh to enable',
           };
         }
       }

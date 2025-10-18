@@ -1,0 +1,203 @@
+Below is the final server/index.ts (Express + Vite backend) with:
+✅ Dynamic port (works on Replit)
+✅ Graceful shutdown & clean DB connections
+✅ Safe garbage collection handling
+✅ JSON & HTML /admin/status dashboard with live charts and tables
+✅ Lightweight inline visualization (Chart.js via CDN)
+
+✅ Final server/index.ts
+import express from "express";
+import os from "os";
+import process from "process";
+import { Pool } from "pg"; // Example DB, replace if needed
+
+// ---------------------- CONFIG ----------------------
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Simulated background job scheduler
+const scheduledJobs = [
+  { name: "Email Sync", schedule: "Hourly at :00", lastRun: new Date(), status: "OK" },
+  { name: "Routine Reports", schedule: "Daily at 9 PM", lastRun: new Date(), status: "OK" },
+];
+
+// Health monitor simulation
+let lastHealthCheck = {
+  timestamp: new Date(),
+  memoryUsage: process.memoryUsage(),
+  uptime: process.uptime(),
+  cpuLoad: os.loadavg(),
+  status: "OK",
+};
+
+// ---------------------- DATABASE ----------------------
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL || "postgresql://localhost:5432/appdb",
+});
+
+db.connect()
+  .then(() => console.log("[DB] Connection pool initialized successfully"))
+  .catch(err => console.error("[DB] Connection error:", err));
+
+// ---------------------- BACKGROUND HEALTH MONITOR ----------------------
+setInterval(() => {
+  lastHealthCheck = {
+    timestamp: new Date(),
+    memoryUsage: process.memoryUsage(),
+    uptime: process.uptime(),
+    cpuLoad: os.loadavg(),
+    status: "OK",
+  };
+  console.log("[HealthMonitor] Updated health status");
+}, 60000); // every 60s
+
+// ---------------------- ADMIN DASHBOARD (JSON) ----------------------
+app.get("/admin/status.json", async (req, res) => {
+  res.json({
+    server: {
+      status: "running",
+      port: PORT,
+      uptime: process.uptime(),
+    },
+    health: lastHealthCheck,
+    jobs: scheduledJobs,
+    memory: {
+      rss: process.memoryUsage().rss / 1024 / 1024,
+      heapUsed: process.memoryUsage().heapUsed / 1024 / 1024,
+    },
+  });
+});
+
+// ---------------------- ADMIN DASHBOARD (HTML) ----------------------
+app.get("/admin/status", async (req, res) => {
+  const mem = process.memoryUsage();
+  const rss = (mem.rss / 1024 / 1024).toFixed(2);
+  const heapUsed = (mem.heapUsed / 1024 / 1024).toFixed(2);
+
+  const jobRows = scheduledJobs
+    .map(
+      (j) => `
+      <tr>
+        <td>${j.name}</td>
+        <td>${j.schedule}</td>
+        <td>${j.lastRun.toLocaleString()}</td>
+        <td>${j.status}</td>
+      </tr>`
+    )
+    .join("");
+
+  res.send(`
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Admin Status Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body { font-family: Arial; margin: 20px; background: #f9f9f9; }
+      h1 { color: #333; }
+      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+      th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+      th { background: #eee; }
+      .chart-container { width: 400px; height: 200px; margin: 20px auto; }
+    </style>
+  </head>
+  <body>
+    <h1>🚀 Server Admin Dashboard</h1>
+    <p><strong>Status:</strong> Running on port ${PORT}</p>
+    <p><strong>Uptime:</strong> ${(process.uptime() / 60).toFixed(2)} min</p>
+    <p><strong>Memory:</strong> RSS: ${rss} MB | Heap: ${heapUsed} MB</p>
+
+    <div class="chart-container">
+      <canvas id="memChart"></canvas>
+    </div>
+
+    <h2>Scheduled Jobs</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Schedule</th><th>Last Run</th><th>Status</th></tr>
+      </thead>
+      <tbody>${jobRows}</tbody>
+    </table>
+
+    <script>
+      const ctx = document.getElementById('memChart').getContext('2d');
+      const memChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Heap Used (MB)', 'RSS (MB)'],
+          datasets: [{
+            label: 'Memory Usage',
+            data: [${heapUsed}, ${rss}],
+            backgroundColor: ['#36A2EB', '#FF6384'],
+          }]
+        },
+        options: { responsive: true }
+      });
+    </script>
+  </body>
+  </html>`);
+});
+
+// ---------------------- GRACEFUL SHUTDOWN ----------------------
+process.on("SIGTERM", async () => {
+  console.log("🧹 Graceful shutdown initiated...");
+  await db.end();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  console.log("🧹 Graceful shutdown initiated...");
+  await db.end();
+  process.exit(0);
+});
+
+// ---------------------- SAFE GC ----------------------
+try {
+  if (global.gc) {
+    setInterval(() => {
+      console.log("[GC] Running manual garbage collection...");
+      global.gc();
+    }, 10 * 60 * 1000); // every 10 min
+  } else {
+    console.warn("[GC] Garbage collection not exposed. Run node with --expose-gc");
+  }
+} catch (err) {
+  console.error("[GC] Error triggering GC:", err);
+}
+
+// ---------------------- SERVER START ----------------------
+app.listen(PORT, () => {
+  console.log(`[Express] ✅ Server is running on port ${PORT}`);
+});
+
+🧩 To Fix Deployment Errors (Replit / Docker / Autoscale):
+
+Add a .dockerignore file:
+
+node_modules
+client/
+.git
+*.md
+attached_assets
+*.png
+*.jpg
+*.jpeg
+dist/public/assets/*
+
+
+In your vite.config.ts, optimize chunking:
+
+build: {
+  rollupOptions: {
+    output: {
+      manualChunks: {
+        vendor: ['react', 'react-dom'],
+        charts: ['recharts'],
+        ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+      }
+    }
+  }
+}
+
+
+Move all large .png/.jpg/.jpeg files to a CDN or external host (e.g., Cloudflare R2, Supabase Storage) and reference via URLs.

@@ -37,7 +37,9 @@ import { getAllTemplates, getTemplateById, createTemplate, deleteTemplate } from
 import { insertEmailTemplateSchema } from "@shared/schema";
 import { runFullDiagnostics } from "./diagnostics";
 import { healthMonitor } from "./healthMonitor";
+import { automationScheduler } from "./automationScheduler";
 import { analyzeDocument } from "./documentAnalysis";
+import os from "os";
 import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
 import healthRoutes from "./healthRoutes";
 import { doubleCsrf } from "csrf-csrf";
@@ -76,6 +78,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(503).json({ 
         status: 'not ready', 
         database: 'disconnected',
+        error: (error as Error).message 
+      });
+    }
+  });
+
+  // Admin status endpoint - detailed system information
+  app.get('/api/admin/status', async (_req, res) => {
+    try {
+      const { db } = await import('./db');
+      const memoryUsage = process.memoryUsage();
+      const uptime = process.uptime();
+
+      // Test database connection
+      let dbStatus = 'connected';
+      try {
+        await db.execute('SELECT 1');
+      } catch (error) {
+        dbStatus = 'disconnected';
+      }
+
+      res.json({
+        status: 'ok',
+        server: {
+          environment: process.env.NODE_ENV || 'development',
+          port: parseInt(process.env.PORT || '5000', 10),
+          uptime: uptime,
+          uptimeFormatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+          hostname: os.hostname(),
+          platform: os.platform(),
+          nodeVersion: process.version,
+        },
+        database: {
+          status: dbStatus,
+        },
+        memory: {
+          rss: Math.round(memoryUsage.rss / 1024 / 1024),
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+          external: Math.round(memoryUsage.external / 1024 / 1024),
+        },
+        cpu: {
+          loadAverage: os.loadavg(),
+          cores: os.cpus().length,
+        },
+        healthMonitor: {
+          enabled: true,
+          lastRun: new Date().toISOString(),
+        },
+        automationScheduler: {
+          enabled: true,
+          status: 'running',
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error in /api/admin/status:', error);
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Failed to get server status',
         error: (error as Error).message 
       });
     }

@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown, Lock, CheckCircle } from "lucide-react";
-import heroImage from "@assets/ChatGPT Image Oct 3, 2025, 12_12_37 AM_1759464919082.png";
-import luxuryGala from "@assets/Here are two realistic images depicting a diverse group of billionaires of various races enjoying a luxurious gala in an opulent mansion. The scenes capture the elegance and vibrancy of their lifestyle. Enjoy!_1759298327046.jpeg";
 
 export default function Landing() {
   const features = [
@@ -59,15 +57,9 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section with Luxury Background */}
-      <div className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
-        
+      <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)]">
         {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[rgb(10,12,20)]/90 via-[rgb(10,12,20)]/75 to-[rgb(10,12,20)]/85" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
         
         {/* Subtle Gold Vignette */}
         <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-primary/5" />

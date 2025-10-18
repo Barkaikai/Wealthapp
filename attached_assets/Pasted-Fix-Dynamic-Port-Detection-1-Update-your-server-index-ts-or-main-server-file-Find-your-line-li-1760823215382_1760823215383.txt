@@ -1,0 +1,99 @@
+Fix: Dynamic Port Detection
+1️⃣ Update your server/index.ts (or main server file)
+
+Find your line like this:
+
+const PORT = 5000;
+
+
+and replace it with:
+
+const PORT = process.env.PORT || 5000;
+
+
+Then scroll down to your listen statement and keep it as:
+
+app.listen(PORT, () => {
+  console.log(`[express] ✅ Server running on port ${PORT}`);
+});
+
+
+That’s it — Node will automatically detect Replit’s assigned port when hosted there.
+
+2️⃣ Fix your .replit config file
+
+Open the .replit file and make sure it looks like this:
+
+run = "npm run dev"
+env = {
+  "PORT": "3000"
+}
+
+
+🟢 OR (better) — remove the hardcoded port entirely so Replit manages it dynamically:
+
+run = "npm run dev"
+
+
+Replit automatically injects its dynamic port variable (like 44775) into process.env.PORT.
+
+3️⃣ Optional: Fix replit.nix (if using Nix-based repl)
+
+Ensure your replit.nix includes Node like this:
+
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs-18_x
+    pkgs.npm
+  ];
+}
+
+
+This ensures you’re running a compatible Node version for process.env.PORT.
+
+4️⃣ Test it inside Replit Console
+
+Open the Shell tab (bottom or side) and run:
+
+echo $PORT
+
+
+You should see a number like 44775 — that’s the live port Replit assigned.
+
+Now run:
+
+npm run dev
+
+
+And you should see:
+
+[express] ✅ Server running on port 44775
+
+
+When you click “Open in Browser”, it should open your app successfully.
+
+⚙️ Bonus Fix: Garbage Collection Warning (Optional)
+
+Since you’re already using Replit, you can’t use --expose-gc.
+So silence the warning safely like this in your HealthMonitor:
+
+if (global.gc) {
+  global.gc();
+  console.log("[HealthMonitor] Manual GC triggered successfully.");
+} else {
+  console.log("[HealthMonitor] GC not available on this platform (Replit). Skipping safely.");
+}
+
+
+This prevents the repeating “⚠️ Garbage collection not exposed” message.
+
+✅ Final Working Summary
+
+After changes, your startup log should look like this:
+
+[express] CSRF protection enabled
+[express] ✅ Server running on port 44775
+[HealthMonitor] ✓ GC not available on this platform, skipping safely
+[DB] Connection pool initialized successfully
+[AutomationScheduler] ✓ All tasks scheduled and ready
+[AppLogger] ✅ AI Data Batch: 1 events

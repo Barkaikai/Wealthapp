@@ -12,6 +12,7 @@ import { WebSearchBar } from "@/components/WebSearchBar";
 import { ChatGPT } from "@/components/ChatGPT";
 import { TimeDate } from "@/components/TimeDate";
 import { OnlineStatus } from "@/components/OnlineStatus";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { BluetoothConnect } from "@/components/BluetoothConnect";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ViewModeProvider } from "@/components/ViewModeProvider";
@@ -164,6 +165,7 @@ function AuthenticatedApp() {
               <WebSearchBar compact />
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <ConnectionStatus />
               <OnlineStatus />
               <BluetoothConnect />
               <Button

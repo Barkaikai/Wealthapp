@@ -1,0 +1,176 @@
+Host it separately (e.g. in your Replit public/ or client/ folder)
+
+Or serve it via your Express app statically.
+
+It automatically fetches data from /admin/status.json and visualizes uptime, jobs, and memory usage in real time.
+
+🧩 public/admin.html (Standalone Dashboard File)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #f7f9fb;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #222;
+    }
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    #refresh {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #refresh:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Server Admin Dashboard</h1>
+
+  <div class="section">
+    <h2>Server Overview</h2>
+    <p><strong>Status:</strong> <span id="status">Loading...</span></p>
+    <p><strong>Port:</strong> <span id="port"></span></p>
+    <p><strong>Uptime:</strong> <span id="uptime"></span> min</p>
+    <p><strong>Memory:</strong> RSS <span id="rss"></span> MB | Heap <span id="heap"></span> MB</p>
+    <div class="chart-container">
+      <canvas id="memChart"></canvas>
+    </div>
+    <button id="refresh">🔄 Refresh Data</button>
+  </div>
+
+  <div class="section">
+    <h2>Scheduled Jobs</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Schedule</th><th>Last Run</th><th>Status</th></tr>
+      </thead>
+      <tbody id="jobsTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadStatus() {
+      try {
+        const res = await fetch('/admin/status.json');
+        const data = await res.json();
+
+        document.getElementById('status').textContent = data.server.status;
+        document.getElementById('port').textContent = data.server.port;
+        document.getElementById('uptime').textContent = (data.server.uptime / 60).toFixed(2);
+        document.getElementById('rss').textContent = data.memory.rss.toFixed(2);
+        document.getElementById('heap').textContent = data.memory.heapUsed.toFixed(2);
+
+        // Jobs table
+        const tbody = document.getElementById('jobsTable');
+        tbody.innerHTML = data.jobs.map(j => `
+          <tr>
+            <td>${j.name}</td>
+            <td>${j.schedule}</td>
+            <td>${new Date(j.lastRun).toLocaleString()}</td>
+            <td>${j.status}</td>
+          </tr>
+        `).join('');
+
+        // Update chart
+        renderChart(data.memory.heapUsed, data.memory.rss);
+
+      } catch (err) {
+        console.error('Error loading status:', err);
+      }
+    }
+
+    let chartInstance;
+    function renderChart(heap, rss) {
+      const ctx = document.getElementById('memChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Heap Used (MB)', 'RSS (MB)'],
+          datasets: [{
+            label: 'Memory Usage',
+            data: [heap, rss],
+            backgroundColor: ['#36A2EB', '#FF6384']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    document.getElementById('refresh').addEventListener('click', loadStatus);
+
+    loadStatus();
+    setInterval(loadStatus, 60000); // auto refresh every 1 min
+  </script>
+</body>
+</html>
+
+🛠️ How to Use It
+
+Save this file as:
+
+public/admin.html
+
+
+Add a static route in your Express app if not already:
+
+app.use(express.static("public"));
+
+
+Visit:
+
+https://your-app-name.replit.app/admin.html
+
+
+✅ You’ll see:
+
+A live server status panel
+
+Uptime & memory charts
+
+Scheduled jobs table
+
+One-click refresh

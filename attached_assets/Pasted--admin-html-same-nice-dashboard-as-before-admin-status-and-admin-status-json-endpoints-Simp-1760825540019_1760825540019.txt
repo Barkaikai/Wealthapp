@@ -1,0 +1,113 @@
+/admin.html (same nice dashboard as before)
+
+/admin/status and /admin/status.json endpoints
+
+🔒 Simple password protection middleware
+
+Works on Replit or any Node/Express host
+
+🧩 1️⃣ Add this to your server/index.ts
+
+This code secures all /admin/* routes with a single password.
+
+import express from "express";
+import path from "path";
+import os from "os";
+
+const app = express();
+
+// --- 🔐 Simple Admin Auth Middleware ---
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // set a strong one in Replit Secrets
+
+app.use("/admin", (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || auth !== `Bearer ${ADMIN_PASSWORD}`) {
+    return res
+      .status(401)
+      .send("Unauthorized. Use Authorization: Bearer <ADMIN_PASSWORD>");
+  }
+  next();
+});
+
+// --- 🩺 Admin Status Endpoints ---
+app.get("/admin/status.json", async (req, res) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+
+  // Simulated job data
+  const jobs = [
+    { name: "Email Sync", schedule: "Hourly at :00", lastRun: Date.now() - 3600000, status: "OK" },
+    { name: "Daily Report", schedule: "9 PM", lastRun: Date.now() - 7200000, status: "OK" }
+  ];
+
+  res.json({
+    server: {
+      status: "Running",
+      port: process.env.PORT || 5000,
+      uptime,
+      hostname: os.hostname(),
+    },
+    memory: {
+      rss: memoryUsage.rss / 1024 / 1024,
+      heapUsed: memoryUsage.heapUsed / 1024 / 1024,
+      external: memoryUsage.external / 1024 / 1024,
+    },
+    jobs,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// --- Serve the Admin Dashboard HTML ---
+app.get("/admin/status", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
+
+// --- Serve other static files ---
+app.use(express.static("public"));
+
+// --- Server Start ---
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`[express] ✅ Server running on port ${PORT}`);
+});
+
+🧩 2️⃣ Set the Admin Password in Replit
+
+Go to your Replit sidebar → Secrets (🔒 icon)
+Add a new secret:
+
+Key: ADMIN_PASSWORD
+Value: something-strong-like-MySecureKey!2025
+
+
+This keeps your dashboard private — only you can access it.
+
+🧩 3️⃣ Modify your admin.html to Use the Password
+
+Add this at the top of your <script> section:
+
+const ADMIN_PASSWORD = prompt("Enter admin password:");
+
+
+And modify your fetch call like this:
+
+const res = await fetch('/admin/status.json', {
+  headers: {
+    'Authorization': `Bearer ${ADMIN_PASSWORD}`
+  }
+});
+
+
+That’s it — when you open /admin/status, it will prompt you for your admin password before fetching data.
+
+✅ How It Works
+
+/admin/status.json → returns live JSON of uptime, memory, jobs
+
+/admin/status → displays a live dashboard with charts and tables
+
+Both require a valid Bearer token (your admin password)
+
+Replit keeps your password safe in Secrets
+
+You can refresh or update it anytime

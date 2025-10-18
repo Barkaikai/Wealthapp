@@ -178,10 +178,9 @@ export default function Landing() {
 
           {/* Premium CTA Section with Background */}
           <div className="relative rounded-2xl overflow-hidden">
-            {/* Background Image */}
+            {/* Gradient Background */}
             <div 
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${luxuryGala})` }}
+              className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10"
             />
             
             {/* Dark Overlay */}

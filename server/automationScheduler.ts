@@ -5,10 +5,12 @@ import { syncAndCategorizeEmails } from './emailAutomation';
 import { generateRoutineReport } from './openai';
 import { appLogger } from './appLogger';
 import { GmailScopeError, GmailNotConnectedError } from './gmail';
+import { taskQueue } from './taskQueue';
 
 /**
  * Automation Scheduler Service
  * Handles automated email syncing and routine report generation with async queue processing
+ * Uses database-backed task tracking to never miss scheduled runs
  */
 class AutomationScheduler {
   private emailSyncJob: cron.ScheduledTask | null = null;
@@ -29,6 +31,9 @@ class AutomationScheduler {
 
   /**
    * Start all automated tasks
+   * - Registers tasks in database
+   * - Checks for missed tasks and catches up
+   * - Schedules future runs
    */
   async start(): Promise<void> {
     if (this.isRunning) {
@@ -39,23 +44,116 @@ class AutomationScheduler {
     this.isRunning = true;
     console.log('[AutomationScheduler] Starting automated tasks');
 
-    // Schedule email syncing every hour at :00 (non-blocking)
+    // Register tasks in database
+    await this.registerTasks();
+
+    // Check for missed tasks and catch up
+    await this.catchUpMissedTasks();
+
+    // Schedule future runs
+    await this.scheduleTasks();
+
+    console.log('[AutomationScheduler] ✓ All tasks scheduled and ready');
+  }
+
+  /**
+   * Register task definitions in database
+   */
+  private async registerTasks(): Promise<void> {
+    await taskQueue.registerTask(
+      'emailSync',
+      '0 * * * *',
+      'Sync and categorize emails for all users'
+    );
+
+    await taskQueue.registerTask(
+      'dailyReports',
+      '0 21 * * *',
+      'Generate daily routine reports for all users'
+    );
+  }
+
+  /**
+   * Check for missed tasks and run them asynchronously
+   */
+  private async catchUpMissedTasks(): Promise<void> {
+    const missedTasks = await taskQueue.getMissedTasks();
+
+    if (missedTasks.length === 0) {
+      console.log('[AutomationScheduler] No missed tasks found');
+      return;
+    }
+
+    console.log(`[AutomationScheduler] Found ${missedTasks.length} missed task(s), catching up...`);
+
+    for (const task of missedTasks) {
+      if (task.name === 'emailSync') {
+        console.log('[AutomationScheduler] Catching up on missed email sync...');
+        // Run in background, don't await
+        this.runEmailSync().catch(err => {
+          console.error('[AutomationScheduler] Catchup email sync failed:', err);
+        });
+      } else if (task.name === 'dailyReports') {
+        console.log('[AutomationScheduler] Catching up on missed daily reports...');
+        // Run in background, don't await
+        this.runDailyReports().catch(err => {
+          console.error('[AutomationScheduler] Catchup daily reports failed:', err);
+        });
+      }
+    }
+  }
+
+  /**
+   * Schedule future task runs
+   */
+  private async scheduleTasks(): Promise<void> {
+    // Schedule email syncing every hour at :00
+    const emailSyncRunner = taskQueue.createTaskRunner(
+      'emailSync',
+      () => this.runEmailSync()
+    );
+
     this.emailSyncJob = cron.schedule('0 * * * *', () => {
-      console.log('[AutomationScheduler] Hourly email sync triggered (enqueuing users)...');
-      this.enqueueAllUsersForSync().catch(err => {
-        console.error('[AutomationScheduler] Failed to enqueue hourly sync:', err);
+      emailSyncRunner().catch(err => {
+        console.error('[AutomationScheduler] Hourly email sync error:', err);
       });
     });
 
     // Schedule routine reports daily at 9 PM
-    this.routineReportJob = cron.schedule('0 21 * * *', async () => {
-      await this.generateRoutineReportsForAllUsers();
+    const dailyReportsRunner = taskQueue.createTaskRunner(
+      'dailyReports',
+      () => this.runDailyReports()
+    );
+
+    this.routineReportJob = cron.schedule('0 21 * * *', () => {
+      dailyReportsRunner().catch(err => {
+        console.error('[AutomationScheduler] Daily reports error:', err);
+      });
     });
 
     console.log('[AutomationScheduler] ✓ Email sync scheduled (hourly at :00)');
     console.log('[AutomationScheduler] ✓ Routine reports scheduled (daily at 9 PM)');
     console.log(`[AutomationScheduler] ✓ Queue concurrency set to ${this.emailSyncQueue.concurrency}`);
-    console.log('[AutomationScheduler] ℹ Initial email sync skipped - will run on next hourly schedule');
+  }
+
+  /**
+   * Run email sync task
+   */
+  private async runEmailSync(): Promise<void> {
+    console.log('[AutomationScheduler] Running email sync task');
+    await this.enqueueAllUsersForSync();
+    
+    // Wait for queue to finish processing
+    await this.emailSyncQueue.onIdle();
+    console.log('[AutomationScheduler] Email sync completed for all users');
+  }
+
+  /**
+   * Run daily reports task
+   */
+  private async runDailyReports(): Promise<void> {
+    console.log('[AutomationScheduler] Running daily reports task');
+    await this.generateRoutineReportsForAllUsers();
   }
 
   /**
@@ -124,42 +222,24 @@ class AutomationScheduler {
             draftsCreated: result.draftsCreated,
           });
         }
-      } catch (error: any) {
+      } catch (error) {
         // Handle Gmail-specific errors gracefully
-        if (error instanceof GmailScopeError) {
-          // User needs to reconnect with proper scope - log once and skip
-          console.warn(`[AutomationScheduler] Gmail scope error for user ${userId} - skipping`);
+        if (error instanceof GmailScopeError || error instanceof GmailNotConnectedError) {
+          console.log(`[AutomationScheduler] Gmail scope error for user ${userId} - skipping`);
           return;
         }
         
-        if (error instanceof GmailNotConnectedError) {
-          // Gmail not connected - skip silently
-          return;
-        }
-
-        // Log other errors but don't crash
-        console.error(`[AutomationScheduler] Error syncing emails for user ${userId}:`, error.message);
-        
+        console.error(`Error syncing emails for user ${userId}:`, error);
         appLogger.log('error', 'automated_email_sync_error', {
           userId,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
-    }).catch(err => {
-      // Catch any unexpected queue errors
-      console.error(`[AutomationScheduler] Unexpected queue error for user ${userId}:`, err);
     });
   }
 
   /**
-   * Sync emails for all active users (legacy method - now uses queue)
-   */
-  private async syncEmailsForAllUsers(): Promise<void> {
-    await this.enqueueAllUsersForSync();
-  }
-
-  /**
-   * Generate routine reports for all users with routines
+   * Generate routine reports for all users
    */
   private async generateRoutineReportsForAllUsers(): Promise<void> {
     if (!this.storage) {
@@ -168,126 +248,64 @@ class AutomationScheduler {
     }
 
     try {
-      console.log('[AutomationScheduler] Starting automated routine report generation');
       const users = await this.storage.getAllUsers();
-      
-      let successCount = 0;
-      let errorCount = 0;
+      console.log(`[AutomationScheduler] Generating routine reports for ${users.length} users`);
 
       for (const user of users) {
         try {
-          // Get user's routines
-          const routines = await this.storage.getRoutines(user.id);
+          const routines = await this.storage.getRoutinesByUser(user.id);
           
           if (routines.length === 0) {
-            continue; // Skip users with no routines
+            continue;
           }
 
-          // Generate routine description
-          const routineDescription = routines
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .map(r => `${r.time} - ${r.title} (${r.duration}) [${r.category}]`)
-            .join('\n');
-
-          // Generate daily report using default template (Tim Cook - balanced approach)
-          const report = await generateRoutineReport(
-            routineDescription,
-            'timCook',
-            null // No briefing summary for automated reports
-          );
-
-          // Store the report
-          await this.storage.createRoutineReport({
+          const report = await generateRoutineReport(routines);
+          
+          await this.storage.saveRoutineReport({
             userId: user.id,
-            templateUsed: 'timCook',
-            report: report.report,
+            templateUsed: 'productivity_coach',
+            report: report.analysis,
             recommendations: JSON.stringify(report.recommendations),
-            focusAreas: JSON.stringify(report.focus_areas),
+            focusAreas: JSON.stringify(report.focusAreas),
             generatedAt: new Date(),
           });
 
-          console.log(`[AutomationScheduler] Generated routine report for user ${user.id}`);
-          
           appLogger.log('info', 'automated_routine_report', {
             userId: user.id,
-            templateUsed: 'timCook',
-            routineCount: routines.length,
+            routinesCount: routines.length,
           });
 
-          successCount++;
-        } catch (error: any) {
-          errorCount++;
-          console.error(`[AutomationScheduler] Error generating routine report for user ${user.id}:`, error.message);
-          
+          console.log(`[AutomationScheduler] Generated routine report for user ${user.id}`);
+        } catch (error) {
+          console.error(`Error generating routine report for user ${user.id}:`, error);
           appLogger.log('error', 'automated_routine_report_error', {
             userId: user.id,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
 
-      console.log(`[AutomationScheduler] Routine report generation complete: ${successCount} successful, ${errorCount} errors`);
+      console.log('[AutomationScheduler] Routine report generation completed');
     } catch (error: any) {
-      console.error('[AutomationScheduler] Critical error in routine report generation:', error);
-      appLogger.log('error', 'automated_routine_report_critical', {
-        error: error.message,
-      });
+      console.error('[AutomationScheduler] Failed to generate routine reports:', error.message);
     }
   }
 
   /**
-   * Manually trigger email sync for specific user (on-demand)
+   * Manual trigger for email sync (for testing)
    */
-  async syncEmailsForUser(userId: string): Promise<void> {
-    try {
-      const result = await syncAndCategorizeEmails(userId, 50);
-      console.log(`[AutomationScheduler] Manual sync for user ${userId}: ${result.synced} emails`);
-      return result as any;
-    } catch (error) {
-      console.error(`[AutomationScheduler] Manual sync error for user ${userId}:`, error);
-      throw error;
-    }
+  async triggerEmailSync(): Promise<void> {
+    const runner = taskQueue.createTaskRunner('emailSync', () => this.runEmailSync());
+    await runner();
   }
 
   /**
-   * Manually trigger routine report for specific user (on-demand)
+   * Manual trigger for daily reports (for testing)
    */
-  async generateRoutineReportForUser(userId: string, templateName: string): Promise<void> {
-    if (!this.storage) {
-      throw new Error('Storage not initialized');
-    }
-
-    try {
-      const routines = await this.storage.getRoutines(userId);
-      
-      if (routines.length === 0) {
-        throw new Error('No routines found for user');
-      }
-
-      const routineDescription = routines
-        .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .map(r => `${r.time} - ${r.title} (${r.duration}) [${r.category}]`)
-        .join('\n');
-
-      const report = await generateRoutineReport(routineDescription, templateName, null);
-
-      await this.storage.createRoutineReport({
-        userId,
-        templateUsed: templateName,
-        report: report.report,
-        recommendations: JSON.stringify(report.recommendations),
-        focusAreas: JSON.stringify(report.focus_areas),
-        generatedAt: new Date(),
-      });
-
-      console.log(`[AutomationScheduler] Manual routine report for user ${userId}`);
-      return report as any;
-    } catch (error) {
-      console.error(`[AutomationScheduler] Manual routine report error for user ${userId}:`, error);
-      throw error;
-    }
+  async triggerDailyReports(): Promise<void> {
+    const runner = taskQueue.createTaskRunner('dailyReports', () => this.runDailyReports());
+    await runner();
   }
 }
 
-// Export singleton instance
 export const automationScheduler = new AutomationScheduler();

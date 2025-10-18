@@ -1,6 +1,6 @@
 import { db } from './db';
 import { scheduledTasks, type InsertScheduledTask } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import cronParser from 'cron-parser';
 
 /**
@@ -8,6 +8,55 @@ import cronParser from 'cron-parser';
  * Ensures tasks are never missed and can catch up after restarts
  */
 export class TaskQueue {
+  private isInitialized = false;
+
+  /**
+   * Ensure the table exists before using it
+   */
+  private async ensureTableExists(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    try {
+      // Check if table exists by trying to query it
+      await db.select().from(scheduledTasks).limit(1);
+      this.isInitialized = true;
+    } catch (error: any) {
+      // Table doesn't exist, create it
+      if (error?.code === '42P01') {
+        console.log('[TaskQueue] Creating scheduled_tasks table...');
+        try {
+          await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS scheduled_tasks (
+              id SERIAL PRIMARY KEY,
+              name VARCHAR(100) UNIQUE NOT NULL,
+              description TEXT,
+              cron_expression VARCHAR(100) NOT NULL,
+              last_run_at TIMESTAMP,
+              last_run_status VARCHAR(20),
+              last_run_error TEXT,
+              next_run_at TIMESTAMP,
+              enabled VARCHAR(5) DEFAULT 'true',
+              created_at TIMESTAMP DEFAULT NOW(),
+              updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_name ON scheduled_tasks(name);
+            CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_enabled ON scheduled_tasks(enabled);
+          `);
+          console.log('[TaskQueue] ✓ Table created successfully');
+          this.isInitialized = true;
+        } catch (createError) {
+          console.error('[TaskQueue] Failed to create table:', createError);
+          throw createError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }
+
   /**
    * Register a task in the database
    */
@@ -16,6 +65,8 @@ export class TaskQueue {
     cronExpression: string,
     description?: string
   ): Promise<void> {
+    await this.ensureTableExists();
+    
     try {
       const existing = await db
         .select()
@@ -67,6 +118,8 @@ export class TaskQueue {
     status: 'success' | 'failed' | 'running',
     error?: string
   ): Promise<void> {
+    await this.ensureTableExists();
+    
     try {
       const task = await db
         .select()
@@ -109,6 +162,8 @@ export class TaskQueue {
    * Check for missed tasks and return list of tasks that need to catch up
    */
   async getMissedTasks(): Promise<Array<{ name: string; cronExpression: string; lastRunAt: Date | null }>> {
+    await this.ensureTableExists();
+    
     try {
       const tasks = await db
         .select()

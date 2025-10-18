@@ -37,6 +37,27 @@ export async function attachSubscription(req: any, res: Response, next: NextFunc
     }
 
     const userId = req.user.claims.sub;
+    
+    // Check if user is admin with unlimited access
+    const user = await storage.getUser(userId);
+    if (user?.isAdmin === 'true' || user?.hasUnlimitedAccess === 'true') {
+      // Admin gets enterprise tier with unlimited everything
+      req.subscription = {
+        tier: 'enterprise',
+        status: 'active',
+        isAdmin: true,
+        hasUnlimitedAccess: true,
+        plan: {
+          tier: 'enterprise',
+          name: 'Admin Unlimited',
+          maxAssets: -1,
+          maxEmails: -1,
+          aiCredits: -1,
+        },
+      };
+      return next();
+    }
+
     const userSubscription = await storage.getUserSubscription(userId);
 
     if (!userSubscription) {
@@ -144,6 +165,12 @@ export function requireActiveSubscription(req: Request, res: Response, next: Nex
  */
 export async function hasFeatureAccess(userId: string, feature: string): Promise<boolean> {
   try {
+    // Check if user is admin with unlimited access - bypass all restrictions
+    const user = await storage.getUser(userId);
+    if (user?.isAdmin === 'true' || user?.hasUnlimitedAccess === 'true') {
+      return true; // Admins have access to everything
+    }
+
     const userSubscription = await storage.getUserSubscription(userId);
     
     // Get tier from plan, not from userSubscription (which doesn't have tier field)
@@ -202,6 +229,12 @@ export async function checkUsageLimit(
   limitType: 'maxAssets' | 'maxEmails' | 'aiCredits'
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
   try {
+    // Check if user is admin with unlimited access - bypass all limits
+    const user = await storage.getUser(userId);
+    if (user?.isAdmin === 'true' || user?.hasUnlimitedAccess === 'true') {
+      return { allowed: true, current: 0, limit: -1 }; // Admins have unlimited access
+    }
+
     const userSubscription = await storage.getUserSubscription(userId);
     
     // Get tier from plan, not from userSubscription (which doesn't have tier field)

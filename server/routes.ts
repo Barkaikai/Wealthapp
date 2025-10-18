@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { eq } from "drizzle-orm";
 import { generateDailyBriefing, categorizeEmail, draftEmailReply, generateLifestyleRecommendations, generateTopicArticle, generateVideoRecommendations, generateRoutineReport } from "./openai";
 import { getMarketOverview } from "./marketData";
 import { slugify } from "./utils";
@@ -39,6 +40,7 @@ import { healthMonitor } from "./healthMonitor";
 import { analyzeDocument } from "./documentAnalysis";
 import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
 import healthRoutes from "./healthRoutes";
+import { doubleCsrf } from "csrf-csrf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stricter rate limiting for AI endpoints to prevent abuse and cost attacks
@@ -81,6 +83,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+
+  // Security: CSRF protection (setup AFTER session to ensure req.session is available)
+  if (process.env.CSRF_SECRET) {
+    const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+      getSecret: () => process.env.CSRF_SECRET!,
+      getSessionIdentifier: (req) => {
+        // Use session ID from express-session (now available after setupAuth)
+        return (req.session as any)?.id || req.sessionID || `${req.ip}-${req.get('user-agent')}`;
+      },
+      cookieName: process.env.NODE_ENV === 'production' ? "__Host.x-csrf-token" : "x-csrf-token",
+      cookieOptions: {
+        sameSite: "lax", // Changed from strict to lax for better compatibility
+        path: "/",
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+      },
+    });
+
+    // Endpoint to get CSRF token (MUST be before middleware to generate fresh token)
+    app.get("/api/csrf-token", (req, res) => {
+      const token = generateCsrfToken(req, res);
+      res.json({ csrfToken: token });
+    });
+
+    // Protect all state-changing API routes (except exempt routes)
+    app.use("/api/*", (req, res, next) => {
+      // Skip CSRF for GET/HEAD/OPTIONS requests
+      if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
+        return next();
+      }
+
+      // Skip CSRF for specific routes
+      const csrfExemptRoutes = ['/api/login', '/api/callback', '/api/logout', '/api/csrf-token'];
+      if (csrfExemptRoutes.includes(req.path)) {
+        return next();
+      }
+      
+      // Apply CSRF protection to state-changing methods (POST, PUT, PATCH, DELETE)
+      return doubleCsrfProtection(req, res, next);
+    });
+
+    console.log('[CSRF] Protection enabled with session-based tokens');
+  }
 
   // Helper function to safely parse integer IDs
   const parseIntId = (value: string, paramName: string = 'id'): number => {
@@ -4878,32 +4923,47 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // FREE PASSES & SUBSCRIPTION CONFIG ROUTES
   // ============================================================================
 
-  // Admin middleware - checks if user is admin
+  // Admin middleware - checks if user is admin (database-driven + env fallback)
   const requireAdminUser = async (req: any, res: any, next: any) => {
     try {
       const userId = await getCanonicalUserId(req.user.claims);
       
-      // Check if ADMIN_USER_ID env var is set and matches
-      const adminUserId = process.env.ADMIN_USER_ID;
-      if (adminUserId && userId === adminUserId) {
+      // Primary check: Database isAdmin field
+      const user = await storage.getUser(userId);
+      if (user?.isAdmin === 'true') {
+        console.log('[Admin] Access granted to admin user:', userId);
         return next();
       }
       
-      // Development fallback: if ADMIN_USER_ID is not set, check if this is the first created user
-      if (!adminUserId) {
-        // Query database to find the first created user (oldest createdAt)
+      // Legacy fallback: ADMIN_USER_ID environment variable
+      const adminUserId = process.env.ADMIN_USER_ID;
+      if (adminUserId && userId === adminUserId) {
+        // Auto-promote to admin in database
+        await storage.updateUser(userId, { isAdmin: 'true', hasUnlimitedAccess: 'true' });
+        console.log('[Admin] Auto-promoted ADMIN_USER_ID to admin:', userId);
+        return next();
+      }
+      
+      // Development fallback: if no admins exist, grant to first created user
+      const firstAdminQuery = await db.select()
+        .from(users)
+        .where(eq(users.isAdmin, 'true'))
+        .limit(1);
+      
+      if (firstAdminQuery.length === 0) {
         const firstUserQuery = await db.select()
           .from(users)
           .orderBy(users.createdAt)
           .limit(1);
         
         if (firstUserQuery.length > 0 && firstUserQuery[0].id === userId) {
-          console.log('[Admin] No ADMIN_USER_ID set, granting admin access to first user:', userId);
+          await storage.updateUser(userId, { isAdmin: 'true', hasUnlimitedAccess: 'true' });
+          console.log('[Admin] No admins exist, granting admin to first user:', userId);
           return next();
         }
       }
       
-      return res.status(403).json({ message: 'Admin access required. Set ADMIN_USER_ID environment variable.' });
+      return res.status(403).json({ message: 'Admin access required' });
     } catch (error: any) {
       console.error('[Admin] Auth error:', error);
       return res.status(403).json({ message: 'Unauthorized' });
@@ -4969,7 +5029,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         return res.status(400).json({ message: 'Count must be between 1 and 100' });
       }
 
-      const totalPasses = await storage.getFreePassCount();
+      const totalPasses = await storage.getAccessPassCount();
       
       if (totalPasses + count > MAX_TOTAL) {
         return res.status(400).json({ 
@@ -4980,7 +5040,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       const created = [];
       for (let i = 0; i < count; i++) {
         const code = require('crypto').randomUUID();
-        const pass = await storage.createFreePass({
+        const pass = await storage.createAccessPass({
           code,
           createdBy: userId,
           note: note || null,
@@ -4998,8 +5058,8 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   // Admin: List all passes
   app.get('/api/admin/passes', isAuthenticated, requireAdminUser, async (req: any, res) => {
     try {
-      const passes = await storage.getFreePasses();
-      const total = await storage.getFreePassCount();
+      const passes = await storage.getAccessPasses();
+      const total = await storage.getAccessPassCount();
       res.json({ passes, total, maxTotal: 400 });
     } catch (error: any) {
       console.error('[Admin] List passes error:', error);
@@ -5011,7 +5071,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   app.get('/api/admin/passes/:code/qrcode', isAuthenticated, requireAdminUser, async (req: any, res) => {
     try {
       const { code } = req.params;
-      const pass = await storage.getFreePassByCode(code);
+      const pass = await storage.getAccessPassByCode(code);
       
       if (!pass) {
         return res.status(404).json({ message: 'Pass not found' });
@@ -5038,7 +5098,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
       }
 
       // The storage method now handles all validation including redeemed check
-      const redeemed = await storage.redeemFreePass(code, userId);
+      const redeemed = await storage.redeemAccessPass(code, userId);
       
       res.json({ 
         success: true, 

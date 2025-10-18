@@ -31,9 +31,14 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  isAdmin: varchar("is_admin", { length: 5 }).default('false'), // Admin with unlimited access
+  hasUnlimitedAccess: varchar("has_unlimited_access", { length: 5 }).default('false'), // Bypass all limits
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_users_email").on(table.email),
+  index("idx_users_is_admin").on(table.isAdmin)
+]);
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1976,28 +1981,36 @@ export const insertSubscriptionConfigSchema = createInsertSchema(subscriptionCon
 export type InsertSubscriptionConfig = z.infer<typeof insertSubscriptionConfigSchema>;
 export type SubscriptionConfig = typeof subscriptionConfig.$inferSelect;
 
-// Free Passes - Admin-created promotional pass codes
-export const freePasses = pgTable("free_passes", {
+// Access Passes - Admin-created promotional pass codes with discount tiers
+// Tiers: 100% off (free), 50% off, 20% off
+export const accessPasses = pgTable("access_passes", {
   id: serial("id").primaryKey(),
   code: varchar("code").unique().notNull(),
+  discountPercent: integer("discount_percent").notNull().default(100), // 100% = free, 50% = half off, 20% = 20% off
+  tier: varchar("tier", { length: 50 }).notNull().default('free'), // free, half_off, discount_20
   createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow(),
   redeemedBy: varchar("redeemed_by").references(() => users.id, { onDelete: 'set null' }),
   redeemedAt: timestamp("redeemed_at"),
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  maxRedemptions: integer("max_redemptions").default(1), // How many times can be used
+  timesRedeemed: integer("times_redeemed").default(0),
   note: text("note"),
 }, (table) => [
-  index("idx_free_passes_code").on(table.code),
-  index("idx_free_passes_created_by").on(table.createdBy),
-  index("idx_free_passes_redeemed_by").on(table.redeemedBy)
+  index("idx_access_passes_code").on(table.code),
+  index("idx_access_passes_tier").on(table.tier),
+  index("idx_access_passes_created_by").on(table.createdBy),
+  index("idx_access_passes_redeemed_by").on(table.redeemedBy)
 ]);
 
-export const insertFreePassSchema = createInsertSchema(freePasses).omit({
+export const insertAccessPassSchema = createInsertSchema(accessPasses).omit({
   id: true,
   createdAt: true,
+  timesRedeemed: true,
 });
 
-export type InsertFreePass = z.infer<typeof insertFreePassSchema>;
-export type FreePass = typeof freePasses.$inferSelect;
+export type InsertAccessPass = z.infer<typeof insertAccessPassSchema>;
+export type AccessPass = typeof accessPasses.$inferSelect;
 
 // Tax Rates - Regional tax configuration for Stripe
 export const taxRates = pgTable("tax_rates", {

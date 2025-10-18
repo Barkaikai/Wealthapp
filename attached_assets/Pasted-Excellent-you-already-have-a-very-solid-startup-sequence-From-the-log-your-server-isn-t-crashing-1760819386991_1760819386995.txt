@@ -1,0 +1,149 @@
+Excellent — you already have a very solid startup sequence.
+From the log, your server isn’t crashing, but it’s throwing two avoidable issues:
+
+Duplicate database connection ([DB] Database connection established twice)
+
+The garbage collection (GC) warning
+
+(Optional) The CTRL+C exit (^C) may prevent clean shutdowns
+
+Let’s fix all three with clean, production-ready code.
+
+🧩 1️⃣ Problem: Duplicate DB connection
+
+You’re calling connectDB() twice — once directly and once indirectly (likely from your automation or monitor modules).
+
+✅ Fix: Use a single shared connection instance
+
+db.js
+
+import { MongoClient } from "mongodb";
+
+let client;
+let db;
+
+export async function connectDB() {
+  if (db) return db; // ✅ Prevent double connection
+  const uri = process.env.MONGO_URL;
+  client = new MongoClient(uri);
+  await client.connect();
+  db = client.db("main");
+  console.log("[DB] Database connection established");
+  return db;
+}
+
+export async function closeDB() {
+  if (client) await client.close();
+  console.log("[DB] Database connection closed");
+}
+
+
+Now, all modules (automationScheduler, taskQueue, etc.) should import connectDB() from this file — never create their own client.
+
+🧩 2️⃣ Problem: Garbage Collection warning
+
+You see this message:
+
+[GC Manager] ⚠️ Garbage collection not exposed. Start Node with --expose-gc
+
+
+Node disables manual GC by default for security and stability reasons.
+To enable your HealthMonitor to run its memory cleanup, you can safely expose it for development (not production).
+
+✅ Fix Option 1 (Dev Script)
+
+Create a script file named start-dev.sh:
+
+#!/bin/bash
+echo "🧹 Starting Node with manual garbage collection enabled..."
+NODE_ENV=development node --expose-gc server/index.ts
+
+
+Then make it executable:
+
+chmod +x start-dev.sh
+
+
+Now start your app with:
+
+./start-dev.sh
+
+✅ Fix Option 2 (Permanent NPM script)
+
+If you use npm scripts, edit your package.json:
+
+{
+  "scripts": {
+    "dev": "NODE_ENV=development node --expose-gc --loader tsx server/index.ts",
+    "start": "NODE_ENV=production node --expose-gc --loader tsx server/index.ts"
+  }
+}
+
+
+Then just run:
+
+npm run dev
+
+✅ Fix Option 3 (If you can’t expose GC)
+
+If you’re on a managed host (like Replit) that doesn’t allow --expose-gc, add a fail-safe in your monitor:
+
+// in HealthMonitor.js
+if (global.gc) {
+  global.gc();
+} else {
+  console.warn("[GC Manager] GC not available; skipping cleanup safely.");
+}
+
+
+That prevents warnings or crashes.
+
+🧩 3️⃣ Problem: ^C (Unclean shutdown)
+
+When you press CTRL+C, Node stops immediately — sometimes without closing DB connections or pending jobs.
+
+✅ Fix: Graceful shutdown
+
+Add this to your main server file (server/index.ts or server.js):
+
+import { closeDB } from "./db.js";
+
+process.on("SIGINT", async () => {
+  console.log("\n🧘 Gracefully shutting down...");
+  await closeDB();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("\n🧘 Received termination signal...");
+  await closeDB();
+  process.exit(0);
+});
+
+
+This ensures your DB connections and schedulers close cleanly.
+
+✅ Final State (After Fix)
+[AppLogger] Initialized
+[HealthMonitor] Initialized
+[DB] Database connection established
+[express] ✓ Server listening on port 5000
+[HealthMonitor] ✓ GC available
+[AutomationScheduler] ✓ Tasks scheduled
+✅ Server running smoothly with no duplicate DB or GC warnings
+
+🧠 Bonus: Speed Optimization (Optional)
+
+If you still find slow startup due to background jobs:
+
+Move your automation scheduler initialization to run after port open, not before (use setTimeout 2–3 seconds after app.listen()).
+
+Example:
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server ready on port ${PORT}`);
+  setTimeout(initializeBackgroundServices, 3000);
+});
+
+
+That ensures the server starts instantly and handles users right away.

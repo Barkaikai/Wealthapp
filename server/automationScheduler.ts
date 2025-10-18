@@ -43,8 +43,9 @@ class AutomationScheduler {
     console.log('[AutomationScheduler] ✓ Email sync scheduled (hourly at :00)');
     console.log('[AutomationScheduler] ✓ Routine reports scheduled (daily at 9 PM)');
 
-    // Run initial email sync after 1 minute
-    setTimeout(() => this.syncEmailsForAllUsers(), 60000);
+    // Disabled initial email sync to prevent startup delays
+    // Email sync will run on the hourly schedule instead
+    // setTimeout(() => this.syncEmailsForAllUsers(), 60000);
   }
 
   /**

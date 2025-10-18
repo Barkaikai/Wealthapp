@@ -47,9 +47,6 @@ class AutomationScheduler {
     // Register tasks in database
     await this.registerTasks();
 
-    // Check for missed tasks and catch up
-    await this.catchUpMissedTasks();
-
     // Schedule future runs
     await this.scheduleTasks();
 
@@ -142,10 +139,7 @@ class AutomationScheduler {
   private async runEmailSync(): Promise<void> {
     console.log('[AutomationScheduler] Running email sync task');
     await this.enqueueAllUsersForSync();
-    
-    // Wait for queue to finish processing
-    await this.emailSyncQueue.onIdle();
-    console.log('[AutomationScheduler] Email sync completed for all users');
+    console.log('[AutomationScheduler] Email sync enqueued - processing in background');
   }
 
   /**

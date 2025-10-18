@@ -191,7 +191,7 @@ import {
   revenueEntries,
   revenueReports,
   subscriptionConfig,
-  freePasses,
+  accessPasses,
   taxRates,
   type SubscriptionPlan,
   type InsertSubscriptionPlan,
@@ -205,8 +205,8 @@ import {
   type InsertRevenueReport,
   type SubscriptionConfig,
   type InsertSubscriptionConfig,
-  type FreePass,
-  type InsertFreePass,
+  type AccessPass,
+  type InsertAccessPass,
   type TaxRate,
   type InsertTaxRate,
 } from "@shared/schema";
@@ -2531,31 +2531,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Free Pass operations
-  async getFreePasses(): Promise<FreePass[]> {
-    return await db.select().from(freePasses)
-      .orderBy(desc(freePasses.createdAt));
+  async getAccessPasses(): Promise<AccessPass[]> {
+    return await db.select().from(accessPasses)
+      .orderBy(desc(accessPasses.createdAt));
   }
 
-  async getFreePassByCode(code: string): Promise<FreePass | undefined> {
-    const [pass] = await db.select().from(freePasses)
-      .where(eq(freePasses.code, code));
+  async getAccessPassByCode(code: string): Promise<AccessPass | undefined> {
+    const [pass] = await db.select().from(accessPasses)
+      .where(eq(accessPasses.code, code));
     return pass;
   }
 
-  async getFreePassCount(): Promise<number> {
+  async getAccessPassCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)::int` })
-      .from(freePasses);
+      .from(accessPasses);
     return result[0]?.count || 0;
   }
 
-  async createFreePass(pass: InsertFreePass): Promise<FreePass> {
-    const [created] = await db.insert(freePasses).values(pass).returning();
+  async createAccessPass(pass: InsertAccessPass): Promise<AccessPass> {
+    const [created] = await db.insert(accessPasses).values(pass).returning();
     return created;
   }
 
-  async redeemFreePass(code: string, userId: string): Promise<FreePass> {
+  async redeemAccessPass(code: string, userId: string): Promise<AccessPass> {
     // First check if pass exists and is not already redeemed
-    const pass = await this.getFreePassByCode(code);
+    const pass = await this.getAccessPassByCode(code);
     
     if (!pass) {
       throw new Error('Free pass not found');
@@ -2566,14 +2566,14 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Update only if not redeemed (additional safety check in WHERE clause)
-    const [redeemed] = await db.update(freePasses)
+    const [redeemed] = await db.update(accessPasses)
       .set({ 
         redeemedBy: userId,
         redeemedAt: new Date()
       })
       .where(and(
-        eq(freePasses.code, code),
-        sql`${freePasses.redeemedAt} IS NULL`
+        eq(accessPasses.code, code),
+        sql`${accessPasses.redeemedAt} IS NULL`
       ))
       .returning();
     

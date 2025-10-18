@@ -89,48 +89,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Health check endpoint for Replit monitoring (must respond quickly)
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", timestamp: Date.now() });
+});
+
 // Security: CSRF protection (conditional on CSRF_SECRET being set)
+// NOTE: CSRF setup moved AFTER session setup in routes.ts to ensure session is available
 if (process.env.CSRF_SECRET) {
-  const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET!,
-    getSessionIdentifier: (req) => {
-      // Use session ID if available, otherwise use a combination of IP and user agent
-      return (req.session as any)?.id || `${req.ip}-${req.get('user-agent')}`;
-    },
-    cookieName: process.env.NODE_ENV === 'production' ? "__Host.x-csrf-token" : "x-csrf-token",
-    cookieOptions: {
-      sameSite: "strict",
-      path: "/",
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-    },
-  });
-
-  // Generate token and make it available to all routes
-  app.use((req, res, next) => {
-    res.locals.csrfToken = generateCsrfToken(req, res);
-    next();
-  });
-
-  // Endpoint to get CSRF token
-  app.get("/api/csrf-token", (req, res) => {
-    res.json({ csrfToken: res.locals.csrfToken });
-  });
-  
-  // Health check endpoint for Replit monitoring (must respond quickly)
-  app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", timestamp: Date.now() });
-  });
-
-  // Protect all state-changing API routes
-  app.use("/api/*", (req, res, next) => {
-    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {
-      return doubleCsrfProtection(req, res, next);
-    }
-    next();
-  });
-
-  log("CSRF protection enabled");
+  log("CSRF protection will be enabled after session setup");
 } else {
   log("⚠️  CSRF protection disabled - set CSRF_SECRET environment variable to enable");
 }

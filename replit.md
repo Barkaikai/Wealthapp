@@ -22,6 +22,14 @@ The backend is an Express.js with TypeScript REST API. Authentication uses Repli
 - Safe garbage collection with fallback behavior when --expose-gc not available
 - SIGINT/SIGTERM handlers for clean process termination
 
+**Deployment Optimizations (Oct 2025):**
+- `.dockerignore` configured to exclude node_modules (9.6GB) from Docker images
+- Production build optimized to ~6MB total (4MB dist + 2MB assets) - well under 8GB limit
+- Removed 12MB unnecessary images, replaced with gradient backgrounds
+- Configured `.replit` with correct port mapping: localPort 5000 → externalPort 80
+- Real-time connection monitoring with `/api/admin/status` endpoint (30-second polling)
+- Production build system with minification and error handling
+
 ### Feature Specifications
 The platform offers:
 - **Daily Briefing & Wealth Dashboard:** AI-powered reports, portfolio overview, and visualization.

@@ -7,16 +7,12 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+build = "node build-production.js"
+run = "npm run start"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 45333
-externalPort = 3000
 
 [env]
 PORT = "5000"

@@ -83,22 +83,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Debug authentication domains (public endpoint to diagnose auth issues)
-  app.get('/api/debug/auth-domains', (_req, res) => {
-    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
-    res.json({
-      currentHostname: _req.hostname,
-      configuredDomains: domains,
-      isHostnameInDomains: domains.includes(_req.hostname),
-      primaryDomain: domains[0] || 'NOT SET',
-      fallbackDomain: domains.includes(_req.hostname) ? _req.hostname : domains[0],
-      authStrategyName: `replitauth:${domains.includes(_req.hostname) ? _req.hostname : domains[0]}`,
-      message: domains.includes(_req.hostname) 
-        ? '✅ This domain is configured for authentication'
-        : '❌ This domain is NOT in REPLIT_DOMAINS - authentication will fail! Republish needed.'
-    });
-  });
-
   // Admin status endpoint - detailed system information
   app.get('/api/admin/status', async (_req, res) => {
     try {

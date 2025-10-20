@@ -175,7 +175,7 @@ export default function DailyBriefing() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4" data-testid="text-quick-access-title">Quick Access</h2>
+        <h2 className="text-xl font-semibold mb-4 neon-text" data-testid="text-quick-access-title">Quick Access</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {quickAccessItems.map((item) => (
             <Link
@@ -183,7 +183,7 @@ export default function DailyBriefing() {
               href={item.url}
               data-testid={`card-quick-access-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <Card className="hover-elevate active-elevate-2 cursor-pointer transition-all h-full">
+              <Card className="glass-card hover-elevate active-elevate-2 cursor-pointer transition-all duration-500 h-full holographic">
                 <CardHeader className="p-4 space-y-2">
                   <item.icon className={`h-8 w-8 ${item.color}`} />
                   <div>

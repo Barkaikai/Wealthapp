@@ -57,19 +57,19 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section with Luxury Background */}
-      <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)]">
-        {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
+      <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)] scan-lines">
+        {/* Animated Gradient Overlay */}
+        <div className="absolute inset-0 animated-gradient" />
         
-        {/* Subtle Gold Vignette */}
-        <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-primary/5" />
+        {/* Cyber Grid Pattern */}
+        <div className="absolute inset-0 cyber-grid opacity-20" />
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto fade-in-up">
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text float-slow">
             Elite Life Automation
           </h1>
-          <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed fade-in-delay">
             Command your wealth, time, and communications with the sophistication of a private office—powered by cutting-edge AI
           </p>
           
@@ -81,11 +81,11 @@ export default function Landing() {
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center fade-in-delay">
             <Button 
               size="lg" 
               onClick={() => window.location.href = '/api/login'}
-              className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300"
+              className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300 pulse-glow-slow"
               data-testid="button-login"
             >
               <Lock className="mr-2 h-5 w-5" />
@@ -94,7 +94,7 @@ export default function Landing() {
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 h-14 rounded-lg border-2 border-primary/40 bg-background/10 backdrop-blur-md hover:bg-background/20"
+              className="text-lg px-8 h-14 rounded-lg glass-light holographic"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
               data-testid="button-learn-more"
             >
@@ -128,15 +128,15 @@ export default function Landing() {
             {features.map((feature, index) => (
               <Card 
                 key={index} 
-                className="p-8 hover-elevate active-elevate-2 transition-all duration-300 backdrop-blur-sm bg-card/80 border-border/50" 
+                className="glass-card hover-elevate active-elevate-2 transition-all duration-500 p-8 float" 
                 data-testid={`feature-${index}`}
               >
                 <div className="flex flex-col gap-4">
-                  <div className="p-4 rounded-xl bg-primary/10 w-fit border border-primary/20">
+                  <div className="p-4 rounded-xl cyber-glow w-fit pulse-glow">
                     <feature.icon className="h-7 w-7 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                    <h3 className="text-lg font-semibold mb-2 neon-text">{feature.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
@@ -159,12 +159,12 @@ export default function Landing() {
               {securityFeatures.map((security, index) => (
                 <Card 
                   key={index} 
-                  className="p-6 hover-elevate transition-all duration-300"
+                  className="glass-light hover-elevate transition-all duration-500 p-6 holographic"
                   data-testid={`security-${index}`}
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="p-3 rounded-lg bg-primary/10 w-fit">
-                      <security.icon className="h-6 w-6 text-primary" />
+                    <div className="p-3 rounded-lg cyber-glow-yellow w-fit">
+                      <security.icon className="h-6 w-6 text-accent" />
                     </div>
                     <div>
                       <h4 className="text-base font-semibold mb-1">{security.title}</h4>
@@ -177,21 +177,19 @@ export default function Landing() {
           </div>
 
           {/* Premium CTA Section with Background */}
-          <div className="relative rounded-2xl overflow-hidden">
-            {/* Gradient Background */}
-            <div 
-              className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10"
-            />
+          <div className="relative rounded-2xl overflow-hidden glass-ultra scan-lines">
+            {/* Animated Gradient Background */}
+            <div className="absolute inset-0 animated-gradient-fast" />
             
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/95" />
+            {/* Data Stream Effect */}
+            <div className="absolute inset-0 data-stream opacity-30" />
             
             {/* Content */}
             <div className="relative z-10 p-16 text-center">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text">
                 Elevate Your Lifestyle
               </h2>
-              <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+              <p className="text-lg text-foreground/90 mb-10 max-w-2xl mx-auto">
                 Join the elite circle of individuals who've mastered the art of sophisticated automation
               </p>
               <Button 

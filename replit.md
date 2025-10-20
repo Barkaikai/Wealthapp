@@ -11,12 +11,18 @@ Preferred communication style: Simple, everyday language.
 ### UI/UX Decisions
 The frontend uses React 18, TypeScript, Vite, Wouter, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS), adhering to Material Design 3. It features a **futuristic sci-fi aesthetic** with:
 
-**WealthForge Design System (Oct 2025):**
-- **Elite Color Palette:** Primary purple (#6C1FFF), accent yellow (#FFC43D), replacing previous blue theme
-- **Futuristic Typography:** Orbitron (display/headers, 700 weight), Rajdhani (body text, 400/500/600 weights) via Google Fonts
-- **Animated Backgrounds:** CSS-based moving aurora with purple particles (pulseGlow and moveParticles animations)
-- **Glassmorphism Effects:** Utility classes (glass, glass-card, neon-text, cyber-border, cyber-grid) for translucent UI elements
-- **Purple Neon Shadows:** Enhanced elevation with purple glow effects (shadow-neon-sm/md/lg/xl)
+**WealthForge Design System (Oct 2025 - Elite Futuristic Update):**
+- **Elite Color Palette:** Primary purple (#6C1FFF), accent yellow (#FFC43D), deep space black backgrounds
+- **Luxury Background Blend:** High-end villa mansion images layered beneath purple/yellow futuristic overlays with animated glow effects
+- **Futuristic Typography:** 
+  - Orbitron (headers, 800-900 weight, massive sizes: 3-5rem h1, 2.25-3.5rem h2)
+  - Rajdhani (body text, 500 weight, 1.125rem base)
+  - Purple-to-yellow gradient text on main headers
+  - Purple neon glow text shadows on all headings
+- **Animated Backgrounds:** Elite purple/yellow radial gradients with 10s smooth animation (eliteGlow), luxury mansion image at 15% opacity as base layer
+- **Enhanced Glassmorphism:** Stronger blur (20px), purple-tinted backgrounds, 2px colored borders, enhanced hover effects with lift and glow
+- **Elite Loading Screen:** Instant branded splash with Orbitron font, purple-yellow gradient, pulse animation
+- **Purple Neon Shadows:** Multi-layer shadows with purple glow (0-80px spread)
 - **Production Domain:** wealthforge.app with CORS, CSP headers, and manifest configuration
 - **Mobile Responsiveness:** Mobile/desktop view switcher, WCAG AA compliance maintained
 

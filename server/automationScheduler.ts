@@ -217,12 +217,13 @@ class AutomationScheduler {
           });
         }
       } catch (error) {
-        // Handle Gmail-specific errors gracefully
+        // Handle Gmail-specific errors gracefully (silently skip)
         if (error instanceof GmailScopeError || error instanceof GmailNotConnectedError) {
-          console.log(`[AutomationScheduler] Gmail scope error for user ${userId} - skipping`);
+          // Silent skip - Gmail not configured or insufficient permissions
           return;
         }
         
+        // Only log unexpected errors
         console.error(`Error syncing emails for user ${userId}:`, error);
         appLogger.log('error', 'automated_email_sync_error', {
           userId,

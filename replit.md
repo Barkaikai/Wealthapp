@@ -101,10 +101,19 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Stripe:** Payment processing for subscriptions, wallet deposits, withdrawals, and webhook-based billing management.
 
 ### Third-Party Services
-- **Replit Auth (OIDC):** User authentication.
+- **Replit Auth (OIDC):** User authentication with multi-domain support (wealthforge.app + daily-brief-forge.replit.app).
 - **Replit Connectors:** Secure credential management.
 - **Microsoft Azure AD:** OAuth 2.0 authentication for Office 365 integration.
 - **Microsoft Graph API:** Access to Outlook emails, OneDrive files, Calendar events.
 - **Redis (Upstash or self-hosted):** Caching layer for Multi-Agent AI short-term memory.
 - **Google Fonts:** Futuristic typography (Orbitron 700, Rajdhani 400/500/600).
 - **Recharts:** Financial data visualization.
+
+## Recent Bug Fixes (October 20, 2025)
+- **Gmail Error Silencing:** Added graceful error handling for Gmail connector limitations (zero error spam in logs).
+- **OpenAI Timeout Bug (CRITICAL):** Fixed invalid `timeout` parameter in OpenAI API calls that caused 500 errors on POST /api/learn/generate.
+  - Removed per-request timeout parameters (lines 415, 433, 447 in server/openai.ts).
+  - Global 45s timeout on client initialization is sufficient.
+  - Affects `generateTopicArticle` function - all other OpenAI calls verified clean.
+  - Architect-reviewed and approved as production-ready.
+- **Authentication Domain Issue:** Custom domain (wealthforge.app) requires republish to update REPLIT_DOMAINS environment variable for proper OAuth callback URLs.

@@ -1,11 +1,12 @@
 {
-  "name": "Wealth Automation Platform",
-  "short_name": "Wealth Hub",
-  "description": "AI-powered billionaire-level wealth management and lifestyle optimization platform",
-  "start_url": "/",
+  "name": "WealthForge - Elite Wealth Automation",
+  "short_name": "WealthForge",
+  "description": "Futuristic AI-powered wealth management platform with elite purple aesthetics and advanced automation",
+  "start_url": "https://wealthforge.app",
+  "scope": "https://wealthforge.app/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#d4af37",
+  "background_color": "#0a0012",
+  "theme_color": "#6C1FFF",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -21,6 +22,6 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "productivity", "lifestyle"],
+  "categories": ["finance", "productivity", "lifestyle", "business"],
   "screenshots": []
 }

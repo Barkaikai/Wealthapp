@@ -1,232 +1,244 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* COINBASE-INSPIRED LIGHT MODE */
+/* SCI-FI FUTURISTIC THEME - WEALTHFORGE ELITE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(108, 31, 255, .25);
+  --badge-outline: rgba(108, 31, 255, .15);
 
   /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -10; /* In terms of percentages */
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  /* Purple-tinted elevation backgrounds */
+  --elevate-1: rgba(108, 31, 255, .08);
+  --elevate-2: rgba(108, 31, 255, .15);
 
-  /* Clean white & light gray palette */
-  --background: 0 0% 100%;
+  /* Futuristic light mode - subtle purple glow */
+  --background: 260 25% 98%;
 
-  --foreground: 222 47% 11%;
+  --foreground: 260 15% 15%;
 
-  --border: 214 20% 85%;
+  --border: 260 20% 80%;
 
-  --card: 0 0% 98%;
+  --card: 260 30% 96%;
 
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 260 15% 15%;
 
-  --card-border: 214 20% 88%;
+  --card-border: 260 25% 85%;
 
-  --sidebar: 214 32% 91%;
+  --sidebar: 260 35% 94%;
 
-  --sidebar-foreground: 222 47% 11%;
+  --sidebar-foreground: 260 15% 15%;
 
-  --sidebar-border: 214 20% 82%;
+  --sidebar-border: 260 25% 82%;
 
-  /* Coinbase blue as primary */
-  --sidebar-primary: 221 83% 53%;
+  /* Elite Purple as primary */
+  --sidebar-primary: 264 100% 56%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 214 32% 85%;
+  --sidebar-accent: 260 30% 88%;
 
-  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-accent-foreground: 260 15% 15%;
 
-  --sidebar-ring: 221 83% 53%;
+  --sidebar-ring: 264 100% 56%;
 
-  --popover: 0 0% 100%;
+  --popover: 260 30% 96%;
 
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 260 15% 15%;
 
-  --popover-border: 214 20% 85%;
+  --popover-border: 260 20% 80%;
 
-  /* Coinbase blue as primary */
-  --primary: 221 83% 53%;
+  /* Elite Purple (#6C1FFF) as primary */
+  --primary: 264 100% 56%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 214 32% 91%;
+  /* Accent Yellow (#FFC43D) */
+  --secondary: 45 100% 62%;
 
-  --secondary-foreground: 222 47% 11%;
+  --secondary-foreground: 260 15% 15%;
 
-  --muted: 214 32% 95%;
+  --muted: 260 25% 92%;
 
-  --muted-foreground: 215 25% 27%;
+  --muted-foreground: 260 10% 40%;
 
-  --accent: 214 32% 91%;
+  --accent: 45 100% 62%;
 
-  --accent-foreground: 222 47% 11%;
+  --accent-foreground: 260 15% 15%;
 
   --destructive: 0 84% 60%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 214 20% 85%;
-  --ring: 221 83% 53%;
+  --input: 260 20% 85%;
+  --ring: 264 100% 56%;
 
-  /* Professional chart colors */
-  --chart-1: 221 83% 53%;
-  --chart-2: 142 76% 36%;
-  --chart-3: 38 92% 50%;
-  --chart-4: 271 81% 56%;
-  --chart-5: 199 89% 48%;
+  /* Futuristic chart colors - purple and yellow palette */
+  --chart-1: 264 100% 56%;
+  --chart-2: 45 100% 62%;
+  --chart-3: 280 90% 65%;
+  --chart-4: 195 100% 50%;
+  --chart-5: 160 84% 52%;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Futuristic fonts - Orbitron for headers, Rajdhani for body */
+  --font-sans: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Orbitron', 'Rajdhani', 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   --radius: .5rem;
 
-  /* Enhanced Typography - Improved Readability */
-  --text-display: clamp(2rem, 4vw + 1rem, 2.75rem);
-  --text-h1: clamp(1.625rem, 3vw + 0.5rem, 2.25rem);
-  --text-h2: clamp(1.375rem, 2.5vw + 0.5rem, 1.75rem);
-  --text-h3: clamp(1.1875rem, 2vw + 0.5rem, 1.375rem);
-  --text-body: clamp(0.9375rem, 1.5vw + 0.5rem, 1.0625rem);
-  --text-small: clamp(0.875rem, 1vw + 0.5rem, 0.9375rem);
-  --text-data-mono: clamp(1.375rem, 2.5vw + 0.5rem, 1.75rem);
-  --line-height-tight: 1.2;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.75;
-  --shadow-2xs: 0px 1px 2px 0px hsl(222 20% 8% / 0.05);
-  --shadow-xs: 0px 1px 3px 0px hsl(222 20% 8% / 0.08);
-  --shadow-sm: 0px 2px 4px 0px hsl(222 20% 8% / 0.06), 0px 1px 2px -1px hsl(222 20% 8% / 0.08);
-  --shadow: 0px 4px 6px -1px hsl(222 20% 8% / 0.08), 0px 2px 4px -2px hsl(222 20% 8% / 0.08);
-  --shadow-md: 0px 6px 12px -2px hsl(222 20% 8% / 0.10), 0px 3px 6px -3px hsl(222 20% 8% / 0.10);
-  --shadow-lg: 0px 10px 20px -4px hsl(222 20% 8% / 0.12), 0px 4px 8px -4px hsl(222 20% 8% / 0.10);
-  --shadow-xl: 0px 20px 30px -6px hsl(222 20% 8% / 0.14), 0px 8px 12px -6px hsl(222 20% 8% / 0.12);
-  --shadow-2xl: 0px 25px 40px -8px hsl(222 20% 8% / 0.16);
-  --tracking-normal: -0.01em;
+  /* Enhanced Typography - Futuristic Sizing */
+  --text-display: clamp(2.5rem, 5vw + 1rem, 3.5rem);
+  --text-h1: clamp(2rem, 4vw + 0.5rem, 2.75rem);
+  --text-h2: clamp(1.625rem, 3vw + 0.5rem, 2rem);
+  --text-h3: clamp(1.375rem, 2.5vw + 0.5rem, 1.625rem);
+  --text-body: clamp(1rem, 1.5vw + 0.5rem, 1.125rem);
+  --text-small: clamp(0.9375rem, 1vw + 0.5rem, 1rem);
+  --text-data-mono: clamp(1.5rem, 2.5vw + 0.5rem, 2rem);
+  --line-height-tight: 1.1;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.7;
+  
+  /* Neon purple glow shadows */
+  --shadow-2xs: 0px 1px 2px 0px rgba(108, 31, 255, 0.08);
+  --shadow-xs: 0px 1px 3px 0px rgba(108, 31, 255, 0.12);
+  --shadow-sm: 0px 2px 4px 0px rgba(108, 31, 255, 0.1), 0px 1px 2px -1px rgba(108, 31, 255, 0.12);
+  --shadow: 0px 4px 6px -1px rgba(108, 31, 255, 0.15), 0px 2px 4px -2px rgba(108, 31, 255, 0.15);
+  --shadow-md: 0px 6px 12px -2px rgba(108, 31, 255, 0.18), 0px 3px 6px -3px rgba(108, 31, 255, 0.15);
+  --shadow-lg: 0px 10px 20px -4px rgba(108, 31, 255, 0.22), 0px 4px 8px -4px rgba(108, 31, 255, 0.18);
+  --shadow-xl: 0px 20px 30px -6px rgba(108, 31, 255, 0.28), 0px 8px 12px -6px rgba(108, 31, 255, 0.22);
+  --shadow-2xl: 0px 25px 40px -8px rgba(108, 31, 255, 0.35);
+  
+  --tracking-normal: -0.015em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
+  /* Glassmorphism variables */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(108, 31, 255, 0.2);
+  --glass-blur: 12px;
 
-  /* Fallback for older browsers */
+  /* Automatically computed borders */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
 .dark {
-  --button-outline: rgba(56, 139, 253, .15);
-  --badge-outline: rgba(56, 139, 253, .08);
+  --button-outline: rgba(108, 31, 255, .35);
+  --badge-outline: rgba(108, 31, 255, .20);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 12;  /* In terms of percentages */
 
-  /* Clean blue-tinted backgrounds */
-  --elevate-1: rgba(56, 139, 253, .06);
-  --elevate-2: rgba(56, 139, 253, .12);
+  /* Purple-tinted elevation backgrounds */
+  --elevate-1: rgba(108, 31, 255, .12);
+  --elevate-2: rgba(108, 31, 255, .22);
 
-  /* Dark navy background */
-  --background: 222 47% 11%;
+  /* Deep space black with purple undertones */
+  --background: 260 45% 8%;
 
-  --foreground: 210 40% 98%;
+  --foreground: 260 15% 95%;
 
-  --border: 215 20% 25%;
+  --border: 260 35% 22%;
 
-  --card: 217 33% 17%;
+  /* Elite glassy purple card backgrounds */
+  --card: 260 40% 12%;
 
-  --card-foreground: 210 40% 98%;
+  --card-foreground: 260 15% 95%;
 
-  --card-border: 215 20% 22%;
+  --card-border: 260 35% 18%;
 
-  --sidebar: 217 33% 15%;
+  --sidebar: 260 45% 10%;
 
-  --sidebar-foreground: 210 40% 98%;
+  --sidebar-foreground: 260 15% 95%;
 
-  --sidebar-border: 215 20% 20%;
+  --sidebar-border: 260 35% 16%;
 
-  /* Coinbase blue as primary */
-  --sidebar-primary: 221 83% 53%;
+  /* Elite Purple enhanced for dark mode */
+  --sidebar-primary: 264 100% 62%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 217 33% 22%;
+  --sidebar-accent: 260 35% 18%;
 
-  --sidebar-accent-foreground: 210 40% 90%;
+  --sidebar-accent-foreground: 260 15% 90%;
 
-  --sidebar-ring: 221 83% 53%;
+  --sidebar-ring: 264 100% 62%;
 
-  --popover: 217 33% 17%;
+  --popover: 260 40% 12%;
 
-  --popover-foreground: 210 40% 98%;
+  --popover-foreground: 260 15% 95%;
 
-  --popover-border: 215 20% 25%;
+  --popover-border: 260 35% 22%;
 
-  /* Coinbase blue as primary */
-  --primary: 221 83% 53%;
+  /* Elite Purple (#6C1FFF) - enhanced glow in dark mode */
+  --primary: 264 100% 62%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 217 33% 22%;
+  /* Accent Yellow (#FFC43D) - glowing in dark mode */
+  --secondary: 45 100% 68%;
 
-  --secondary-foreground: 210 40% 90%;
+  --secondary-foreground: 260 45% 8%;
 
-  --muted: 217 33% 20%;
+  --muted: 260 35% 16%;
 
-  --muted-foreground: 215 20% 65%;
+  --muted-foreground: 260 15% 70%;
 
-  --accent: 217 33% 24%;
+  --accent: 45 100% 68%;
 
-  --accent-foreground: 210 40% 90%;
+  --accent-foreground: 260 45% 8%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 84% 65%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 215 20% 30%;
-  --ring: 221 83% 53%;
+  --input: 260 35% 20%;
+  --ring: 264 100% 62%;
 
-  /* Professional chart colors */
-  --chart-1: 221 83% 53%;
-  --chart-2: 142 76% 36%;
-  --chart-3: 38 92% 50%;
-  --chart-4: 271 81% 56%;
-  --chart-5: 199 89% 48%;
+  /* Futuristic chart colors - enhanced for dark mode */
+  --chart-1: 264 100% 62%;
+  --chart-2: 45 100% 68%;
+  --chart-3: 280 90% 70%;
+  --chart-4: 195 100% 55%;
+  --chart-5: 160 84% 58%;
 
-  /* Clean shadows without gold glow */
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.30);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.35);
-  --shadow-sm: 0px 2px 4px 0px hsl(0 0% 0% / 0.30), 0px 1px 2px -1px hsl(0 0% 0% / 0.35);
-  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.35);
-  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 6px -3px hsl(0 0% 0% / 0.40);
-  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 4px 8px -4px hsl(0 0% 0% / 0.40);
-  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.50), 0px 8px 12px -6px hsl(0 0% 0% / 0.45);
-  --shadow-2xl: 0px 25px 40px -8px hsl(0 0% 0% / 0.55);
+  /* Neon purple glow shadows - enhanced for dark mode */
+  --shadow-2xs: 0px 1px 2px 0px rgba(108, 31, 255, 0.25), 0px 0px 8px 0px rgba(108, 31, 255, 0.15);
+  --shadow-xs: 0px 1px 3px 0px rgba(108, 31, 255, 0.30), 0px 0px 12px 0px rgba(108, 31, 255, 0.20);
+  --shadow-sm: 0px 2px 4px 0px rgba(108, 31, 255, 0.28), 0px 1px 2px -1px rgba(108, 31, 255, 0.30), 0px 0px 16px 0px rgba(108, 31, 255, 0.15);
+  --shadow: 0px 4px 6px -1px rgba(108, 31, 255, 0.35), 0px 2px 4px -2px rgba(108, 31, 255, 0.30), 0px 0px 20px 0px rgba(108, 31, 255, 0.20);
+  --shadow-md: 0px 6px 12px -2px rgba(108, 31, 255, 0.40), 0px 3px 6px -3px rgba(108, 31, 255, 0.35), 0px 0px 24px 0px rgba(108, 31, 255, 0.25);
+  --shadow-lg: 0px 10px 20px -4px rgba(108, 31, 255, 0.50), 0px 4px 8px -4px rgba(108, 31, 255, 0.40), 0px 0px 32px 0px rgba(108, 31, 255, 0.30);
+  --shadow-xl: 0px 20px 30px -6px rgba(108, 31, 255, 0.60), 0px 8px 12px -6px rgba(108, 31, 255, 0.50), 0px 0px 40px 0px rgba(108, 31, 255, 0.35);
+  --shadow-2xl: 0px 25px 40px -8px rgba(108, 31, 255, 0.70), 0px 0px 56px 0px rgba(108, 31, 255, 0.45);
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
+  /* Glassmorphism enhanced for dark mode */
+  --glass-bg: rgba(10, 0, 18, 0.6);
+  --glass-border: rgba(108, 31, 255, 0.35);
+  --glass-blur: 16px;
+
+  /* Automatically computed borders */
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -243,31 +255,147 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--font-sans);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: var(--tracking-normal);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+    line-height: var(--line-height-tight);
+  }
+
+  h2 {
+    font-size: var(--text-h2);
+    line-height: var(--line-height-tight);
+  }
+
+  h3 {
+    font-size: var(--text-h3);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Animated 4D Background Layer */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      radial-gradient(ellipse at 20% 30%, rgba(108, 31, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(255, 196, 61, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(108, 31, 255, 0.08) 0%, transparent 70%),
+      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(260 40% 10%) 100%);
+    animation: pulseGlow 8s ease-in-out infinite;
+  }
+
+  /* Moving particle effect overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background-image: 
+      radial-gradient(2px 2px at 20% 30%, rgba(108, 31, 255, 0.3), transparent),
+      radial-gradient(2px 2px at 60% 70%, rgba(255, 196, 61, 0.25), transparent),
+      radial-gradient(1px 1px at 50% 50%, rgba(108, 31, 255, 0.2), transparent),
+      radial-gradient(1px 1px at 80% 10%, rgba(255, 196, 61, 0.15), transparent),
+      radial-gradient(2px 2px at 90% 60%, rgba(108, 31, 255, 0.25), transparent),
+      radial-gradient(1px 1px at 33% 90%, rgba(255, 196, 61, 0.2), transparent);
+    background-size: 200% 200%, 180% 180%, 220% 220%, 250% 250%, 300% 300%, 280% 280%;
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 100%, 100% 0%, 50% 100%;
+    animation: moveParticles 20s ease-in-out infinite;
+    opacity: 0.6;
   }
 }
 
-/**
- * Using the elevate system.
- * Automatic contrast adjustment.
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
- */
-@layer utilities {
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
 
+@keyframes moveParticles {
+  0%, 100% {
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 100%, 100% 0%, 50% 100%;
+  }
+  25% {
+    background-position: 100% 0%, 0% 100%, 25% 75%, 100% 100%, 0% 0%, 75% 25%;
+  }
+  50% {
+    background-position: 100% 100%, 0% 0%, 75% 25%, 100% 0%, 0% 100%, 25% 75%;
+  }
+  75% {
+    background-position: 0% 100%, 100% 0%, 50% 50%, 0% 0%, 100% 100%, 50% 50%;
+  }
+}
+
+/* Glassmorphism utility classes */
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(108, 31, 255, 0.2);
+  }
+
+  .glass-card {
+    @apply glass rounded-lg;
+  }
+
+  .neon-text {
+    text-shadow: 
+      0 0 10px rgba(108, 31, 255, 0.8),
+      0 0 20px rgba(108, 31, 255, 0.6),
+      0 0 30px rgba(108, 31, 255, 0.4),
+      0 0 40px rgba(108, 31, 255, 0.2);
+  }
+
+  .neon-text-yellow {
+    text-shadow: 
+      0 0 10px rgba(255, 196, 61, 0.9),
+      0 0 20px rgba(255, 196, 61, 0.7),
+      0 0 30px rgba(255, 196, 61, 0.5),
+      0 0 40px rgba(255, 196, 61, 0.3);
+  }
+
+  .cyber-border {
+    position: relative;
+    border: 2px solid transparent;
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+                linear-gradient(135deg, 
+                  rgba(108, 31, 255, 0.6) 0%,
+                  rgba(255, 196, 61, 0.6) 50%,
+                  rgba(108, 31, 255, 0.6) 100%) border-box;
+  }
+
+  .cyber-grid {
+    background-image: 
+      linear-gradient(rgba(108, 31, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 31, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}
+
+@layer utilities {
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
@@ -280,42 +408,27 @@
     pointer-events: none;
   }
 
-  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
-   * buttons/badges can remove the automatic brightness adjustment on interactions
-   * and program their own. */
   .no-default-hover-elevate {}
-
   .no-default-active-elevate {}
 
-
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: -1;
-    /* sits behind content but above backdrop */
   }
 
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.toggle-elevate::before {
     inset: -1px;
   }
 
-  /* Does not work on elements with overflow:hidden! */
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -332,10 +445,8 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: 999;
-    /* sits in front of content */
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -348,7 +459,6 @@
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,

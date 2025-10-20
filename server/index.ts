@@ -30,7 +30,14 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5000', 'http://127.0.0.1:5000'];
 
-// In production, add your Replit domain
+// Production domains - WealthForge Elite
+const productionDomains = [
+  'https://wealthforge.app',
+  'https://www.wealthforge.app'
+];
+allowedOrigins.push(...productionDomains);
+
+// In production, add your Replit domain for testing
 if (process.env.REPLIT_DOMAINS) {
   const replitDomains = process.env.REPLIT_DOMAINS.split(',').map(domain => 
     `https://${domain.trim()}`
@@ -60,13 +67,15 @@ app.use(cors({
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"], // Stripe.js required
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://m.stripe.network", "https://m.stripe.com"], // Stripe Elements styles
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      defaultSrc: ["'self'", "https://wealthforge.app", "https://www.wealthforge.app"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://wealthforge.app"], // Stripe.js required
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://m.stripe.network", "https://m.stripe.com"], // Stripe Elements + Google Fonts
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https:", "wss:", "https://api.stripe.com"],
+      connectSrc: ["'self'", "https:", "wss:", "https://api.stripe.com", "wss://wealthforge.app", "https://wealthforge.app"],
       frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"], // Stripe payment elements
+      workerSrc: ["'self'", "blob:"],
+      manifestSrc: ["'self'", "https://wealthforge.app"],
     },
   },
 }));

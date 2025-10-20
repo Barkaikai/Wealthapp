@@ -370,6 +370,40 @@
   }
 }
 
+/* ACCESSIBILITY: Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Keep static background but remove animation */
+  body::after {
+    animation: none !important;
+  }
+
+  /* Disable all float and pulse effects */
+  .float,
+  .float-slow,
+  .pulse-glow,
+  .pulse-glow-slow,
+  .holographic,
+  .data-stream,
+  .animated-gradient,
+  .animated-gradient-fast {
+    animation: none !important;
+  }
+
+  /* Remove animated pseudo-elements */
+  .holographic::after,
+  .data-stream::before {
+    content: none !important;
+  }
+}
+
 /* ELITE GLASSMORPHISM - FUTURISTIC LUXURY */
 @layer components {
   .glass {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,13 @@ export function QuickAssetEntry({ open, onOpenChange, defaultType }: QuickAssetE
   const [symbol, setSymbol] = useState("");
   const [value, setValue] = useState("");
   const [quantity, setQuantity] = useState("1");
+
+  // Sync asset type when dialog opens or defaultType changes
+  useEffect(() => {
+    if (open) {
+      setAssetType(defaultType || "stocks");
+    }
+  }, [open, defaultType]);
 
   const createAsset = useMutation({
     mutationFn: async (assetData: Partial<InsertAsset>) => {

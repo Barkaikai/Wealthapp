@@ -1,0 +1,671 @@
+Files provided:
+
+package.json (scripts & deps)
+
+tsconfig.json
+
+src/index.ts (main server wired into your app)
+
+src/services/cryptoAggregator.ts (aggregator + caching + fallback)
+
+src/services/symbolSync.ts (symbol-to-id sync job)
+
+src/services/realtime.ts (SSE + WebSocket manager)
+
+data/symbolMap.json (created at runtime; no seed file required)
+
+Follow the instructions after the code to install and run on Replit.
+
+1) package.json
+{
+  "name": "replit-crypto-agg",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^3.4.1",
+    "rate-limiter-flexible": "^2.3.5",
+    "ws": "^8.13.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "tsx": "^3.12.7",
+    "typescript": "^5.7.4",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.5.1",
+    "@types/ws": "^8.5.5"
+  }
+}
+
+2) tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"]
+}
+
+3) src/index.ts (main server)
+import express from "express";
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs/promises";
+
+import { CryptoAggregator } from "./services/cryptoAggregator.js";
+import { SymbolSync } from "./services/symbolSync.js";
+import { RealtimeServer } from "./services/realtime.js";
+
+dotenv.config();
+
+const PORT = Number(process.env.PORT) || 5000;
+const app = express();
+
+app.use(express.json());
+app.use(express.static("public"));
+
+// --- create data folder if not exists
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(path.join(process.cwd(), "data"), { recursive: true });
+  } catch (err) {
+    console.warn("Could not create data dir:", err);
+  }
+}
+
+// --- instantiate aggregator
+const aggregator = new CryptoAggregator({
+  cacheTTL: Number(process.env.CACHE_TTL) || 30,
+  cryptocompareKey: process.env.CRYPTOCOMPARE_KEY,
+  coinmarketcapKey: process.env.COINMARKETCAP_KEY,
+});
+
+// --- symbol sync job (builds symbol->id mapping)
+const symbolSync = new SymbolSync({
+  aggregator,
+  intervalMs: Number(process.env.SYMBOL_SYNC_INTERVAL_MS) || 1000 * 60 * 30, // default: 30m
+  persistPath: path.join(process.cwd(), "data", "symbolMap.json"),
+});
+
+// --- realtime manager (SSE + WebSocket)
+const realtime = new RealtimeServer({
+  aggregator,
+  pollIntervalMs: Number(process.env.REALTIME_POLL_MS) || 5000, // poll every 5s
+});
+
+// ----- API endpoints -----
+
+// simple price: /api/simple/price?ids=btc,eth&vs_currencies=usd,eur
+app.get("/api/simple/price", async (req, res) => {
+  const ids = (req.query.ids || "").toString().split(",").map(s => s.trim()).filter(Boolean);
+  const vs = (req.query.vs_currencies || "usd").toString().split(",").map(s => s.trim()).filter(Boolean);
+  if (!ids.length) return res.status(400).json({ error: "ids required" });
+  try {
+    const result = await aggregator.getSimplePrice(ids, vs);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// coin detail: /api/coins/:id
+app.get("/api/coins/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = await aggregator.getCoinDetail(id);
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// coins list: /api/coins/list
+app.get("/api/coins/list", async (req, res) => {
+  try {
+    const list = await aggregator.getCoinsList();
+    res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// search: /api/search?q=bitcoin
+app.get("/api/search", async (req, res) => {
+  const q = (req.query.q || "").toString();
+  if (!q) return res.status(400).json({ error: "q required" });
+  try {
+    const results = await aggregator.search(q);
+    res.json({ query: q, results });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// admin endpoint: get symbol map
+app.get("/admin/symbol-map", async (req, res) => {
+  const map = await symbolSync.getSymbolMap();
+  res.json({ count: Object.keys(map).length, map });
+});
+
+// SSE endpoint (clients use EventSource)
+app.get("/sse/prices", (req, res) => realtime.handleSSE(req, res));
+
+// WebSocket endpoint handled by RealtimeServer (ws attaches to same server below)
+
+// default health
+app.get("/api/health", (req, res) => res.json({ ok: true, now: Date.now() }));
+
+// --- start server and background services (non-blocking) ---
+(async () => {
+  await ensureDataDir();
+
+  const server = app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+  });
+
+  // wire WebSocket server to same http server
+  realtime.attachToServer(server);
+
+  // start symbol sync (non-blocking)
+  symbolSync.start();
+
+  // start realtime polling/broadcasting
+  realtime.start();
+
+  // do an initial symbol sync quickly in background
+  symbolSync.syncOnce().catch(err => console.warn("Initial symbol sync failed:", err));
+
+  // graceful shutdown
+  const shutdown = async () => {
+    console.log("🛑 Shutting down...");
+    try {
+      realtime.stop();
+      symbolSync.stop();
+      await aggregator.shutdown();
+      server.close(() => console.log("HTTP server closed"));
+      process.exit(0);
+    } catch (err) {
+      console.error("Shutdown error:", err);
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+})();
+
+4) src/services/cryptoAggregator.ts
+/**
+ * cryptoAggregator.ts
+ * - TypeScript implementation of the multi-provider aggregator
+ * - Exposes methods: getCoinsList, getSimplePrice, getCoinDetail, search
+ * - Uses NodeCache + rate limiter + provider fallback
+ */
+import fetch from "node-fetch";
+import NodeCache from "node-cache";
+import { RateLimiterMemory } from "rate-limiter-flexible";
+
+export type Provider = {
+  name: string;
+  base: string;
+  keyEnv?: string;
+};
+
+export interface AggregatorOptions {
+  cacheTTL?: number; // seconds
+  cryptocompareKey?: string | undefined;
+  coinmarketcapKey?: string | undefined;
+}
+
+export class CryptoAggregator {
+  private cache: NodeCache;
+  private rateLimiter: RateLimiterMemory;
+  private options: AggregatorOptions;
+  private PROVIDERS: Provider[];
+
+  constructor(options?: AggregatorOptions) {
+    this.options = options || {};
+    this.cache = new NodeCache({ stdTTL: this.options.cacheTTL ?? 30 });
+    this.rateLimiter = new RateLimiterMemory({ points: 20, duration: 1 }); // 20 req/s
+    this.PROVIDERS = [
+      { name: "coinpaprika", base: "https://api.coinpaprika.com/v1" },
+      { name: "coincap", base: "https://api.coincap.io/v2" },
+      { name: "cryptocompare", base: "https://min-api.cryptocompare.com/data", keyEnv: "CRYPTOCOMPARE_KEY" },
+      { name: "coinmarketcap", base: "https://pro-api.coinmarketcap.com/v1", keyEnv: "COINMARKETCAP_KEY" },
+    ];
+  }
+
+  private async throttle() {
+    await this.rateLimiter.consume(1);
+  }
+
+  private async tryProviders<T>(pathMapper: (p: Provider) => { url: string; headers?: Record<string, string> } | null, cacheKey?: string, ttlSec?: number): Promise<T> {
+    if (cacheKey) {
+      const cached = this.cache.get<T>(cacheKey);
+      if (cached) return cached;
+    }
+
+    await this.throttle();
+
+    for (const p of this.PROVIDERS) {
+      try {
+        const req = pathMapper(p);
+        if (!req) continue;
+        const res = await fetch(req.url, { headers: req.headers });
+        if (!res.ok) {
+          // try next provider
+          continue;
+        }
+        const data = await res.json();
+        if (cacheKey) this.cache.set(cacheKey, data, ttlSec ?? this.options.cacheTTL ?? 30);
+        return data as T;
+      } catch (err) {
+        console.warn(`[Provider:${p.name}] error:`, (err as Error).message);
+        continue;
+      }
+    }
+    throw new Error("All providers failed");
+  }
+
+  // coins list (normalized)
+  public async getCoinsList(): Promise<{ id: string; symbol: string; name: string }[]> {
+    const raw = await this.tryProviders<any>((p) => {
+      if (p.name === "coinpaprika") return { url: `${p.base}/coins` };
+      if (p.name === "coincap") return { url: `${p.base}/assets` };
+      return null;
+    }, "coins_list", 300);
+
+    // normalize
+    if (Array.isArray(raw)) {
+      return raw
+        .map((c: any) => {
+          if (c.id && c.symbol && c.name) return { id: c.id, symbol: c.symbol.toLowerCase(), name: c.name };
+          if (c.data && Array.isArray(c.data)) {
+            // e.g. coincap might have wrapper
+            return c.data.map((x: any) => ({ id: x.id, symbol: x.symbol.toLowerCase(), name: x.name }));
+          }
+          return null;
+        })
+        .flat()
+        .filter(Boolean);
+    } else if (raw.data && Array.isArray(raw.data)) {
+      return raw.data.map((d: any) => ({ id: d.id, symbol: d.symbol.toLowerCase(), name: d.name }));
+    }
+    return [];
+  }
+
+  // simple price aggregator
+  // ids: ['btc','eth'] vs: ['usd','eur']
+  public async getSimplePrice(ids: string[], vs: string[]): Promise<Record<string, Record<string, number | null>>> {
+    const cacheKey = `simple_price:${ids.join(",")}:${vs.join(",")}`;
+    // Prefer CryptoCompare bulk endpoint
+    const data = await this.tryProviders<any>((p) => {
+      if (p.name === "cryptocompare" && this.options.cryptocompareKey) {
+        const fsyms = ids.map(i => i.toUpperCase()).join(",");
+        const tsyms = vs.map(v => v.toUpperCase()).join(",");
+        return { url: `${p.base}/pricemulti?fsyms=${fsyms}&tsyms=${tsyms}&api_key=${this.options.cryptocompareKey}` };
+      }
+      if (p.name === "coincap") {
+        return { url: `${p.base}/assets` };
+      }
+      if (p.name === "coinmarketcap" && this.options.coinmarketcapKey) {
+        const symbolStr = ids.map(i => i.toUpperCase()).join(",");
+        return { url: `${p.base}/cryptocurrency/quotes/latest?symbol=${symbolStr}`, headers: { "X-CMC_PRO_API_KEY": this.options.coinmarketcapKey } };
+      }
+      return null;
+    }, cacheKey, 30).catch(() => null);
+
+    const result: Record<string, Record<string, number | null>> = {};
+    ids.forEach(id => {
+      result[id] = {};
+      vs.forEach(v => (result[id][v] = null));
+    });
+
+    if (!data) return result;
+
+    // CryptoCompare shape: { BTC: { USD: 123 } }
+    if (Object.keys(data).length && Object.keys(data)[0].toUpperCase() === Object.keys(data)[0]) {
+      for (const id of ids) {
+        const up = id.toUpperCase();
+        for (const v of vs) {
+          result[id][v] = data[up]?.[v.toUpperCase()] ?? null;
+        }
+      }
+      return result;
+    }
+
+    // CoinCap shape: { data: [ { symbol, priceUsd } ] }
+    if (data.data && Array.isArray(data.data)) {
+      for (const id of ids) {
+        const found = data.data.find((d: any) => d.symbol?.toLowerCase() === id.toLowerCase() || d.id === id);
+        if (found) {
+          for (const v of vs) {
+            if (v.toLowerCase() === "usd") result[id][v] = Number(found.priceUsd ?? null);
+          }
+        }
+      }
+      return result;
+    }
+
+    // CoinMarketCap shape: data: { BTC: { quote: { USD: { price } } } }
+    if (data.data && typeof data.data === "object") {
+      for (const id of ids) {
+        const up = id.toUpperCase();
+        const obj = data.data[up];
+        for (const v of vs) {
+          const upv = v.toUpperCase();
+          result[id][v] = obj?.quote?.[upv]?.price ?? null;
+        }
+      }
+      return result;
+    }
+
+    return result;
+  }
+
+  public async getCoinDetail(id: string): Promise<any> {
+    const cacheKey = `coin_detail:${id}`;
+    const data = await this.tryProviders<any>((p) => {
+      if (p.name === "coinpaprika") return { url: `${p.base}/coins/${encodeURIComponent(id)}` };
+      if (p.name === "coincap") return { url: `${p.base}/assets/${encodeURIComponent(id)}` };
+      return null;
+    }, cacheKey, 300);
+    return data;
+  }
+
+  public async search(q: string): Promise<any[]> {
+    const cacheKey = `search:${q}`;
+    const data = await this.tryProviders<any>((p) => {
+      if (p.name === "coinpaprika") return { url: `${p.base}/search?q=${encodeURIComponent(q)}` };
+      if (p.name === "coincap") return { url: `${p.base}/assets?search=${encodeURIComponent(q)}` };
+      return null;
+    }, cacheKey, 60);
+
+    if (data.coins) return data.coins.map((c: any) => ({ id: c.id, symbol: c.symbol, name: c.name }));
+    if (data.data && Array.isArray(data.data)) return data.data.map((d: any) => ({ id: d.id, symbol: d.symbol, name: d.name || d.symbol }));
+    return [];
+  }
+
+  // shutdown hook if needed
+  public async shutdown(): Promise<void> {
+    // nothing to close now, placeholder
+    this.cache.flushAll();
+  }
+}
+
+5) src/services/symbolSync.ts
+/**
+ * symbolSync.ts
+ * - Periodically syncs coin lists from providers to build a symbol -> provider-id map
+ * - Persists to disk at persistPath (JSON)
+ * - Exposes getSymbolMap() for fast lookups
+ */
+import fs from "fs/promises";
+import path from "path";
+import { CryptoAggregator } from "./cryptoAggregator.js";
+
+export interface SymbolSyncOptions {
+  aggregator: CryptoAggregator;
+  intervalMs?: number;
+  persistPath?: string;
+}
+
+export class SymbolSync {
+  private aggregator: CryptoAggregator;
+  private intervalMs: number;
+  private persistPath: string;
+  private timer: NodeJS.Timeout | null = null;
+  private symbolMap: Record<string, string> = {}; // symbol -> id (provider id)
+
+  constructor(opts: SymbolSyncOptions) {
+    this.aggregator = opts.aggregator;
+    this.intervalMs = opts.intervalMs || 1000 * 60 * 30; // 30m
+    this.persistPath = opts.persistPath || path.join(process.cwd(), "data", "symbolMap.json");
+  }
+
+  public async syncOnce(): Promise<void> {
+    try {
+      console.log("[SymbolSync] Starting symbol sync...");
+      const list = await this.aggregator.getCoinsList();
+      const map: Record<string, string> = {};
+      for (const c of list) {
+        const sym = (c.symbol || "").toLowerCase();
+        if (!sym) continue;
+        // prefer first seen mapping, don't overwrite (stable)
+        if (!map[sym]) map[sym] = c.id;
+      }
+      this.symbolMap = map;
+      await fs.writeFile(this.persistPath, JSON.stringify(map, null, 2), "utf-8");
+      console.log(`[SymbolSync] Synced ${Object.keys(map).length} symbols -> persisted to ${this.persistPath}`);
+    } catch (err) {
+      console.error("[SymbolSync] syncOnce error:", (err as Error).message);
+    }
+  }
+
+  public start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.syncOnce().catch(e => console.warn("SymbolSync scheduled error:", e)), this.intervalMs);
+    console.log(`[SymbolSync] Scheduled every ${this.intervalMs / 1000}s`);
+    // try to load existing file
+    this.loadPersisted().catch(() => { /* ignore */ });
+  }
+
+  public stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  public async loadPersisted() {
+    try {
+      const content = await fs.readFile(this.persistPath, "utf-8");
+      this.symbolMap = JSON.parse(content);
+      console.log("[SymbolSync] Loaded persisted symbol map, entries:", Object.keys(this.symbolMap).length);
+    } catch {
+      // no persisted file yet
+      console.log("[SymbolSync] No persisted symbol map found (first run)");
+    }
+  }
+
+  public getSymbolMap() {
+    return this.symbolMap;
+  }
+}
+
+6) src/services/realtime.ts
+/**
+ * realtime.ts
+ * - SSE endpoint handling (EventSource)
+ * - WebSocket server (ws) for clients that prefer WS
+ * - Polls aggregator for price updates and broadcasts deltas
+ */
+import { Server as HTTPServer } from "http";
+import { WebSocketServer, WebSocket } from "ws";
+import { CryptoAggregator } from "./cryptoAggregator.js";
+import { IncomingMessage } from "http";
+import { v4 as uuidv4 } from "uuid";
+
+export interface RealtimeOptions {
+  aggregator: CryptoAggregator;
+  pollIntervalMs?: number;
+}
+
+type SSEClient = {
+  id: string;
+  res: any;
+  lastSent?: number;
+};
+
+export class RealtimeServer {
+  private aggregator: CryptoAggregator;
+  private pollIntervalMs: number;
+  private sseClients: Map<string, SSEClient> = new Map();
+  private wss?: WebSocketServer;
+  private pollTimer?: NodeJS.Timeout | null = null;
+  private lastPrices: Record<string, any> = {};
+
+  constructor(opts: RealtimeOptions) {
+    this.aggregator = opts.aggregator;
+    this.pollIntervalMs = opts.pollIntervalMs ?? 5000;
+  }
+
+  // SSE handler
+  public handleSSE(req: IncomingMessage, res: any) {
+    // simple token check optional (not implemented)
+    res.writeHead(200, {
+      Connection: "keep-alive",
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Access-Control-Allow-Origin": "*",
+    });
+
+    const id = uuidv4();
+    const client: SSEClient = { id, res, lastSent: Date.now() };
+    this.sseClients.set(id, client);
+
+    // send initial comment
+    res.write(`: connected\n\n`);
+    console.log("[Realtime] SSE client connected", id);
+
+    req.on("close", () => {
+      this.sseClients.delete(id);
+      console.log("[Realtime] SSE client disconnected", id);
+    });
+  }
+
+  // attach WebSocket server to the http server
+  public attachToServer(server: HTTPServer) {
+    this.wss = new WebSocketServer({ server, path: "/ws" });
+    this.wss.on("connection", (ws: WebSocket, req) => {
+      console.log("[Realtime] WS client connected");
+      ws.on("message", (msg) => {
+        // optional: allow client to request subscription list or symbols
+        console.log("[Realtime] WS message:", msg.toString());
+      });
+      ws.on("close", () => console.log("[Realtime] WS client disconnected"));
+    });
+  }
+
+  // broadcast to SSE clients
+  private broadcastSSE(data: any) {
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    for (const [id, client] of this.sseClients) {
+      try {
+        client.res.write(payload);
+      } catch (err) {
+        this.sseClients.delete(id);
+      }
+    }
+  }
+
+  // broadcast to WS clients
+  private broadcastWS(data: any) {
+    if (!this.wss) return;
+    const str = JSON.stringify(data);
+    this.wss.clients.forEach((c) => {
+      if (c.readyState === WebSocket.OPEN) c.send(str);
+    });
+  }
+
+  // main polling loop
+  private async pollOnce() {
+    try {
+      // For real-time feed we pick top N symbols from lastPrices keys or fallback to BTC,ETH
+      const symbols = Object.keys(this.lastPrices).slice(0, 50);
+      const watch = symbols.length ? symbols : ["btc", "eth", "usdt"];
+      // aggregator expects lowercase ids or symbols; we're using symbols
+      const prices = await this.aggregator.getSimplePrice(watch, ["usd"]);
+      // compute delta
+      const deltas: any = {};
+      for (const s of Object.keys(prices)) {
+        const price = prices[s]?.usd ?? null;
+        const prev = this.lastPrices[s]?.usd ?? null;
+        deltas[s] = { price, prev };
+        this.lastPrices[s] = { usd: price };
+      }
+      const payload = { ts: Date.now(), prices: deltas };
+      this.broadcastSSE(payload);
+      this.broadcastWS(payload);
+    } catch (err) {
+      console.warn("[Realtime] pollOnce error:", (err as Error).message);
+    }
+  }
+
+  public start() {
+    if (this.pollTimer) return;
+    this.pollTimer = setInterval(() => this.pollOnce().catch(e => console.warn("Realtime poll error:", e)), this.pollIntervalMs);
+    console.log("[Realtime] Started polling every", this.pollIntervalMs, "ms");
+  }
+
+  public stop() {
+    if (this.pollTimer) clearInterval(this.pollTimer as NodeJS.Timeout);
+    this.pollTimer = null;
+    if (this.wss) this.wss.close();
+  }
+}
+
+
+Note: realtime.ts uses uuid. If the package is missing, install npm i uuid and add @types/uuid to devDeps.
+
+How to install and run on Replit
+
+Paste files into your Replit project (or clone repo). Create folders: src/services and data/.
+
+Add environment variables in Replit Secrets (🔒):
+
+CRYPTOCOMPARE_KEY (optional)
+
+COINMARKETCAP_KEY (optional)
+
+PORT (not necessary; Replit will set it)
+
+Install dependencies (Replit will auto-install from package.json) or run in Shell:
+
+npm install
+
+
+Start dev server:
+
+npm run dev
+
+
+Test endpoints:
+
+GET /api/coins/list
+
+GET /api/simple/price?ids=btc,eth&vs_currencies=usd
+
+GET /api/coins/bitcoin
+
+GET /api/search?q=btc
+
+GET /admin/symbol-map
+
+GET /sse/prices (connect via EventSource('/sse/prices'))
+
+WebSocket connect to wss://your-repl.repl.co/ws (or ws://localhost:PORT/ws locally)
+
+Notes & Extensions
+
+Symbol mapping persistence: symbolSync writes data/symbolMap.json. This persists across restarts in Replit unless you clear files.
+
+Security: Add auth for /admin/* endpoints. For SSE/WebSocket, consider token auth if open to the public.
+
+Scaling: For many clients and many symbols, consider a push queue and per-client subscriptions instead of polling all symbols each interval.
+
+Provider keys: Add CRYPTOCOMPARE_KEY and COINMARKETCAP_KEY to improve data quality and rate allowances.
+
+TypeScript strictness: This code uses strict: true. If you hit types needing tweaks, adjust or add more specific types.

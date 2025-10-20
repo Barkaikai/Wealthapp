@@ -143,6 +143,17 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: Date.now() });
 });
 
+// Debug endpoint for troubleshooting
+app.get("/debug/env", (_req, res) => {
+  res.json({ 
+    PORT: process.env.PORT, 
+    NODE_ENV: process.env.NODE_ENV,
+    REPLIT_DOMAINS: process.env.REPLIT_DOMAINS,
+    uptime: process.uptime(),
+    status: "✅ Server is running correctly!"
+  });
+});
+
 // Additional health check on root for workflow detection
 app.get("/", (_req, res, next) => {
   // Only respond to direct health checks (not SPA routes)

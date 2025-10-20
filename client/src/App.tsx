@@ -145,18 +145,9 @@ function AuthenticatedApp() {
     <SidebarProvider style={style as React.CSSProperties} defaultOpen={true}>
       <MobileSidebarHandler />
       <div className="flex h-screen w-full relative">
-        {/* Luxury Background Image */}
-        <div 
-          className="fixed inset-0 bg-cover bg-center z-0"
-          style={{ backgroundImage: `url(${luxuryBackground})` }}
-        />
-        
-        {/* Dark Gradient Overlay */}
-        <div className="fixed inset-0 bg-gradient-to-br from-background/98 via-background/96 to-background/98 z-0" />
-        
         <AppSidebar />
         <div className="flex flex-col flex-1 relative z-10">
-          <header className="flex items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 border-b border-border bg-background/80 backdrop-blur-sm">
+          <header className="glass flex items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 border-b">
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-11 !w-11" />
               <TimeDate onClick={() => setCalendarOpen(true)} />
@@ -185,9 +176,9 @@ function AuthenticatedApp() {
           <main className="flex-1 overflow-auto p-6">
             <Router />
           </main>
-          <footer className="border-t border-border p-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="text-sm text-muted-foreground">
-              © 2025 Wealth Automation Platform
+          <footer className="glass border-t p-4 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground neon-text">
+              © 2025 WealthForge - Elite Automation Platform
             </div>
             <ViewModeSwitcher />
           </footer>

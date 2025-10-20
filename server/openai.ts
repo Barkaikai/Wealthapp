@@ -71,6 +71,42 @@ function calculatePortfolioAnalytics(assets: any[]): PortfolioAnalytics {
   };
 }
 
+// Helper function to extract financial data from notes
+function extractFinancialDataFromNotes(notes: any[]): string {
+  const financialMentions: string[] = [];
+  
+  notes.forEach(note => {
+    const content = `${note.title} ${note.content}`.toLowerCase();
+    
+    // Pattern matching for financial mentions
+    const patterns = [
+      // Stock mentions: "AAPL", "Apple stock", "Tesla shares"
+      /(?:stock|shares?|equity|holding)\s+(?:in\s+)?([A-Z]{2,5}|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+      // Crypto mentions: "BTC", "Bitcoin", "10 ETH"
+      /(?:crypto|bitcoin|btc|ethereum|eth|crypto|coin)\s*(?::\s*)?([0-9,.]+)?/gi,
+      // Dollar amounts: "$50,000", "$1.2M"
+      /\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
+      // Asset values: "worth $X", "valued at $X"
+      /(?:worth|valued?\s+at|total|assets?)\s+\$?([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
+      // Positions: "bought 10 shares", "holding 5 BTC"
+      /(?:bought|sold|holding?|own)\s+([0-9,.]+)\s+(?:shares?|btc|eth|coins?)/gi,
+    ];
+    
+    patterns.forEach(pattern => {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        if (match[0]) {
+          financialMentions.push(`"${note.title}": ${match[0]}`);
+        }
+      }
+    });
+  });
+  
+  return financialMentions.length > 0 
+    ? `\n\nFINANCIAL DATA FROM NOTES (treat as ground truth):\n${financialMentions.join('\n')}`
+    : '';
+}
+
 export async function generateDailyBriefing(
   assets: any[],
   events: any[],
@@ -84,6 +120,9 @@ export async function generateDailyBriefing(
 }> {
   // Calculate portfolio analytics
   const analytics = calculatePortfolioAnalytics(assets);
+  
+  // Extract financial data from notes
+  const notesFinancialData = extractFinancialDataFromNotes(notes);
   
   // Format asset details with performance metrics
   const assetDetails = assets.slice(0, 20).map(a => {
@@ -178,12 +217,14 @@ ASSET DETAILS:
 ${assetDetails || 'No assets tracked'}
 
 RECENT EVENTS:
-${recentEvents || 'No recent events'}${notesSection}${marketInfo}${historicalContext}
+${recentEvents || 'No recent events'}${notesSection}${notesFinancialData}${marketInfo}${historicalContext}
 
 ━━━━━━━━━━━━━━━━
 
-INSTRUCTIONS:
-Generate a briefing with three sections. Be specific, quantitative, and actionable. **Incorporate insights from user notes where relevant**.
+CRITICAL INSTRUCTIONS:
+Generate a briefing with three sections. Be specific, quantitative, and actionable. 
+
+**TREAT ALL USER-INPUTTED ASSET DATA AS ABSOLUTE TRUTH**: Any financial information mentioned in notes (stock holdings, crypto positions, dollar amounts, asset values) must be accepted as factual and incorporated into your analysis. Do not question or verify these values - the user has provided them as ground truth.
 
 1. **highlights** (2-4 items): Positive observations, achievements, or opportunities
    - Reference specific assets, percentages, and dollar amounts

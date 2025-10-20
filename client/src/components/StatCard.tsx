@@ -17,7 +17,7 @@ export function StatCard({ title, value, trend, className, onClick }: StatCardPr
   return (
     <Card 
       className={cn(
-        "p-6 group",
+        "glass-card p-6 group transition-all duration-500 pulse-glow-slow",
         onClick && "cursor-pointer hover-elevate active-elevate-2",
         className
       )} 
@@ -31,7 +31,7 @@ export function StatCard({ title, value, trend, className, onClick }: StatCardPr
             <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           )}
         </div>
-        <p className="text-3xl font-mono font-semibold tracking-tight">{value}</p>
+        <p className="text-3xl font-mono font-semibold tracking-tight neon-text">{value}</p>
         {trend && (
           <div className="flex items-center gap-1">
             {trend.isPositive ? (

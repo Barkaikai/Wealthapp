@@ -74,28 +74,42 @@ export async function getMultipleCryptoPrices(coinIds: string[]): Promise<Crypto
   }
 }
 
-// Map common CoinGecko IDs to symbols for backward compatibility
-export const CRYPTO_ID_MAP: Record<string, string> = {
-  'bitcoin': 'btc-bitcoin',
-  'ethereum': 'eth-ethereum',
-  'solana': 'sol-solana',
-  'tether': 'usdt-tether',
-  'usd-coin': 'usdc-usd-coin',
-  'binancecoin': 'bnb-binance-coin',
-  'cardano': 'ada-cardano',
-  'dogecoin': 'doge-dogecoin',
-  'matic-network': 'matic-polygon',
-  'polkadot': 'dot-polkadot',
-  'BTC': 'btc-bitcoin',
-  'ETH': 'eth-ethereum',
-  'SOL': 'sol-solana',
-  'USDT': 'usdt-tether',
-  'USDC': 'usdc-usd-coin',
-  'BNB': 'bnb-binance-coin',
-  'ADA': 'ada-cardano',
-  'DOGE': 'doge-dogecoin',
-  'MATIC': 'matic-polygon',
-  'DOT': 'dot-polkadot',
+// Map common CoinGecko IDs to crypto symbols for the aggregator
+export const COINGECKO_TO_SYMBOL: Record<string, string> = {
+  'bitcoin': 'btc',
+  'ethereum': 'eth',
+  'solana': 'sol',
+  'tether': 'usdt',
+  'usd-coin': 'usdc',
+  'binancecoin': 'bnb',
+  'cardano': 'ada',
+  'dogecoin': 'doge',
+  'matic-network': 'matic',
+  'polkadot': 'dot',
+  'ripple': 'xrp',
+  'chainlink': 'link',
+  'litecoin': 'ltc',
+  'cosmos': 'atom',
+  'avalanche-2': 'avax',
+};
+
+// Reverse mapping: symbol to CoinGecko ID
+export const SYMBOL_TO_COINGECKO: Record<string, string> = {
+  'btc': 'bitcoin',
+  'eth': 'ethereum',
+  'sol': 'solana',
+  'usdt': 'tether',
+  'usdc': 'usd-coin',
+  'bnb': 'binancecoin',
+  'ada': 'cardano',
+  'doge': 'dogecoin',
+  'matic': 'matic-network',
+  'dot': 'polkadot',
+  'xrp': 'ripple',
+  'link': 'chainlink',
+  'ltc': 'litecoin',
+  'atom': 'cosmos',
+  'avax': 'avalanche-2',
 };
 
 /**
@@ -103,32 +117,51 @@ export const CRYPTO_ID_MAP: Record<string, string> = {
  */
 function getCoinSymbol(coinId: string): string {
   // Check if it's a CoinGecko ID that needs mapping
-  if (CRYPTO_ID_MAP[coinId]) {
-    return CRYPTO_ID_MAP[coinId];
+  const coinIdLower = coinId.toLowerCase();
+  if (COINGECKO_TO_SYMBOL[coinIdLower]) {
+    return COINGECKO_TO_SYMBOL[coinIdLower];
   }
   
-  // If it's uppercase (likely a symbol), convert to CoinPaprika format
+  // If it's uppercase (likely a symbol), convert to lowercase
   if (coinId === coinId.toUpperCase() && coinId.length <= 5) {
     return coinId.toLowerCase();
   }
   
-  // Otherwise return as-is (might be already in correct format)
-  return coinId;
+  // If it contains a dash (CoinPaprika slug), extract the symbol part
+  if (coinId.includes('-')) {
+    const parts = coinId.split('-');
+    return parts[0].toLowerCase();
+  }
+  
+  // Otherwise return as-is in lowercase
+  return coinIdLower;
 }
 
 /**
  * Get CoinGecko ID from symbol (for backward compatibility)
+ * Returns the original CoinGecko ID format
  */
 export function getCoinGeckoId(symbol: string): string {
-  const upper = symbol.toUpperCase();
+  const lower = symbol.toLowerCase();
   
-  // Check reverse mapping
-  for (const [id, mappedSymbol] of Object.entries(CRYPTO_ID_MAP)) {
-    if (mappedSymbol.startsWith(upper.toLowerCase() + '-')) {
-      return mappedSymbol;
+  // Check direct mapping from symbol to CoinGecko ID
+  if (SYMBOL_TO_COINGECKO[lower]) {
+    return SYMBOL_TO_COINGECKO[lower];
+  }
+  
+  // Check if input is already a CoinGecko ID
+  if (COINGECKO_TO_SYMBOL[lower]) {
+    return lower;
+  }
+  
+  // If it's a CoinPaprika slug (contains dash), try to extract symbol and map
+  if (symbol.includes('-')) {
+    const symbolPart = symbol.split('-')[0].toLowerCase();
+    if (SYMBOL_TO_COINGECKO[symbolPart]) {
+      return SYMBOL_TO_COINGECKO[symbolPart];
     }
   }
   
-  // Default: return symbol in lowercase
-  return symbol.toLowerCase();
+  // Default: return the lowercase version (best guess)
+  return lower;
 }

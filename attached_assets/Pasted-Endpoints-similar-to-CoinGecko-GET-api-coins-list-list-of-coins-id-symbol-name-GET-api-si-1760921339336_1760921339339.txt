@@ -1,0 +1,325 @@
+Endpoints similar to CoinGecko:
+
+GET /api/coins/list — list of coins (id, symbol, name)
+
+GET /api/simple/price?ids=btc,eth&vs_currencies=usd,eur — current prices for multiple symbols
+
+GET /api/coins/:id — coin details (combined from providers)
+
+GET /api/search?q=bitcoin — fuzzy search
+
+GET /api/global — basic market summary (total market cap, btc dominance, etc. best-effort)
+
+Uses CoinPaprika as primary (broad coverage & free) with fallback to CoinCap and CryptoCompare (requires key) and CoinMarketCap if you provide key. 
+coinmarketcap.com
++3
+docs.coinpaprika.com
++3
+rest.coincap.io
++3
+
+In-memory caching (TTL configurable) and concurrency safety
+
+Easy to add more providers later
+
+Replit-ready: read API keys from secrets/env vars
+
+How to add to your Replit app
+
+Add secrets (Replit Secrets):
+
+CRYPTOCOMPARE_KEY (optional)
+
+COINMARKETCAP_KEY (optional)
+
+Install dependencies:
+
+npm install express node-fetch node-cache rate-limiter-flexible
+
+
+Drop the code below into server/alt-crypto-agg.js (or server/index.ts converted to TS if you prefer).
+
+Complete code (server/alt-crypto-agg.js)
+// alt-crypto-agg.js
+// Run with: node alt-crypto-agg.js
+import express from "express";
+import fetch from "node-fetch";
+import NodeCache from "node-cache";
+import { RateLimiterMemory } from "rate-limiter-flexible";
+import dotenv from "dotenv";
+dotenv.config();
+
+const app = express();
+const cache = new NodeCache({ stdTTL: Number(process.env.CACHE_TTL || 60) }); // seconds
+const PORT = process.env.PORT || 5000;
+
+// rate limiter to avoid hitting provider limits accidentally
+const rateLimiter = new RateLimiterMemory({
+  points: parseInt(process.env.RATE_LIMIT_POINTS || "30"), // 30 requests
+  duration: parseInt(process.env.RATE_LIMIT_DURATION || "1"), // per second
+});
+
+// Providers (primary -> fallback order)
+const PROVIDERS = [
+  { name: "coinpaprika", base: "https://api.coinpaprika.com/v1" }, // no key
+  { name: "coincap", base: "https://api.coincap.io/v2" }, // no key for many endpoints
+  { name: "cryptocompare", base: "https://min-api.cryptocompare.com/data", keyEnv: "CRYPTOCOMPARE_KEY" }, // key optional
+  { name: "coinmarketcap", base: "https://pro-api.coinmarketcap.com/v1", keyEnv: "COINMARKETCAP_KEY" }, // key optional
+];
+
+// helper to call providers with fallback
+async function callProviders(pathMapFn, cacheKey, ttl = 60) {
+  // if cached, return
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  // rate limit
+  await rateLimiter.consume(1);
+
+  for (const p of PROVIDERS) {
+    try {
+      const req = pathMapFn(p);
+      if (!req) continue;
+      const { url, headers } = req;
+
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        // try next provider
+        continue;
+      }
+      const data = await res.json();
+      cache.set(cacheKey, data, ttl);
+      return data;
+    } catch (err) {
+      // try next provider
+      console.warn(`[Provider:${p.name}] request failed:`, err.message || err);
+      continue;
+    }
+  }
+
+  throw new Error("All providers failed");
+}
+
+// --- Endpoint: /api/coins/list
+app.get("/api/coins/list", async (req, res) => {
+  try {
+    const data = await callProviders(
+      (p) => {
+        if (p.name === "coinpaprika") return { url: `${p.base}/coins` };
+        if (p.name === "coincap") return { url: `${p.base}/assets` };
+        return null;
+      },
+      "coins_list",
+      Number(process.env.COINS_LIST_TTL || 300)
+    );
+
+    // normalize different provider formats to { id, symbol, name }
+    const normalized = (data || []).map((c) => {
+      if (c.id && c.symbol && c.name) return { id: c.id, symbol: c.symbol, name: c.name };
+      // coincap: { id, symbol, name } usually inside data array
+      if (c.data && Array.isArray(c.data)) {
+        return c.data.map((x) => ({ id: x.id, symbol: x.symbol, name: x.name }));
+      }
+      return null;
+    }).flat().filter(Boolean);
+
+    res.json(normalized);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Endpoint: /api/simple/price?ids=btc,eth&vs_currencies=usd,eur
+app.get("/api/simple/price", async (req, res) => {
+  const ids = (req.query.ids || "").toString().split(",").map(s => s.trim()).filter(Boolean);
+  const vs = (req.query.vs_currencies || "usd").toString().split(",").map(s => s.trim()).filter(Boolean);
+
+  if (!ids.length) return res.status(400).json({ error: "ids required" });
+
+  try {
+    // Try CryptoCompare multi price (fast) -> CoinPaprika ticker -> CoinCap price
+    const cacheKey = `simple_price:${ids.join(",")}:${vs.join(",")}`;
+    const data = await callProviders(
+      (p) => {
+        if (p.name === "cryptocompare" && process.env.CRYPTOCOMPARE_KEY) {
+          const fsyms = ids.map(i => i.toUpperCase()).join(",");
+          const tsyms = vs.map(v => v.toUpperCase()).join(",");
+          return {
+            url: `${p.base}/pricemulti?fsyms=${fsyms}&tsyms=${tsyms}&api_key=${process.env.CRYPTOCOMPARE_KEY}`,
+          };
+        }
+        if (p.name === "coincap") {
+          const url = `${p.base}/assets`;
+          return { url };
+        }
+        if (p.name === "coinpaprika") {
+          // coinpaprika has tickers per coin; but no bulk endpoint for multiple symbols, so skip for bulk
+          return null;
+        }
+        if (p.name === "coinmarketcap" && process.env.COINMARKETCAP_KEY) {
+          // CoinMarketCap supports multiple quotes
+          const slugs = ids.join(",");
+          return {
+            url: `${p.base}/cryptocurrency/quotes/latest?symbol=${slugs}`,
+            headers: { "X-CMC_PRO_API_KEY": process.env.COINMARKETCAP_KEY },
+          };
+        }
+        return null;
+      },
+      cacheKey,
+      Number(process.env.SIMPLE_PRICE_TTL || 30)
+    );
+
+    // normalize result to CoinGecko-like shape: { id: { usd: 123, eur: 456 } }
+    const normalized = {};
+    if (data && typeof data === "object") {
+      // CryptoCompare result: { BTC: { USD: 123, EUR: 110 } }
+      const upperKeys = Object.keys(data || {});
+      if (upperKeys.length && upperKeys[0].toUpperCase() === upperKeys[0]) {
+        for (const id of ids) {
+          const up = id.toUpperCase();
+          const entry = data[up] || {};
+          normalized[id] = {};
+          for (const v of vs) {
+            normalized[id][v] = entry[v.toUpperCase()] ?? null;
+          }
+        }
+      } else if (data.data && Array.isArray(data.data)) {
+        // CoinCap -> data array with priceUsd
+        for (const id of ids) {
+          const found = data.data.find((d) => d.symbol?.toLowerCase() === id.toLowerCase() || d.id === id);
+          normalized[id] = {};
+          for (const v of vs) {
+            if (v.toLowerCase() === "usd") normalized[id][v] = found ? Number(found.priceUsd) : null;
+            else normalized[id][v] = null;
+          }
+        }
+      } else if (data.data) {
+        // CoinMarketCap format: data: { BTC: { quote: { USD: { price }}}}
+        for (const id of ids) {
+          const up = id.toUpperCase();
+          const obj = data.data && data.data[up];
+          normalized[id] = {};
+          for (const v of vs) {
+            const upv = v.toUpperCase();
+            normalized[id][v] = obj && obj.quote && obj.quote[upv] ? obj.quote[upv].price : null;
+          }
+        }
+      }
+    }
+
+    res.json(normalized);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Endpoint: /api/coins/:id (coin detail aggregation)
+app.get("/api/coins/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const cacheKey = `coin_detail:${id}`;
+    const data = await callProviders(
+      (p) => {
+        if (p.name === "coinpaprika") return { url: `${p.base}/coins/${encodeURIComponent(id)}` };
+        if (p.name === "coincap") return { url: `${p.base}/assets/${encodeURIComponent(id)}` };
+        if (p.name === "cryptocompare" && process.env.CRYPTOCOMPARE_KEY) {
+          return { url: `${p.base}/v2/news/?categories=${encodeURIComponent(id)}&api_key=${process.env.CRYPTOCOMPARE_KEY}` }; // fallback - not ideal
+        }
+        return null;
+      },
+      cacheKey,
+      Number(process.env.COIN_DETAIL_TTL || 300)
+    );
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Endpoint: /api/search?q=bitcoin
+app.get("/api/search", async (req, res) => {
+  const q = (req.query.q || "").toString().trim();
+  if (!q) return res.status(400).json({ error: "q required" });
+
+  try {
+    const cacheKey = `search:${q}`;
+    const data = await callProviders(
+      (p) => {
+        if (p.name === "coinpaprika") return { url: `${p.base}/search?q=${encodeURIComponent(q)}` };
+        if (p.name === "coincap") return { url: `${p.base}/assets?search=${encodeURIComponent(q)}` };
+        return null;
+      },
+      cacheKey,
+      60
+    );
+
+    // normalize: coinpaprika search returns { coins: [...] }
+    let results = [];
+    if (data.coins) results = data.coins.map(c => ({ id: c.id, name: c.name, symbol: c.symbol }));
+    else if (data.data && Array.isArray(data.data)) results = data.data.map(d => ({ id: d.id, name: d.name || d.symbol, symbol: d.symbol }));
+    else results = data;
+
+    res.json({ query: q, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Endpoint: /api/global (best-effort)
+app.get("/api/global", async (req, res) => {
+  try {
+    const cacheKey = "global_summary";
+    const data = await callProviders(
+      (p) => {
+        if (p.name === "coinpaprika") return { url: `${p.base}/global` }; // coinpaprika has global endpoints
+        if (p.name === "coincap") return { url: `${p.base}/global` };
+        if (p.name === "cryptocompare") return { url: `${p.base}/blockchain/list?&api_key=${process.env.CRYPTOCOMPARE_KEY}` };
+        return null;
+      },
+      cacheKey,
+      Number(process.env.GLOBAL_TTL || 120)
+    );
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- simple health
+app.get("/api/health", (req, res) => res.json({ ok: true, now: Date.now() }));
+
+app.listen(PORT, () => console.log(`Alt-crypto aggregator running on port ${PORT}`));
+
+Notes, Extensions & Caveats
+
+Coverage & accuracy — CoinPaprika provides wide coverage and is a great free primary source; CoinMarketCap, CryptoCompare and CoinCap are solid fallbacks but may require keys and have rate limits. (Docs: CoinPaprika, CoinCap, CryptoCompare, CoinMarketCap). 
+coinmarketcap.com
++3
+docs.coinpaprika.com
++3
+rest.coincap.io
++3
+
+Historical & advanced endpoints — For OHLCV, exchange orderbooks, or on-chain deep data you’ll likely need paid tiers (CoinMarketCap, CoinAPI, CryptoCompare premium). Add those providers into the PROVIDERS list similarly. 
+docs.coinapi.io
++1
+
+Caching — TTLs used to protect rate limits. Tune CACHE_TTL, SIMPLE_PRICE_TTL etc. via env vars.
+
+Rate limits & keys — Put keys into Replit Secrets and set in process.env. If a provider returns 429, the aggregator currently tries next provider; you can also implement backoff and circuit-breaker.
+
+Normalization — Different APIs use different IDs/symbols. For large apps, maintain a symbol->provider-id mapping table persisted in DB (or sync periodically) to get reliable mapping (CoinPaprika uses id like btc-bitcoin, CoinCap uses bitcoin).
+
+Security — Serve this aggregator on your backend (server-side) — don’t expose your provider keys in client JS.
+
+Quick env var examples
+
+.env (or Replit Secrets)
+
+PORT=5000
+CRYPTOCOMPARE_KEY=your_crypto_compare_key
+COINMARKETCAP_KEY=your_cmc_key
+CACHE_TTL=60
+SIMPLE_PRICE_TTL=30
+COINS_LIST_TTL=300

@@ -20,7 +20,14 @@ The frontend uses React 18, TypeScript, Vite, Wouter, and TanStack Query. UI com
   - Purple-to-yellow gradient text on main headers
   - Purple neon glow text shadows on all headings
 - **Animated Backgrounds:** Elite purple/yellow radial gradients with 10s smooth animation (eliteGlow), luxury mansion image at 15% opacity as base layer
-- **Enhanced Glassmorphism:** Stronger blur (20px), purple-tinted backgrounds, 2px colored borders, enhanced hover effects with lift and glow
+- **Maximum Glassmorphism System (Oct 2025):**
+  - 10+ specialized glass utilities: glass-card, glass-ultra, glass-light, animated-gradient, pulse-glow, holographic, cyber-glow, float, data-stream, scan-lines, fade-in
+  - Enhanced dark mode transparency (rgba 0.05-0.15) for deeper glass effects
+  - Cyber-glow borders (2px purple/yellow with 0-20px glow spread)
+  - Continuous animations: floating (8-15s), pulsing (2-4s), holographic shimmer (3s), data-stream particles (20s)
+  - All components (StatCard, HighlightCard, Quick Access cards) use glass-card base
+  - Landing page features cyber-grid, scan-lines, and neon-text effects
+  - **Accessibility:** Comprehensive prefers-reduced-motion safeguards disable all animations gracefully
 - **Elite Loading Screen:** Instant branded splash with Orbitron font, purple-yellow gradient, pulse animation
 - **Purple Neon Shadows:** Multi-layer shadows with purple glow (0-80px spread)
 - **Production Domain:** wealthforge.app with CORS, CSP headers, and manifest configuration

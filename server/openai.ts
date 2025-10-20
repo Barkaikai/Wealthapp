@@ -412,7 +412,6 @@ Respond with JSON in this exact format:
       model: "gpt-5",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      timeout: 30000, // 30 second timeout for this specific call
     });
 
     return JSON.parse(response.choices[0].message.content!);
@@ -430,7 +429,6 @@ Respond with JSON in this exact format:
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
-        timeout: 25000, // Shorter timeout for fallback
       });
 
       return JSON.parse(fallbackResponse.choices[0].message.content!);
@@ -444,7 +442,6 @@ Respond with JSON in this exact format:
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
           response_format: { type: "json_object" },
-          timeout: 20000, // Even shorter timeout for mini
         });
 
         return JSON.parse(miniResponse.choices[0].message.content!);

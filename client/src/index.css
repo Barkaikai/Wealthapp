@@ -465,6 +465,7 @@
       linear-gradient(rgba(108, 31, 255, 0.1) 1px, transparent 1px),
       linear-gradient(90deg, rgba(108, 31, 255, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
+    pointer-events: none; /* Don't block clicks */
   }
 
   /* FLOATING SPARKLE PARTICLES */
@@ -553,6 +554,7 @@
     );
     background-size: 400% 400%;
     animation: gradientShift 8s ease infinite;
+    pointer-events: none; /* Don't block clicks */
   }
 
   .animated-gradient-fast {
@@ -563,6 +565,7 @@
     );
     background-size: 200% 200%;
     animation: gradientShift 4s ease infinite;
+    pointer-events: none; /* Don't block clicks */
   }
 
   /* SCI-FI PULSE EFFECT */

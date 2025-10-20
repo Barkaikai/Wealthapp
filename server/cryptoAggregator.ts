@@ -26,6 +26,124 @@ interface Provider {
   requiresKey?: boolean;
 }
 
+/**
+ * Crypto identifier mapping for different providers
+ * Maps symbol -> { coinpaprika, coincap, cryptocompare, coinmarketcap, coingecko }
+ */
+const CRYPTO_ID_MAP: Record<string, {
+  coinpaprika: string;
+  coincap: string;
+  cryptocompare: string;
+  coinmarketcap: string;
+  coingecko: string;
+}> = {
+  'btc': {
+    coinpaprika: 'btc-bitcoin',
+    coincap: 'bitcoin',
+    cryptocompare: 'BTC',
+    coinmarketcap: 'BTC',
+    coingecko: 'bitcoin'
+  },
+  'eth': {
+    coinpaprika: 'eth-ethereum',
+    coincap: 'ethereum',
+    cryptocompare: 'ETH',
+    coinmarketcap: 'ETH',
+    coingecko: 'ethereum'
+  },
+  'usdt': {
+    coinpaprika: 'usdt-tether',
+    coincap: 'tether',
+    cryptocompare: 'USDT',
+    coinmarketcap: 'USDT',
+    coingecko: 'tether'
+  },
+  'usdc': {
+    coinpaprika: 'usdc-usd-coin',
+    coincap: 'usd-coin',
+    cryptocompare: 'USDC',
+    coinmarketcap: 'USDC',
+    coingecko: 'usd-coin'
+  },
+  'bnb': {
+    coinpaprika: 'bnb-binance-coin',
+    coincap: 'binance-coin',
+    cryptocompare: 'BNB',
+    coinmarketcap: 'BNB',
+    coingecko: 'binancecoin'
+  },
+  'xrp': {
+    coinpaprika: 'xrp-xrp',
+    coincap: 'ripple',
+    cryptocompare: 'XRP',
+    coinmarketcap: 'XRP',
+    coingecko: 'ripple'
+  },
+  'ada': {
+    coinpaprika: 'ada-cardano',
+    coincap: 'cardano',
+    cryptocompare: 'ADA',
+    coinmarketcap: 'ADA',
+    coingecko: 'cardano'
+  },
+  'sol': {
+    coinpaprika: 'sol-solana',
+    coincap: 'solana',
+    cryptocompare: 'SOL',
+    coinmarketcap: 'SOL',
+    coingecko: 'solana'
+  },
+  'doge': {
+    coinpaprika: 'doge-dogecoin',
+    coincap: 'dogecoin',
+    cryptocompare: 'DOGE',
+    coinmarketcap: 'DOGE',
+    coingecko: 'dogecoin'
+  },
+  'dot': {
+    coinpaprika: 'dot-polkadot',
+    coincap: 'polkadot',
+    cryptocompare: 'DOT',
+    coinmarketcap: 'DOT',
+    coingecko: 'polkadot'
+  },
+  'matic': {
+    coinpaprika: 'matic-polygon',
+    coincap: 'polygon',
+    cryptocompare: 'MATIC',
+    coinmarketcap: 'MATIC',
+    coingecko: 'matic-network'
+  },
+  'avax': {
+    coinpaprika: 'avax-avalanche',
+    coincap: 'avalanche',
+    cryptocompare: 'AVAX',
+    coinmarketcap: 'AVAX',
+    coingecko: 'avalanche-2'
+  },
+  'link': {
+    coinpaprika: 'link-chainlink',
+    coincap: 'chainlink',
+    cryptocompare: 'LINK',
+    coinmarketcap: 'LINK',
+    coingecko: 'chainlink'
+  },
+  'atom': {
+    coinpaprika: 'atom-cosmos',
+    coincap: 'cosmos',
+    cryptocompare: 'ATOM',
+    coinmarketcap: 'ATOM',
+    coingecko: 'cosmos'
+  },
+  'ltc': {
+    coinpaprika: 'ltc-litecoin',
+    coincap: 'litecoin',
+    cryptocompare: 'LTC',
+    coinmarketcap: 'LTC',
+    coingecko: 'litecoin'
+  }
+};
+
 interface AggregatorOptions {
   cacheTTL?: number; // seconds
   cryptocompareKey?: string;
@@ -48,6 +166,34 @@ export class CryptoAggregator {
       { name: 'cryptocompare', base: 'https://min-api.cryptocompare.com/data', requiresKey: false },
       { name: 'coinmarketcap', base: 'https://pro-api.coinmarketcap.com/v1', requiresKey: true },
     ];
+  }
+
+  /**
+   * Normalize symbol to provider-specific identifier
+   */
+  private normalizeId(symbol: string, provider: string): string {
+    const lower = symbol.toLowerCase();
+    const mapping = CRYPTO_ID_MAP[lower];
+    
+    if (mapping) {
+      return mapping[provider as keyof typeof mapping] || symbol;
+    }
+    
+    // Fallback: try to guess the format
+    if (provider === 'coinpaprika') {
+      // If already a slug (contains dash), use as is
+      if (symbol.includes('-')) return symbol.toLowerCase();
+      // Otherwise, try to construct a slug (may not work for all coins)
+      return symbol.toLowerCase();
+    } else if (provider === 'coincap') {
+      // Remove any dashes and use lowercase full name if available
+      return symbol.toLowerCase().replace('-', '');
+    } else if (provider === 'cryptocompare' || provider === 'coinmarketcap') {
+      // Use uppercase symbol
+      return symbol.toUpperCase();
+    }
+    
+    return symbol;
   }
 
   private async throttle() {
@@ -139,7 +285,7 @@ export class CryptoAggregator {
 
     const data = await this.tryProviders<any>((p) => {
       if (p.name === 'cryptocompare') {
-        const fsyms = ids.map(i => i.toUpperCase()).join(',');
+        const fsyms = ids.map(i => this.normalizeId(i, 'cryptocompare')).join(',');
         const tsyms = vs.map(v => v.toUpperCase()).join(',');
         const key = this.options.cryptocompareKey ? `&api_key=${this.options.cryptocompareKey}` : '';
         return { url: `${p.base}/pricemulti?fsyms=${fsyms}&tsyms=${tsyms}${key}` };
@@ -148,11 +294,15 @@ export class CryptoAggregator {
         return { url: `${p.base}/assets` };
       }
       if (p.name === 'coinmarketcap' && this.options.coinmarketcapKey) {
-        const symbolStr = ids.map(i => i.toUpperCase()).join(',');
+        const symbolStr = ids.map(i => this.normalizeId(i, 'coinmarketcap')).join(',');
         return {
           url: `${p.base}/cryptocurrency/quotes/latest?symbol=${symbolStr}`,
           headers: { 'X-CMC_PRO_API_KEY': this.options.coinmarketcapKey }
         };
+      }
+      if (p.name === 'coinpaprika') {
+        // CoinPaprika doesn't have a multi-price endpoint, skip for now
+        return null;
       }
       return null;
     }, cacheKey, 30).catch(() => null);
@@ -168,9 +318,9 @@ export class CryptoAggregator {
     // CryptoCompare format: { BTC: { USD: 123 } }
     if (Object.keys(data).length && Object.keys(data)[0].toUpperCase() === Object.keys(data)[0]) {
       for (const id of ids) {
-        const up = id.toUpperCase();
+        const normalized = this.normalizeId(id, 'cryptocompare');
         for (const v of vs) {
-          result[id][v] = data[up]?.[v.toUpperCase()] ?? null;
+          result[id][v] = data[normalized]?.[v.toUpperCase()] ?? null;
         }
       }
       return result;
@@ -179,8 +329,11 @@ export class CryptoAggregator {
     // CoinCap format: { data: [ { symbol, priceUsd } ] }
     if (data.data && Array.isArray(data.data)) {
       for (const id of ids) {
+        const normalized = this.normalizeId(id, 'coincap');
         const found = data.data.find((d: any) =>
-          d.symbol?.toLowerCase() === id.toLowerCase() || d.id === id
+          d.symbol?.toLowerCase() === id.toLowerCase() || 
+          d.id === normalized ||
+          d.symbol?.toUpperCase() === this.normalizeId(id, 'cryptocompare')
         );
         if (found) {
           for (const v of vs) {
@@ -196,8 +349,8 @@ export class CryptoAggregator {
     // CoinMarketCap format: data: { BTC: { quote: { USD: { price } } } }
     if (data.data && typeof data.data === 'object') {
       for (const id of ids) {
-        const up = id.toUpperCase();
-        const obj = data.data[up];
+        const normalized = this.normalizeId(id, 'coinmarketcap');
+        const obj = data.data[normalized];
         for (const v of vs) {
           const upv = v.toUpperCase();
           result[id][v] = obj?.quote?.[upv]?.price ?? null;
@@ -213,17 +366,27 @@ export class CryptoAggregator {
    * Get single crypto price (enhanced format)
    */
   public async getCryptoPrice(symbol: string): Promise<CryptoPrice | null> {
-    const id = symbol.toLowerCase();
-    const cacheKey = `crypto_price:${id}`;
+    const cacheKey = `crypto_price:${symbol.toLowerCase()}`;
 
-    // Try CoinPaprika ticker
     try {
       const data = await this.tryProviders<any>((p) => {
+        const normalized = this.normalizeId(symbol, p.name);
+        
         if (p.name === 'coinpaprika') {
-          return { url: `${p.base}/tickers/${id}` };
+          return { url: `${p.base}/tickers/${normalized}` };
         }
         if (p.name === 'coincap') {
-          return { url: `${p.base}/assets/${id}` };
+          return { url: `${p.base}/assets/${normalized}` };
+        }
+        if (p.name === 'cryptocompare') {
+          const key = this.options.cryptocompareKey ? `&api_key=${this.options.cryptocompareKey}` : '';
+          return { url: `${p.base}/price?fsym=${normalized}&tsyms=USD${key}` };
+        }
+        if (p.name === 'coinmarketcap' && this.options.coinmarketcapKey) {
+          return {
+            url: `${p.base}/cryptocurrency/quotes/latest?symbol=${normalized}`,
+            headers: { 'X-CMC_PRO_API_KEY': this.options.coinmarketcapKey }
+          };
         }
         return null;
       }, cacheKey, 60);
@@ -258,6 +421,37 @@ export class CryptoAggregator {
             volume24h: Number(d.volumeUsd24Hr) || 0,
             lastUpdated: new Date(),
           };
+        }
+
+        // CryptoCompare format
+        if (data.USD && typeof data.USD === 'number') {
+          return {
+            id: symbol.toLowerCase(),
+            symbol: symbol.toUpperCase(),
+            name: symbol,
+            currentPrice: data.USD,
+            lastUpdated: new Date(),
+          };
+        }
+
+        // CoinMarketCap format
+        if (data.data && typeof data.data === 'object') {
+          const normalized = this.normalizeId(symbol, 'coinmarketcap');
+          const coinData = data.data[normalized];
+          if (coinData?.quote?.USD) {
+            const usd = coinData.quote.USD;
+            return {
+              id: coinData.id?.toString() || symbol.toLowerCase(),
+              symbol: coinData.symbol || symbol.toUpperCase(),
+              name: coinData.name || symbol,
+              currentPrice: usd.price || 0,
+              priceChange24h: usd.price_change_24h || 0,
+              priceChangePercentage24h: usd.percent_change_24h || 0,
+              marketCap: usd.market_cap || 0,
+              volume24h: usd.volume_24h || 0,
+              lastUpdated: new Date(usd.last_updated),
+            };
+          }
         }
       }
     } catch (err) {

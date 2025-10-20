@@ -23,20 +23,33 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+// Singleton session pool to prevent connection leaks
+let sessionPool: pg.Pool | null = null;
+
+function getSessionPool() {
+  if (!sessionPool) {
+    sessionPool = new pg.Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      max: 10, // Maximum pool size
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    
+    sessionPool.on('error', (err) => {
+      console.error('[Session] Unexpected session database pool error:', err);
+    });
+    
+    sessionPool.on('connect', () => {
+      console.log('[Session] Session database connection established');
+    });
+  }
+  return sessionPool;
+}
+
 export function getSession() {
   const pgStore = connectPg(session);
-  const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-  
-  pgPool.on('error', (err) => {
-    console.error('[Session] Unexpected session database pool error:', err);
-  });
-  
-  pgPool.on('connect', () => {
-    console.log('[Session] Session database connection established');
-  });
-  
   const sessionStore = new pgStore({
-    pool: pgPool,
+    pool: getSessionPool(),
     tableName: "sessions",
     createTableIfMissing: true,
     pruneSessionInterval: 60,
@@ -60,6 +73,15 @@ export function getSession() {
   };
   
   return session(sessionConfig);
+}
+
+// Export cleanup function for graceful shutdown
+export async function closeSessionPool() {
+  if (sessionPool) {
+    await sessionPool.end();
+    sessionPool = null;
+    console.log('[Session] Pool closed');
+  }
 }
 
 function updateUserSession(

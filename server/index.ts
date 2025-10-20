@@ -68,7 +68,10 @@ app.use(cors({
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
+      defaultSrc: [
+        "'self'",
+        ...(process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : [])
+      ],
       scriptSrc: [
         "'self'",
         "https://js.stripe.com",
@@ -100,7 +103,9 @@ app.use(helmet({
         "https://login.microsoftonline.com",
         "https://gmail.googleapis.com",
         "https://discord.com",
-        "https://api.discord.com"
+        "https://api.discord.com",
+        ...(process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : []),
+        ...(process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `wss://${d.trim()}`) : [])
       ],
       frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
       workerSrc: ["'self'", "blob:"],

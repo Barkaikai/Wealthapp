@@ -141,6 +141,118 @@ const CRYPTO_ID_MAP: Record<string, {
     cryptocompare: 'LTC',
     coinmarketcap: 'LTC',
     coingecko: 'litecoin'
+  },
+  'bch': {
+    coinpaprika: 'bch-bitcoin-cash',
+    coincap: 'bitcoin-cash',
+    cryptocompare: 'BCH',
+    coinmarketcap: 'BCH',
+    coingecko: 'bitcoin-cash'
+  },
+  'xlm': {
+    coinpaprika: 'xlm-stellar',
+    coincap: 'stellar',
+    cryptocompare: 'XLM',
+    coinmarketcap: 'XLM',
+    coingecko: 'stellar'
+  },
+  'xmr': {
+    coinpaprika: 'xmr-monero',
+    coincap: 'monero',
+    cryptocompare: 'XMR',
+    coinmarketcap: 'XMR',
+    coingecko: 'monero'
+  },
+  'etc': {
+    coinpaprika: 'etc-ethereum-classic',
+    coincap: 'ethereum-classic',
+    cryptocompare: 'ETC',
+    coinmarketcap: 'ETC',
+    coingecko: 'ethereum-classic'
+  },
+  'trx': {
+    coinpaprika: 'trx-tron',
+    coincap: 'tron',
+    cryptocompare: 'TRX',
+    coinmarketcap: 'TRX',
+    coingecko: 'tron'
+  },
+  'shib': {
+    coinpaprika: 'shib-shiba-inu',
+    coincap: 'shiba-inu',
+    cryptocompare: 'SHIB',
+    coinmarketcap: 'SHIB',
+    coingecko: 'shiba-inu'
+  },
+  'uni': {
+    coinpaprika: 'uni-uniswap',
+    coincap: 'uniswap',
+    cryptocompare: 'UNI',
+    coinmarketcap: 'UNI',
+    coingecko: 'uniswap'
+  },
+  'wbtc': {
+    coinpaprika: 'wbtc-wrapped-bitcoin',
+    coincap: 'wrapped-bitcoin',
+    cryptocompare: 'WBTC',
+    coinmarketcap: 'WBTC',
+    coingecko: 'wrapped-bitcoin'
+  },
+  'dai': {
+    coinpaprika: 'dai-dai',
+    coincap: 'multi-collateral-dai',
+    cryptocompare: 'DAI',
+    coinmarketcap: 'DAI',
+    coingecko: 'dai'
+  },
+  'luna': {
+    coinpaprika: 'luna-terra-v2',
+    coincap: 'terra-luna',
+    cryptocompare: 'LUNA',
+    coinmarketcap: 'LUNA',
+    coingecko: 'terra-luna-2'
+  },
+  'cro': {
+    coinpaprika: 'cro-cronos',
+    coincap: 'crypto-com-coin',
+    cryptocompare: 'CRO',
+    coinmarketcap: 'CRO',
+    coingecko: 'cronos'
+  },
+  'near': {
+    coinpaprika: 'near-near-protocol',
+    coincap: 'near-protocol',
+    cryptocompare: 'NEAR',
+    coinmarketcap: 'NEAR',
+    coingecko: 'near'
+  },
+  'vet': {
+    coinpaprika: 'vet-vechain',
+    coincap: 'vechain',
+    cryptocompare: 'VET',
+    coinmarketcap: 'VET',
+    coingecko: 'vechain'
+  },
+  'apt': {
+    coinpaprika: 'apt-aptos',
+    coincap: 'aptos',
+    cryptocompare: 'APT',
+    coinmarketcap: 'APT',
+    coingecko: 'aptos'
+  },
+  'arb': {
+    coinpaprika: 'arb-arbitrum',
+    coincap: 'arbitrum',
+    cryptocompare: 'ARB',
+    coinmarketcap: 'ARB',
+    coingecko: 'arbitrum'
+  },
+  'op': {
+    coinpaprika: 'op-optimism',
+    coincap: 'optimism',
+    cryptocompare: 'OP',
+    coinmarketcap: 'OP',
+    coingecko: 'optimism'
   }
 };
 

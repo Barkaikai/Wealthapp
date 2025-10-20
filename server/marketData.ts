@@ -75,45 +75,32 @@ export async function getCryptoMarketData(): Promise<MarketDataPoint[]> {
   const cached = getCached<MarketDataPoint[]>(cacheKey);
   if (cached) return cached;
 
-  // Try CoinGecko first with circuit breaker
+  // Try crypto aggregator (uses CoinPaprika, CoinCap, CryptoCompare, CoinMarketCap)
   try {
-    const result = await circuitBreakers.coinGecko.execute(
-      async () => {
-        const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h';
-        const data = await fetchJson(url, 10000);
-        
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error('Invalid CoinGecko response');
-        }
-        
-        const mappedData = data.map(item => ({
-          symbol: item.symbol?.toUpperCase() || '',
-          name: item.name || '',
-          price: item.current_price || 0,
-          change24h: item.price_change_24h || 0,
-          changePercent: item.price_change_percentage_24h || 0,
-          marketCap: item.market_cap || 0,
-          volume24h: item.total_volume || 0,
-          source: 'coingecko',
-        }));
-        
-        setCache(cacheKey, mappedData, 300); // Cache for 5 minutes
-        return mappedData;
-      },
-      // Fallback: Use stale cache if available
-      async () => {
-        const staleCache = cache.get(cacheKey);
-        if (staleCache) {
-          console.log('[MarketData] Using stale CoinGecko cache');
-          return staleCache.data;
-        }
-        throw new Error('No cached data available');
-      }
-    );
+    const { cryptoAggregator } = await import('./cryptoAggregator');
+    const symbols = ['btc-bitcoin', 'eth-ethereum', 'bnb-binance-coin', 'sol-solana', 
+                     'ada-cardano', 'xrp-ripple', 'dot-polkadot', 'doge-dogecoin', 
+                     'avax-avalanche', 'matic-polygon'];
     
-    return result;
+    const prices = await cryptoAggregator.getMultipleCryptoPrices(symbols);
+    
+    if (prices && prices.length > 0) {
+      const mappedData = prices.map(item => ({
+        symbol: item.symbol?.toUpperCase() || '',
+        name: item.name || '',
+        price: item.currentPrice || 0,
+        change24h: item.priceChange24h || 0,
+        changePercent: item.priceChangePercentage24h || 0,
+        marketCap: item.marketCap || 0,
+        volume24h: item.volume24h || 0,
+        source: 'crypto-aggregator',
+      }));
+      
+      setCache(cacheKey, mappedData, 300); // Cache for 5 minutes
+      return mappedData;
+    }
   } catch (error) {
-    console.warn('CoinGecko failed, trying fallback:', error);
+    console.warn('[MarketData] Crypto aggregator failed, trying CryptoCompare fallback:', error);
   }
 
   // Fallback: CryptoCompare
@@ -273,33 +260,34 @@ export async function getMarketOverview(): Promise<MarketOverview> {
 // ==================== ENHANCED CRYPTO PRICE FETCH WITH FALLBACKS ====================
 
 export async function getCryptoPriceWithFallback(symbol: string): Promise<MarketDataPoint | null> {
-  // Try CoinGecko first
+  // Try crypto aggregator first (multi-provider with automatic fallback)
   try {
-    const coinId = symbol.toLowerCase();
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`;
-    const data = await fetchJson(url);
+    const { cryptoAggregator } = await import('./cryptoAggregator');
+    const price = await cryptoAggregator.getCryptoPrice(symbol);
     
-    if (data?.[coinId]?.usd) {
+    if (price) {
       return {
-        symbol: symbol.toUpperCase(),
-        name: symbol,
-        price: data[coinId].usd,
-        changePercent: data[coinId].usd_24h_change || 0,
-        marketCap: data[coinId].usd_market_cap || 0,
-        source: 'coingecko',
+        symbol: price.symbol?.toUpperCase() || symbol.toUpperCase(),
+        name: price.name || symbol,
+        price: price.currentPrice || 0,
+        change24h: price.priceChange24h || 0,
+        changePercent: price.priceChangePercentage24h || 0,
+        marketCap: price.marketCap || 0,
+        volume24h: price.volume24h || 0,
+        source: 'crypto-aggregator',
       };
     }
   } catch (error) {
-    console.warn(`CoinGecko failed for ${symbol}, trying CryptoCompare`);
+    console.warn(`[MarketData] Crypto aggregator failed for ${symbol}, trying direct CryptoCompare`);
   }
 
-  // Fallback: CryptoCompare
+  // Fallback: Direct CryptoCompare
   try {
-    const url = `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${symbol}&tsyms=USD`;
+    const url = `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${symbol.toUpperCase()}&tsyms=USD`;
     const data = await fetchJson(url);
     
-    if (data?.RAW?.[symbol]?.USD) {
-      const usd = data.RAW[symbol].USD;
+    if (data?.RAW?.[symbol.toUpperCase()]?.USD) {
+      const usd = data.RAW[symbol.toUpperCase()].USD;
       return {
         symbol: symbol.toUpperCase(),
         name: symbol,
@@ -311,7 +299,7 @@ export async function getCryptoPriceWithFallback(symbol: string): Promise<Market
       };
     }
   } catch (error) {
-    console.warn(`CryptoCompare failed for ${symbol}, trying Yahoo`);
+    console.warn(`[MarketData] CryptoCompare failed for ${symbol}, trying Yahoo`);
   }
 
   // Last fallback: Yahoo Finance

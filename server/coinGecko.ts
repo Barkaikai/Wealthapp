@@ -1,9 +1,9 @@
-import fetch from 'node-fetch';
-import { getPublicCryptoPrice } from './publicCrypto';
-
-const API_KEY = process.env.COINGECKO_API_KEY;
-const BASE_URL = 'https://api.coingecko.com/api/v3';
-const USE_PUBLIC_API = process.env.CRYPTO_DATA_SOURCE === 'public' || !API_KEY;
+/**
+ * coinGecko.ts
+ * UPDATED: Now uses multi-provider crypto aggregator instead of CoinGecko
+ * Maintains same interface for backward compatibility
+ */
+import { cryptoAggregator } from './cryptoAggregator';
 
 export interface CryptoPrice {
   id: string;
@@ -17,108 +17,118 @@ export interface CryptoPrice {
   lastUpdated: Date;
 }
 
+/**
+ * Get price for a single cryptocurrency
+ * @param coinId - Coin symbol or ID (e.g., 'bitcoin', 'btc')
+ */
 export async function getCryptoPrice(coinId: string): Promise<CryptoPrice | null> {
-  if (USE_PUBLIC_API) {
-    const symbol = Object.keys(CRYPTO_ID_MAP).find(key => CRYPTO_ID_MAP[key] === coinId) || coinId;
-    return await getPublicCryptoPrice(symbol);
-  }
-
   try {
-    const headers: any = {
-      'Accept': 'application/json',
-    };
+    // Map common coin IDs to symbols
+    const symbol = getCoinSymbol(coinId);
+    const price = await cryptoAggregator.getCryptoPrice(symbol);
     
-    if (API_KEY) {
-      headers['x-cg-demo-api-key'] = API_KEY;
+    if (!price) {
+      return null;
     }
 
-    const url = `${BASE_URL}/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h`;
-    const response = await fetch(url, { headers });
-    const data = await response.json() as any[];
-
-    if (data && data.length > 0) {
-      const coin = data[0];
-      return {
-        id: coin.id,
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        currentPrice: coin.current_price,
-        priceChange24h: coin.price_change_24h || 0,
-        priceChangePercentage24h: coin.price_change_percentage_24h || 0,
-        marketCap: coin.market_cap || 0,
-        volume24h: coin.total_volume || 0,
-        lastUpdated: new Date(coin.last_updated),
-      };
-    }
-
-    return null;
+    return {
+      id: price.id,
+      symbol: price.symbol,
+      name: price.name,
+      currentPrice: price.currentPrice,
+      priceChange24h: price.priceChange24h ?? 0,
+      priceChangePercentage24h: price.priceChangePercentage24h ?? 0,
+      marketCap: price.marketCap ?? 0,
+      volume24h: price.volume24h ?? 0,
+      lastUpdated: price.lastUpdated,
+    };
   } catch (error) {
-    console.error(`Error fetching crypto price for ${coinId}:`, error);
+    console.error(`[CoinGecko] Error fetching crypto price for ${coinId}:`, error);
     return null;
   }
 }
 
+/**
+ * Get prices for multiple cryptocurrencies
+ * @param coinIds - Array of coin symbols or IDs
+ */
 export async function getMultipleCryptoPrices(coinIds: string[]): Promise<CryptoPrice[]> {
-  if (USE_PUBLIC_API) {
-    const results: CryptoPrice[] = [];
-    for (const coinId of coinIds) {
-      const symbol = Object.keys(CRYPTO_ID_MAP).find(key => CRYPTO_ID_MAP[key] === coinId) || coinId;
-      const price = await getPublicCryptoPrice(symbol);
-      if (price) {
-        results.push(price);
-      }
-    }
-    return results;
-  }
-
   try {
-    const headers: any = {
-      'Accept': 'application/json',
-    };
+    const symbols = coinIds.map(id => getCoinSymbol(id));
+    const prices = await cryptoAggregator.getMultipleCryptoPrices(symbols);
     
-    if (API_KEY) {
-      headers['x-cg-demo-api-key'] = API_KEY;
-    }
-
-    const url = `${BASE_URL}/coins/markets?vs_currency=usd&ids=${coinIds.join(',')}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`;
-    const response = await fetch(url, { headers });
-    const data = await response.json() as any[];
-
-    if (data && Array.isArray(data)) {
-      return data.map(coin => ({
-        id: coin.id,
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        currentPrice: coin.current_price,
-        priceChange24h: coin.price_change_24h || 0,
-        priceChangePercentage24h: coin.price_change_percentage_24h || 0,
-        marketCap: coin.market_cap || 0,
-        volume24h: coin.total_volume || 0,
-        lastUpdated: new Date(coin.last_updated),
-      }));
-    }
-
-    return [];
+    return prices.map(price => ({
+      id: price.id,
+      symbol: price.symbol,
+      name: price.name,
+      currentPrice: price.currentPrice,
+      priceChange24h: price.priceChange24h ?? 0,
+      priceChangePercentage24h: price.priceChangePercentage24h ?? 0,
+      marketCap: price.marketCap ?? 0,
+      volume24h: price.volume24h ?? 0,
+      lastUpdated: price.lastUpdated,
+    }));
   } catch (error) {
-    console.error('Error fetching multiple crypto prices:', error);
+    console.error('[CoinGecko] Error fetching multiple crypto prices:', error);
     return [];
   }
 }
 
-// Map common symbols to CoinGecko IDs
+// Map common CoinGecko IDs to symbols for backward compatibility
 export const CRYPTO_ID_MAP: Record<string, string> = {
-  'BTC': 'bitcoin',
-  'ETH': 'ethereum',
-  'SOL': 'solana',
-  'USDT': 'tether',
-  'USDC': 'usd-coin',
-  'BNB': 'binancecoin',
-  'ADA': 'cardano',
-  'DOGE': 'dogecoin',
-  'MATIC': 'matic-network',
-  'DOT': 'polkadot',
+  'bitcoin': 'btc-bitcoin',
+  'ethereum': 'eth-ethereum',
+  'solana': 'sol-solana',
+  'tether': 'usdt-tether',
+  'usd-coin': 'usdc-usd-coin',
+  'binancecoin': 'bnb-binance-coin',
+  'cardano': 'ada-cardano',
+  'dogecoin': 'doge-dogecoin',
+  'matic-network': 'matic-polygon',
+  'polkadot': 'dot-polkadot',
+  'BTC': 'btc-bitcoin',
+  'ETH': 'eth-ethereum',
+  'SOL': 'sol-solana',
+  'USDT': 'usdt-tether',
+  'USDC': 'usdc-usd-coin',
+  'BNB': 'bnb-binance-coin',
+  'ADA': 'ada-cardano',
+  'DOGE': 'doge-dogecoin',
+  'MATIC': 'matic-polygon',
+  'DOT': 'dot-polkadot',
 };
 
+/**
+ * Get symbol from CoinGecko ID or return the input if already a symbol
+ */
+function getCoinSymbol(coinId: string): string {
+  // Check if it's a CoinGecko ID that needs mapping
+  if (CRYPTO_ID_MAP[coinId]) {
+    return CRYPTO_ID_MAP[coinId];
+  }
+  
+  // If it's uppercase (likely a symbol), convert to CoinPaprika format
+  if (coinId === coinId.toUpperCase() && coinId.length <= 5) {
+    return coinId.toLowerCase();
+  }
+  
+  // Otherwise return as-is (might be already in correct format)
+  return coinId;
+}
+
+/**
+ * Get CoinGecko ID from symbol (for backward compatibility)
+ */
 export function getCoinGeckoId(symbol: string): string {
-  return CRYPTO_ID_MAP[symbol.toUpperCase()] || symbol.toLowerCase();
+  const upper = symbol.toUpperCase();
+  
+  // Check reverse mapping
+  for (const [id, mappedSymbol] of Object.entries(CRYPTO_ID_MAP)) {
+    if (mappedSymbol.startsWith(upper.toLowerCase() + '-')) {
+      return mappedSymbol;
+    }
+  }
+  
+  // Default: return symbol in lowercase
+  return symbol.toLowerCase();
 }

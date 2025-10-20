@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { StatCard } from "@/components/StatCard";
 import { HighlightCard } from "@/components/HighlightCard";
 import MarketOverview from "@/components/MarketOverview";
+import { QuickAssetEntry } from "@/components/QuickAssetEntry";
 import { Sparkles, AlertTriangle, Target, RefreshCw, TrendingUp, CreditCard, Calculator, Users, FileText, Brain, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,6 +59,8 @@ const quickAccessItems = [
 
 export default function DailyBriefing() {
   const { toast } = useToast();
+  const [assetDialogOpen, setAssetDialogOpen] = useState(false);
+  const [selectedAssetType, setSelectedAssetType] = useState<string>("stocks");
 
   const { data: assets = [] } = useQuery<Asset[]>({
     queryKey: ["/api/assets"],
@@ -102,11 +106,17 @@ export default function DailyBriefing() {
   const totalChange = assets.reduce((sum, asset) => sum + (asset.change24h || 0), 0);
   const totalChangePercent = totalWealth > 0 ? (totalChange / totalWealth) * 100 : 0;
 
+  const handleOpenAssetDialog = (type: string) => {
+    setSelectedAssetType(type);
+    setAssetDialogOpen(true);
+  };
+
   const stats = [
     { 
       title: "Total Wealth", 
       value: `$${totalWealth.toLocaleString()}`, 
-      trend: { value: `${totalChangePercent >= 0 ? '+' : ''}${totalChangePercent.toFixed(2)}%`, isPositive: totalChangePercent >= 0 } 
+      trend: { value: `${totalChangePercent >= 0 ? '+' : ''}${totalChangePercent.toFixed(2)}%`, isPositive: totalChangePercent >= 0 },
+      onClick: () => handleOpenAssetDialog("stocks")
     },
     { 
       title: "Stocks", 
@@ -114,7 +124,8 @@ export default function DailyBriefing() {
       trend: assetsByType['stocks'] ? { 
         value: `${assetsByType['stocks'].change >= 0 ? '+' : ''}$${assetsByType['stocks'].change.toLocaleString()}`, 
         isPositive: assetsByType['stocks'].change >= 0 
-      } : undefined
+      } : undefined,
+      onClick: () => handleOpenAssetDialog("stocks")
     },
     { 
       title: "Crypto", 
@@ -122,16 +133,24 @@ export default function DailyBriefing() {
       trend: assetsByType['crypto'] ? { 
         value: `${assetsByType['crypto'].change >= 0 ? '+' : ''}$${assetsByType['crypto'].change.toLocaleString()}`, 
         isPositive: assetsByType['crypto'].change >= 0 
-      } : undefined
+      } : undefined,
+      onClick: () => handleOpenAssetDialog("crypto")
     },
     { 
       title: "Cash & Bonds", 
       value: `$${((assetsByType['cash']?.total || 0) + (assetsByType['bonds']?.total || 0)).toLocaleString()}`,
+      onClick: () => handleOpenAssetDialog("cash")
     },
   ];
 
   return (
     <div className="space-y-6">
+      <QuickAssetEntry 
+        open={assetDialogOpen} 
+        onOpenChange={setAssetDialogOpen}
+        defaultType={selectedAssetType}
+      />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Daily Briefing</h1>

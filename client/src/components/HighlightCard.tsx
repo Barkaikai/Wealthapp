@@ -11,14 +11,14 @@ interface HighlightCardProps {
 }
 
 export function HighlightCard({ icon: Icon, title, items, variant = "default" }: HighlightCardProps) {
-  const borderColor = {
-    default: "border-l-primary",
-    warning: "border-l-chart-4",
-    success: "border-l-chart-3",
+  const glowColor = {
+    default: "cyber-glow",
+    warning: "cyber-glow-yellow",
+    success: "cyber-glow",
   }[variant];
 
   return (
-    <Card className={cn("glass-card p-6 border-l-4 hover-elevate transition-all duration-500 float-slow", borderColor)} data-testid={`card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card className={cn("glass-card p-6 hover-elevate transition-all duration-500 float-slow", glowColor)} data-testid={`card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex items-start gap-3">
         <Icon className="h-5 w-5 mt-1 text-primary pulse-glow" />
         <div className="flex-1">

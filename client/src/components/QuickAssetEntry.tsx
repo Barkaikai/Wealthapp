@@ -64,7 +64,6 @@ export function QuickAssetEntry({ open, onOpenChange, defaultType }: QuickAssetE
       value: parseFloat(value),
       quantity: parseFloat(quantity) || 1,
       source: "manual",
-      lastSynced: new Date(),
     };
 
     createAsset.mutate(assetData);

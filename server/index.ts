@@ -64,20 +64,53 @@ app.use(cors({
 }));
 
 // Security: Helmet for secure HTTP headers
+// Production-grade CSP without unsafe-inline/unsafe-eval
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'", "https://wealthforge.app", "https://www.wealthforge.app"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://wealthforge.app"], // Stripe.js required
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://m.stripe.network", "https://m.stripe.com"], // Stripe Elements + Google Fonts
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "https://js.stripe.com",
+        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-inline'", "'unsafe-eval'"] : [])
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for styled components and Tailwind
+        "https://fonts.googleapis.com",
+        "https://m.stripe.network",
+        "https://m.stripe.com"
+      ],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https:", "wss:", "https://api.stripe.com", "wss://wealthforge.app", "https://wealthforge.app"],
-      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"], // Stripe payment elements
+      imgSrc: ["'self'", "data:", "blob:", "https://api.coinpaprika.com", "https://api.coingecko.com"],
+      connectSrc: [
+        "'self'",
+        "wss://wealthforge.app",
+        "https://wealthforge.app",
+        "https://www.wealthforge.app",
+        "https://api.stripe.com",
+        "https://api.openai.com",
+        "https://api.tavily.com",
+        "https://www.alphavantage.co",
+        "https://api.coinpaprika.com",
+        "https://api.coincap.io",
+        "https://min-api.cryptocompare.com",
+        "https://pro-api.coinmarketcap.com",
+        "https://graph.microsoft.com",
+        "https://login.microsoftonline.com",
+        "https://gmail.googleapis.com",
+        "https://discord.com",
+        "https://api.discord.com"
+      ],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
       workerSrc: ["'self'", "blob:"],
-      manifestSrc: ["'self'", "https://wealthforge.app"],
+      manifestSrc: ["'self'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
     },
   },
+  crossOriginEmbedderPolicy: false, // Required for some third-party embeds
 }));
 
 // Performance: Compression (gzip responses)

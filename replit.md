@@ -1,7 +1,7 @@
-# Wealth Automation Platform
+# WealthForge - Elite Automation Platform
 
 ## Overview
-This AI-powered platform provides automated financial tracking, email management, daily routine optimization, and AI-driven decision support for high-net-worth individuals. It offers comprehensive wealth management, including asset aggregation, AI-powered email categorization and reply drafting, personalized daily briefings with portfolio insights, and optimized routine generation. The platform delivers an ultra-premium experience with a luxury aesthetic, integrating a double-entry Digital Accountant, CRM, health monitoring, and real-money Stripe payments for holistic life automation and financial management.
+WealthForge is a futuristic AI-powered platform providing automated financial tracking, email management, daily routine optimization, and AI-driven decision support for high-net-worth individuals. Launched at **wealthforge.app**, it offers comprehensive wealth management including asset aggregation, AI-powered email categorization and reply drafting, personalized daily briefings with portfolio insights, and optimized routine generation. The platform delivers an ultra-premium experience with a **futuristic sci-fi aesthetic** featuring elite purple (#6C1FFF) and yellow (#FFC43D) colors, glassmorphism effects, animated backgrounds, and cutting-edge typography. It integrates a double-entry Digital Accountant, CRM, health monitoring, and real-money Stripe payments for holistic life automation and financial management.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -9,7 +9,16 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend uses React 18, TypeScript, Vite, Wouter, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS), adhering to Material Design 3. It features a dark-first luxury aesthetic with gold accents, Inter and JetBrains Mono fonts, mobile responsiveness, WCAG AA compliance, a Coinbase-inspired blue theme, wealth-themed background images, and a mobile/desktop view switcher.
+The frontend uses React 18, TypeScript, Vite, Wouter, and TanStack Query. UI components are built with Shadcn/ui (Radix UI, Tailwind CSS), adhering to Material Design 3. It features a **futuristic sci-fi aesthetic** with:
+
+**WealthForge Design System (Oct 2025):**
+- **Elite Color Palette:** Primary purple (#6C1FFF), accent yellow (#FFC43D), replacing previous blue theme
+- **Futuristic Typography:** Orbitron (display/headers, 700 weight), Rajdhani (body text, 400/500/600 weights) via Google Fonts
+- **Animated Backgrounds:** CSS-based moving aurora with purple particles (pulseGlow and moveParticles animations)
+- **Glassmorphism Effects:** Utility classes (glass, glass-card, neon-text, cyber-border, cyber-grid) for translucent UI elements
+- **Purple Neon Shadows:** Enhanced elevation with purple glow effects (shadow-neon-sm/md/lg/xl)
+- **Production Domain:** wealthforge.app with CORS, CSP headers, and manifest configuration
+- **Mobile Responsiveness:** Mobile/desktop view switcher, WCAG AA compliance maintained
 
 ### Technical Implementations
 The backend is an Express.js with TypeScript REST API. Authentication uses Replit Auth (OpenID Connect) and Passport.js with PostgreSQL-backed sessions. PostgreSQL (Neon serverless) is the primary database, managed with Drizzle ORM. The platform supports continuous background health monitoring with diagnostic history and safe auto-fix capabilities. AI briefing generation includes robust error handling and fallback mechanisms. A PWA provides offline functionality and automatic updates. The system includes a Digital Calendar and a Terminal Interface. Performance optimizations include AI response caching (LRU, 60-min TTL), an AI request queue manager, WebSocket streaming for real-time AI responses, canonical user ID caching, structured JSON logging with rotation, AI data forwarding for learning, and Gzip compression with lazy-loaded components. Client-side caching uses IndexedDB with a DeviceStorageManager for offline resilience and performance.
@@ -84,5 +93,5 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Microsoft Azure AD:** OAuth 2.0 authentication for Office 365 integration.
 - **Microsoft Graph API:** Access to Outlook emails, OneDrive files, Calendar events.
 - **Redis (Upstash or self-hosted):** Caching layer for Multi-Agent AI short-term memory.
-- **Google Fonts:** Typography (Inter, JetBrains Mono).
+- **Google Fonts:** Futuristic typography (Orbitron 700, Rajdhani 400/500/600).
 - **Recharts:** Financial data visualization.

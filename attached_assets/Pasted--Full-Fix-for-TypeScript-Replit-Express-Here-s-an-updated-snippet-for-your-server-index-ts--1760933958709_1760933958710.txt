@@ -1,0 +1,80 @@
+✅ Full Fix (for TypeScript / Replit / Express)
+
+Here’s an updated snippet for your server/index.ts (or where you set up sessions):
+
+import express from "express";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple"; // if using PostgreSQL
+import { Pool } from "pg"; // optional, for Replit DB use a lighter alternative
+
+const app = express();
+
+// 🧠 Create ONE global DB connection (don’t reconnect every request)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL, // set this in Replit Secrets
+  ssl: { rejectUnauthorized: false }
+});
+
+// ✅ Persistent session store (instead of memory store)
+const PgSession = connectPgSimple(session);
+
+app.use(
+  session({
+    store: new PgSession({
+      pool, // reuse existing pool
+      tableName: "user_sessions",
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || "change-this-in-secrets",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // true if using HTTPS
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    },
+  })
+);
+
+app.get("/api/admin/status", async (req, res) => {
+  res.json({
+    status: "ok",
+    server: {
+      environment: process.env.NODE_ENV || "development",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    },
+    memory: {
+      rss: (process.memoryUsage().rss / 1024 / 1024).toFixed(2) + " MB",
+    },
+  });
+});
+
+🔒 Replit Secrets to Add
+Key	Description
+DATABASE_URL	PostgreSQL connection string (from Supabase, Neon.tech, or similar)
+SESSION_SECRET	A random long string for cookie/session signing
+✅ Why This Fix Works
+
+✔ Prevents session re-initialization on every request
+✔ Reuses a single DB connection pool
+✔ Persists session data across reloads (so users stay logged in)
+✔ Prevents [Session] Session database connection established spam in logs
+✔ Keeps admin status endpoint stable and lightweight
+
+Optional: For Lite Replit DB
+
+If you’re using Replit DB (not Postgres), replace the session section with:
+
+import ReplitDB from "@replit/database";
+const db = new ReplitDB();
+
+app.use(
+  session({
+    store: new (require("connect-session-replitdb")(session))({ db }),
+    secret: process.env.SESSION_SECRET || "replit-session",
+    resave: false,
+    saveUninitialized: false,
+  })
+);

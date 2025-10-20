@@ -88,6 +88,7 @@ function Router() {
         ) : (
           <>
             <Route path="/" component={DailyBriefing} />
+            <Route path="/daily-briefing" component={DailyBriefing} />
             <Route path="/login" component={Login} />
             <Route path="/wallet" component={Wallet} />
             <Route path="/nft-vault" component={NFTVault} />

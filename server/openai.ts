@@ -76,34 +76,41 @@ function extractFinancialDataFromNotes(notes: any[]): string {
   const financialMentions: string[] = [];
   
   notes.forEach(note => {
-    const content = `${note.title} ${note.content}`.toLowerCase();
+    const originalContent = `${note.title} ${note.content}`;
+    const content = originalContent.toLowerCase();
     
-    // Pattern matching for financial mentions
+    // More comprehensive pattern matching for financial mentions
     const patterns = [
-      // Stock mentions: "AAPL", "Apple stock", "Tesla shares"
-      /(?:stock|shares?|equity|holding)\s+(?:in\s+)?([A-Z]{2,5}|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
-      // Crypto mentions: "BTC", "Bitcoin", "10 ETH"
-      /(?:crypto|bitcoin|btc|ethereum|eth|crypto|coin)\s*(?::\s*)?([0-9,.]+)?/gi,
-      // Dollar amounts: "$50,000", "$1.2M"
-      /\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
-      // Asset values: "worth $X", "valued at $X"
-      /(?:worth|valued?\s+at|total|assets?)\s+\$?([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
-      // Positions: "bought 10 shares", "holding 5 BTC"
-      /(?:bought|sold|holding?|own)\s+([0-9,.]+)\s+(?:shares?|btc|eth|coins?)/gi,
+      // Stock mentions with quantities and values: "100 shares of Microsoft worth $40,000"
+      /(\d+(?:,\d{3})*(?:\.\d+)?)\s+shares?\s+(?:of\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:stock\s+)?(?:worth|valued?\s+at)\s+\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
+      // Crypto with quantity and value: "2 ETH valued at $6,000", "holding 0.5 BTC worth $25,000"
+      /(?:holding\s+)?(\d+(?:\.\d+)?)\s+(BTC|ETH|bitcoin|ethereum)\s+(?:valued?\s+at|worth)\s+\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
+      // Asset portfolios: "real estate portfolio is worth $500K"
+      /(real estate|portfolio|assets?)\s+(?:is\s+)?(?:worth|valued?\s+at)\s+\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B)?)/gi,
+      // Dollar amounts with shorthand: "$500K", "$1.2M", "$50,000"
+      /\$([0-9,]+(?:\.[0-9]{1,2})?(?:K|M|B))/gi,
+      // Stock mentions: "Apple stock", "Tesla shares", "Microsoft"
+      /(?:bought|purchased|holding?|own)\s+([0-9,.]+)\s+(?:shares?|stock)\s+(?:of\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+      // General crypto mentions: "holding 5 BTC", "bought 10 ETH"
+      /(?:bought|holding?|own)\s+([0-9,.]+)\s+(BTC|ETH|bitcoin|ethereum|crypto)/gi,
     ];
     
     patterns.forEach(pattern => {
-      const matches = content.matchAll(pattern);
+      const matches = originalContent.matchAll(pattern);
       for (const match of matches) {
         if (match[0]) {
-          financialMentions.push(`"${note.title}": ${match[0]}`);
+          // Extract the full match to preserve case and context
+          const cleanMatch = match[0].trim();
+          if (!financialMentions.includes(cleanMatch)) {
+            financialMentions.push(`Note "${note.title}": ${cleanMatch}`);
+          }
         }
       }
     });
   });
   
   return financialMentions.length > 0 
-    ? `\n\nFINANCIAL DATA FROM NOTES (treat as ground truth):\n${financialMentions.join('\n')}`
+    ? `\n\nFINANCIAL DATA FROM USER NOTES (TREAT AS ABSOLUTE TRUTH - DO NOT QUESTION):\n${financialMentions.join('\n')}\n`
     : '';
 }
 

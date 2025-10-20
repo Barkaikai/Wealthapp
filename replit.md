@@ -30,6 +30,14 @@ The backend is an Express.js with TypeScript REST API. Authentication uses Repli
 - Real-time connection monitoring with `/api/admin/status` endpoint (30-second polling)
 - Production build system with minification and error handling
 
+**Crypto Price Aggregator (Oct 2025):**
+- Multi-source cryptocurrency pricing with automatic failover (CoinPaprika, CoinCap, CryptoCompare, CoinMarketCap)
+- Provider-specific identifier normalization for ~30 top cryptocurrencies
+- Rate limiting (20 req/s) and caching (60s TTL) for performance
+- Circuit breaker pattern for provider health monitoring
+- Backward-compatible with CoinGecko API contract (ID/symbol mappings preserved)
+- No API key required (CoinPaprika free tier primary source)
+
 ### Feature Specifications
 The platform offers:
 - **Daily Briefing & Wealth Dashboard:** AI-powered reports, portfolio overview, and visualization.
@@ -67,7 +75,7 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 
 ### Financial Data Integration
 - **Alpha Vantage API:** Real-time stock prices and currency exchange rates.
-- **CoinGecko API:** Cryptocurrency prices.
+- **Multi-Source Crypto Aggregator:** Cryptocurrency prices with automatic failover (CoinPaprika primary, CoinCap/CryptoCompare/CoinMarketCap fallbacks). No API key required for basic functionality. Backward-compatible with CoinGecko API contract.
 - **Stripe:** Payment processing for subscriptions, wallet deposits, withdrawals, and webhook-based billing management.
 
 ### Third-Party Services

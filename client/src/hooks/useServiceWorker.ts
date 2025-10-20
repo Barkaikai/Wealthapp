@@ -5,8 +5,11 @@ export function useServiceWorker() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      // Register service worker in both dev and prod for offline functionality
+    // Only register service worker in production to avoid conflicts with Vite HMR
+    const isProduction = import.meta.env.PROD;
+    
+    if ('serviceWorker' in navigator && isProduction) {
+      // Register service worker only in production
       navigator.serviceWorker
         .register('/service-worker.js', { scope: '/' })
         .then((reg) => {
@@ -32,6 +35,8 @@ export function useServiceWorker() {
         .catch((error) => {
           console.error('[SW] Service worker registration failed:', error);
         });
+    } else if (!isProduction) {
+      console.log('[SW] Service worker disabled in development mode');
     } else {
       console.warn('[SW] Service workers not supported in this browser');
     }

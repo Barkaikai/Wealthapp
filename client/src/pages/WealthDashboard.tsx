@@ -215,8 +215,17 @@ export default function WealthDashboard() {
       // Calculate total value for allocations
       const total = assets.reduce((sum, a) => sum + a.value, 0);
       
-      // Generate CSV content with all required columns
-      const headers = ['Asset', 'Symbol', 'Quantity', 'Value ($)', 'Allocation (%)', '24h'];
+      // Helper to escape CSV values (handle commas, quotes, newlines)
+      const escapeCsv = (value: string | number) => {
+        const str = String(value);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      // Generate CSV content with all required columns including Type for round-trip compatibility
+      const headers = ['Asset', 'Symbol', 'Type', 'Quantity', 'Value ($)', 'Allocation (%)', '24h'];
       const rows = assets.map(asset => {
         const allocation = total > 0 ? ((asset.value / total) * 100).toFixed(2) : '0.00';
         const change24h = asset.changePercent ? 
@@ -224,8 +233,9 @@ export default function WealthDashboard() {
           '+0.00%';
         
         return [
-          asset.name,
-          asset.symbol,
+          escapeCsv(asset.name),
+          escapeCsv(asset.symbol),
+          escapeCsv(asset.assetType),
           asset.quantity || 1,
           asset.value.toFixed(2),
           allocation,
@@ -272,14 +282,46 @@ export default function WealthDashboard() {
         throw new Error("CSV file must have at least a header and one data row");
       }
 
+      // Parse CSV line properly handling quoted fields
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              // Escaped quote
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+
       // Parse CSV - support both formats:
       // Format 1 (simple): symbol,quantity,type
-      // Format 2 (full export): Asset,Symbol,Quantity,Value ($),Allocation (%),24h
-      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      // Format 2 (full export): Asset,Symbol,Type,Quantity,Value ($),Allocation (%),24h
+      const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
       const symbolIndex = headers.findIndex(h => h.includes('symbol'));
       const quantityIndex = headers.findIndex(h => h.includes('quantity'));
-      const typeIndex = headers.findIndex(h => h.includes('type') || h.includes('assettype'));
+      const typeIndex = headers.findIndex(h => h.includes('type') && !h.includes('assettype'));
       const assetNameIndex = headers.findIndex(h => h === 'asset' || h === 'name');
+      const valueIndex = headers.findIndex(h => h.includes('value') && h.includes('$'));
       
       if (symbolIndex === -1 || quantityIndex === -1) {
         throw new Error("CSV must have 'Symbol' and 'Quantity' columns");
@@ -289,10 +331,12 @@ export default function WealthDashboard() {
       let failed = 0;
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
+        const values = parseCsvLine(lines[i]);
         const symbol = values[symbolIndex];
         const quantity = parseFloat(values[quantityIndex]);
-        let assetType = typeIndex !== -1 ? values[typeIndex].toLowerCase() : null;
+        let assetType = typeIndex !== -1 && values[typeIndex] ? values[typeIndex].toLowerCase() : null;
+        const assetName = assetNameIndex !== -1 && values[assetNameIndex] ? values[assetNameIndex] : symbol;
+        const exportedValue = valueIndex !== -1 && values[valueIndex] ? parseFloat(values[valueIndex]) : null;
         
         if (!symbol || isNaN(quantity)) continue;
 
@@ -313,12 +357,15 @@ export default function WealthDashboard() {
             imported++;
           } else if (assetType === 'cash' || assetType === 'bonds' || assetType === 'real_estate') {
             // Create manual asset for non-stock/crypto types
-            const pricePerUnit = assetType === 'cash' ? 1 : 100; // Default $1 for cash, $100 for others
+            // Prefer exported value if available, otherwise calculate based on default pricing
+            const value = exportedValue !== null ? exportedValue : 
+              (assetType === 'cash' ? quantity * 1 : quantity * 100);
+            
             await apiRequest("POST", "/api/assets", {
-              name: symbol,
+              name: assetName, // Use exported asset name
               symbol: symbol,
               assetType: assetType,
-              value: quantity * pricePerUnit,
+              value: value,
               quantity: quantity,
             });
             imported++;

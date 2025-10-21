@@ -1,0 +1,430 @@
+Wealth Dashboard
+Track and manage your portfolio
+
+
+Sync Prices
+
+Export Report
+Add Asset
+Asset Allocation
+CryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoCryptoStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksStocksCashStocksStocks
+Portfolio Growth (YTD)
+Jan
+Mar
+May
+Jul
+Sep
+$0.0M
+$0.0M
+$0.0M
+$0.0M
+$0.0M
+Global Market Overview
+Real-time data • 11:01:08 PM
+
+Crypto
+
+Stocks
+
+Metals
+BTC
+
+Bitcoin
+
+$109,570.95
+
+Cap: $2.18T
+
+-0.34%
+$0.00
+
+ETH
+
+Ethereum
+
+$3,937.03
+
+Cap: $474.12B
+
+-1.58%
+$0.00
+
+BNB
+
+BNB
+
+$1,082.50
+
+Cap: $150.67B
+
+-3.67%
+$0.00
+
+SOL
+
+Solana
+
+$186.23
+
+Cap: $101.78B
+
+-2.28%
+$0.00
+
+ADA
+
+Cardano
+
+$0.66
+
+Cap: $25.01B
+
+-1.02%
+$0.00
+
+DOT
+
+Polkadot
+
+$3.05
+
+Cap: $4.72B
+
+-0.40%
+$0.00
+
+DOGE
+
+Dogecoin
+
+$0.20
+
+Cap: $29.33B
+
+-1.21%
+$0.00
+
+AVAX
+
+Avalanche
+
+$19.99
+
+Cap: $8.44B
+
+-4.91%
+$0.00
+
+MATIC
+
+Polygon
+
+$0.20
+
+Cap: $379.27M
+
++0.35%
++$0.00
+
+Portfolio Holdings
+Asset	Value	Allocation	24h
+Cardano (CB)
+
+ADA
+
+$0.04	0%	
++0.00%
+Dogecoin (CB)
+
+DOGE
+
+$0.05	0%	
++0.00%
+Ren (CB)
+
+REN
+
+$0.3	0%	
++0.00%
+NEAR Protocol (CB)
+
+NEAR
+
+$0.91	0%	
++0.00%
+Aleo (CB)
+
+ALEO
+
+$1.65	0%	
++0.00%
+XYO (CB)
+
+XYO
+
+$3	0%	
++0.00%
+Spell Token (CB)
+
+SPEL
+
+$3.03	0%	
++0.00%
+FLOKI (CB)
+
+FLOK
+
+$3.13	0%	
++0.00%
+IoTex (CB)
+
+IOTX
+
+$5.9	0%	
++0.00%
+Tezos (CB)
+
+XTZ
+
+$6.13	0%	
++0.00%
+vechain (CB)
+
+VET
+
+$14.1	0%	
++0.00%
+Pepe
+
+PEPE
+
+$17.69	0%	
++0.00%
+Polygon Ecosystem Token (CB)
+
+POL
+
+$17.81	0%	
++0.00%
+SHIBA INU (CB)
+
+SHIB
+
+$26	0%	
++0.00%
+Bonk (CB)
+
+BONK
+
+$27.33	0%	
++0.00%
+Jasmy (CB)
+
+JASM
+
+$33.47	0%	
++0.00%
+Chainlink
+
+LINK
+
+$39.31	0%	
++0.00%
+Hedera (CB)
+
+HBAR
+
+$46.23	0%	
++0.00%
+Algorand (CB)
+
+ALGO
+
+$62.22	0%	
++0.00%
+Stellar Lumens (CB)
+
+XLM
+
+$69.44	0%	
++0.00%
+Cosmos (CB)
+
+ATOM
+
+$86.61	0%	
++0.00%
+Cronos (CB)
+
+CRO
+
+$94.67	0%	
++0.00%
+Ethereum (CB)
+
+ETHE
+
+$233.16	0%	
++0.00%
+XRP (CB)
+
+XRP
+
+$237.86	0%	
++0.00%
+Solana (CB)
+
+SOLANA
+
+$187.85	0%	
++0.00%
+Bitcoin (CB)
+
+BITCOIN
+
+$292.55	0%	
++0.00%
+Bitcoin
+
+BITCOIN
+
+$134.68	0%	
++0.00%
+Tesla
+
+T
+
+$73.32	0%	
++0.00%
+Nano-X Imaging
+
+NANO
+
+$3.34	0%	
++0.00%
+PayPal
+
+P
+
+$3.61	0%	
++0.00%
+MARA Holdings
+
+MARA
+
+$5.9	0%	
++0.00%
+Strategy
+
+Strategy
+
+$8.52	0%	
++0.00%
+Block
+
+BLOCK
+
+$16.84	0%	
++0.00%
+Lam Research
+
+LAM
+
+$27.04	0%	
++0.00%
+Nokia
+
+NOKIA
+
+$30.69	0%	
++0.00%
+Axon Enterprise
+
+Axon
+
+$31.27	0%	
++0.00%
+Coinbase
+
+Coinbase
+
+$35.46	0%	
++0.00%
+GE Vernova
+
+GE
+
+$37.3	0%	
++0.00%
+Alphabet Inc. Class A
+
+G
+
+$43.96	0%	
++0.00%
+Energy ETF Vanguard
+
+V
+
+$44.25	0%	
++0.00%
+NIO
+
+NIO
+
+$46.12	0%	
++0.00%
+Vanguard Total International Stock ETF
+
+V
+
+$52.71	0%	
++0.00%
+Vanguard Long-Term Corporate Bond ETF
+
+V
+
+$53.3	0%	
++0.00%
+Advance Micro Devices
+
+AMD
+
+$63.37	0%	
++0.00%
+Plug Power
+
+P
+
+$64.8	0%	
++0.00%
+Vanguard S&P 500 ETF
+
+V
+
+$75.7	0%	
++0.00%
+VanEck Gold Miners ETF
+
+VE
+
+$95.75	0%	
++0.00%
+Cash
+
+$cash$
+
+$200	0%	
++0.00%
+NVIDIA
+
+NVIDIA
+
+$258.69	0%	
++0.00%
+Palantir Technologies
+
+Palantir Technologies
+
+$267.91	0%	
++0.00%

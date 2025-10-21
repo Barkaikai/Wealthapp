@@ -42,32 +42,32 @@ function MarketDataCard({ item }: { item: MarketDataPoint }) {
   
   return (
     <div 
-      className="flex items-center justify-between p-3 rounded-lg border bg-card hover-elevate active-elevate-2" 
+      className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-card hover-elevate active-elevate-2 gap-2 min-w-0" 
       data-testid={`market-item-${item.symbol}`}
     >
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold" data-testid={`market-symbol-${item.symbol}`}>{item.symbol}</p>
-          <p className="text-sm text-muted-foreground">{item.name}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+          <p className="font-semibold text-sm sm:text-base flex-shrink-0" data-testid={`market-symbol-${item.symbol}`}>{item.symbol}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">{item.name}</p>
         </div>
-        <p className="text-2xl font-mono font-bold mt-1" data-testid={`market-price-${item.symbol}`}>
+        <p className="text-lg sm:text-xl md:text-2xl font-mono font-bold mt-1 truncate" data-testid={`market-price-${item.symbol}`}>
           {formatPrice(item.price)}
         </p>
         {item.marketCap && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
             Cap: {formatLargeNumber(item.marketCap)}
           </p>
         )}
       </div>
-      <div className="text-right">
+      <div className="text-right flex-shrink-0">
         <div className={`flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-          {isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-          <span className="font-semibold" data-testid={`market-change-${item.symbol}`}>
+          {isPositive ? <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" /> : <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />}
+          <span className="font-semibold text-xs sm:text-sm whitespace-nowrap" data-testid={`market-change-${item.symbol}`}>
             {isPositive ? '+' : ''}{item.changePercent?.toFixed(2)}%
           </span>
         </div>
         {item.change24h !== undefined && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 hidden sm:block whitespace-nowrap">
             {isPositive ? '+' : ''}{formatPrice(item.change24h)}
           </p>
         )}
@@ -126,25 +126,25 @@ export default function MarketOverview({ compact = false }: { compact?: boolean 
     const topStocks = data?.stocks?.slice(0, 3) || [];
     
     return (
-      <Card data-testid="market-overview-compact">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LineChart className="h-5 w-5" />
-            Market Overview
+      <Card data-testid="market-overview-compact" className="overflow-hidden">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <LineChart className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span className="truncate">Market Overview</span>
           </CardTitle>
-          <CardDescription>Real-time market data across multiple asset classes</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Real-time market data</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
           <div>
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Coins className="h-4 w-4" />
+            <h3 className="text-xs sm:text-sm font-semibold mb-2 flex items-center gap-2">
+              <Coins className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               Top Crypto
             </h3>
             <MarketSection data={topCrypto} loading={isLoading} title="Crypto" icon={Coins} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <LineChart className="h-4 w-4" />
+            <h3 className="text-xs sm:text-sm font-semibold mb-2 flex items-center gap-2">
+              <LineChart className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               Market Indices
             </h3>
             <MarketSection data={topStocks} loading={isLoading} title="Stocks" icon={LineChart} />
@@ -156,30 +156,33 @@ export default function MarketOverview({ compact = false }: { compact?: boolean 
 
   // Full view for Wealth Dashboard
   return (
-    <Card data-testid="market-overview-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LineChart className="h-5 w-5" />
-          Global Market Overview
+    <Card data-testid="market-overview-full" className="overflow-hidden">
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <LineChart className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+          <span className="truncate">Global Market Overview</span>
         </CardTitle>
-        <CardDescription>
-          Real-time data from multiple sources • Last updated: {data?.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString() : 'Loading...'}
+        <CardDescription className="text-xs sm:text-sm break-words">
+          Real-time data • {data?.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString() : 'Loading...'}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 sm:p-6">
         <Tabs defaultValue="crypto" data-testid="market-tabs">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="crypto" data-testid="tab-crypto">
-              <Coins className="h-4 w-4 mr-2" />
-              Crypto
+            <TabsTrigger value="crypto" data-testid="tab-crypto" className="text-xs sm:text-sm">
+              <Coins className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Crypto</span>
+              <span className="sm:hidden">Crypto</span>
             </TabsTrigger>
-            <TabsTrigger value="stocks" data-testid="tab-stocks">
-              <LineChart className="h-4 w-4 mr-2" />
-              Stocks
+            <TabsTrigger value="stocks" data-testid="tab-stocks" className="text-xs sm:text-sm">
+              <LineChart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Stocks</span>
+              <span className="sm:hidden">Stocks</span>
             </TabsTrigger>
-            <TabsTrigger value="metals" data-testid="tab-metals">
-              <Gem className="h-4 w-4 mr-2" />
-              Metals
+            <TabsTrigger value="metals" data-testid="tab-metals" className="text-xs sm:text-sm">
+              <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Metals</span>
+              <span className="sm:hidden">Metals</span>
             </TabsTrigger>
           </TabsList>
           

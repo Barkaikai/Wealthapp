@@ -55,7 +55,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-background select-none">
+    <div className="min-h-screen bg-background">
       {/* Hero Section - Simplified with minimal overlays */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)]">
         {/* Single subtle animated gradient - no stacking */}
@@ -82,32 +82,28 @@ export default function Landing() {
           </div>
 
           {/* Primary CTA - High Contrast, No Overlays */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center select-none">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
+              asChild
               size="lg" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.location.href = '/api/login';
-              }}
-              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-none"
+              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
               data-testid="button-login"
             >
-              <Lock className="mr-2 h-6 w-6 pointer-events-none select-none" />
-              <span className="select-none">Secure Sign In</span>
+              <a href="/api/login">
+                <Lock className="mr-2 h-6 w-6" />
+                Secure Sign In
+              </a>
             </Button>
             <Button 
+              asChild
               size="lg" 
               variant="outline"
-              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30 cursor-pointer select-none"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-              }}
+              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30"
               data-testid="button-learn-more"
             >
-              <span className="select-none">Explore Features</span>
+              <a href="#features">
+                Explore Features
+              </a>
             </Button>
           </div>
           
@@ -190,17 +186,15 @@ export default function Landing() {
             Join the elite circle of individuals who've mastered the art of sophisticated automation
           </p>
           <Button 
+            asChild
             size="lg" 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.location.href = '/api/login';
-            }}
-            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-none"
+            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
             data-testid="button-sign-in"
           >
-            <Shield className="mr-2 h-6 w-6 pointer-events-none select-none" />
-            <span className="select-none">Secure Sign In</span>
+            <a href="/api/login">
+              <Shield className="mr-2 h-6 w-6" />
+              Secure Sign In
+            </a>
           </Button>
         </div>
       </div>

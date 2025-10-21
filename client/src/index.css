@@ -857,11 +857,20 @@
   .sidebar,
   [data-sidebar],
   footer,
-  button:not(.print-visible),
+  button,
   .no-print,
-  [data-testid*="button"]:not([data-testid="button-print"]),
+  [data-testid*="button"],
   [data-testid*="toggle"],
   [data-testid*="nav"],
+  [data-testid*="input"],
+  [data-testid*="select"],
+  [role="dialog"],
+  [role="tooltip"],
+  .dialog,
+  .modal,
+  .tooltip,
+  .popover,
+  .dropdown,
   .print-hide {
     display: none !important;
   }

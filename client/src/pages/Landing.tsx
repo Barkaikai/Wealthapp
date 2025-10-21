@@ -56,20 +56,20 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section with Luxury Background */}
-      <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)] scan-lines">
-        {/* Animated Gradient Overlay */}
-        <div className="absolute inset-0 animated-gradient" />
-        
-        {/* Cyber Grid Pattern */}
-        <div className="absolute inset-0 cyber-grid opacity-20" />
+      {/* Hero Section - Simplified with minimal overlays */}
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)]">
+        {/* Single subtle animated gradient - no stacking */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,31,255,0.15)_0%,rgba(255,196,61,0.08)_50%,transparent_100%)] animate-pulse-slow" />
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto fade-in-up">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text float-slow">
-            Elite Life Automation
+        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-accent bg-clip-text text-transparent">
+            WealthForge
           </h1>
-          <p className="text-xs sm:text-sm text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed fade-in-delay">
+          <p className="text-lg sm:text-xl md:text-2xl font-semibold mb-4 text-foreground/90">
+            Elite Life Automation
+          </p>
+          <p className="text-sm sm:text-base text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
             Command your wealth, time, and communications with the sophistication of a private office—powered by cutting-edge AI
           </p>
           
@@ -81,20 +81,21 @@ export default function Landing() {
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center fade-in-delay">
+          {/* Primary CTA - High Contrast, No Overlays */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
               size="lg" 
               onClick={() => window.location.href = '/api/login'}
-              className="text-lg px-8 h-14 rounded-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300 pulse-glow-slow"
+              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
               data-testid="button-login"
             >
-              <Lock className="mr-2 h-5 w-5" />
+              <Lock className="mr-2 h-6 w-6" />
               Secure Sign In
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 h-14 rounded-lg glass-light holographic"
+              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
               data-testid="button-learn-more"
             >
@@ -103,110 +104,92 @@ export default function Landing() {
           </div>
           
           {/* Scroll Indicator */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce">
-            <ChevronDown className="h-8 w-8 text-primary/60" />
+          <div className="mt-20 animate-bounce">
+            <ChevronDown className="h-8 w-8 text-primary/60 mx-auto" />
           </div>
         </div>
       </div>
 
-      {/* Features Section */}
-      <div id="features" className="container mx-auto px-6 py-24 relative">
-        {/* Subtle Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_50%_120%,hsl(var(--primary))_0%,transparent_60%)]" />
-        
-        <div className="relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-base sm:text-lg font-bold tracking-tight mb-4">
-              Executive-Level <span className="text-primary">Automation</span>
+      {/* Features Section - Clean Design */}
+      <div id="features" className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            Executive-Level <span className="text-primary">Automation</span>
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+            Experience the precision and efficiency reserved for the world's elite
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+          {features.map((feature, index) => (
+            <Card 
+              key={index} 
+              className="p-8 hover-elevate transition-all duration-300" 
+              data-testid={`feature-${index}`}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="p-3 rounded-lg bg-primary/10 w-fit">
+                  <feature.icon className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Security Section */}
+        <div className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">
+              <span className="text-primary">Secure</span> & Reliable
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
-              Experience the precision and efficiency reserved for the world's elite
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Your data is protected with modern security practices
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
-            {features.map((feature, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {securityFeatures.map((security, index) => (
               <Card 
                 key={index} 
-                className="glass-card hover-elevate active-elevate-2 transition-all duration-500 p-8 float" 
-                data-testid={`feature-${index}`}
+                className="p-6 hover-elevate transition-all duration-300"
+                data-testid={`security-${index}`}
               >
-                <div className="flex flex-col gap-4">
-                  <div className="p-4 rounded-xl cyber-glow w-fit pulse-glow">
-                    <feature.icon className="h-7 w-7 text-primary" />
+                <div className="flex flex-col gap-3">
+                  <div className="p-3 rounded-lg bg-accent/10 w-fit">
+                    <security.icon className="h-7 w-7 text-accent" />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-semibold mb-2 neon-text">{feature.title}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                    <h4 className="text-base font-semibold mb-2">{security.title}</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{security.description}</p>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
+        </div>
 
-          {/* Security Section */}
-          <div className="mb-20">
-            <div className="text-center mb-12">
-              <h2 className="text-base sm:text-lg font-bold tracking-tight mb-4">
-                <span className="text-primary">Secure</span> & Reliable
-              </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
-                Your data is protected with modern security practices
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {securityFeatures.map((security, index) => (
-                <Card 
-                  key={index} 
-                  className="glass-light hover-elevate transition-all duration-500 p-6 holographic"
-                  data-testid={`security-${index}`}
-                >
-                  <div className="flex flex-col gap-3">
-                    <div className="p-3 rounded-lg cyber-glow-yellow w-fit">
-                      <security.icon className="h-6 w-6 text-accent" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm sm:text-base font-semibold mb-1">{security.title}</h4>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{security.description}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Premium CTA Section with Background */}
-          <div className="relative rounded-2xl overflow-hidden glass-ultra scan-lines">
-            {/* Animated Gradient Background */}
-            <div className="absolute inset-0 animated-gradient-fast" />
-            
-            {/* Data Stream Effect */}
-            <div className="absolute inset-0 data-stream opacity-30" />
-            
-            {/* Content */}
-            <div className="relative z-10 p-16 text-center">
-              <h2 className="text-base sm:text-lg font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text">
-                Elevate Your Lifestyle
-              </h2>
-              <p className="text-xs sm:text-sm text-foreground/90 mb-10 max-w-2xl mx-auto">
-                Join the elite circle of individuals who've mastered the art of sophisticated automation
-              </p>
-              <Button 
-                size="lg" 
-                onClick={() => window.location.href = '/api/login'}
-                className="text-lg px-10 h-14 rounded-lg shadow-2xl hover:shadow-primary/30 transition-all duration-300"
-                data-testid="button-sign-in"
-              >
-                <Shield className="mr-2 h-5 w-5" />
-                Secure Sign In
-              </Button>
-              
-              {/* Decorative Elements */}
-              <div className="absolute top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-primary/20 rounded-tl-2xl" />
-              <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-primary/20 rounded-br-2xl" />
-            </div>
-          </div>
+        {/* Final CTA Section - Clean & Clear */}
+        <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-12 md:p-16 text-center border border-primary/20">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Elevate Your Lifestyle
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+            Join the elite circle of individuals who've mastered the art of sophisticated automation
+          </p>
+          <Button 
+            size="lg" 
+            onClick={() => window.location.href = '/api/login'}
+            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
+            data-testid="button-sign-in"
+          >
+            <Shield className="mr-2 h-6 w-6" />
+            Secure Sign In
+          </Button>
         </div>
       </div>
     </div>

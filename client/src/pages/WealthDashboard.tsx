@@ -263,6 +263,7 @@ export default function WealthDashboard() {
     id: asset.id,
     name: asset.name,
     symbol: asset.symbol,
+    assetType: asset.assetType,
     value: asset.value,
     allocation: asset.allocation || 0,
     change24h: asset.change24h || 0,

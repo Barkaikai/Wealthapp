@@ -450,16 +450,21 @@ export default function WealthDashboard() {
     }
   };
 
-  const tableAssets = assets.map(asset => ({
-    id: asset.id,
-    name: asset.name,
-    symbol: asset.symbol,
-    assetType: asset.assetType,
-    value: asset.value,
-    allocation: asset.allocation || 0,
-    change24h: asset.change24h || 0,
-    changePercent: asset.changePercent || 0,
-  }));
+  const tableAssets = assets.map(asset => {
+    // Calculate allocation on the fly to ensure it's always in sync
+    const allocation = totalValue > 0 ? ((asset.value / totalValue) * 100) : 0;
+    
+    return {
+      id: asset.id,
+      name: asset.name,
+      symbol: asset.symbol,
+      assetType: asset.assetType,
+      value: asset.value,
+      allocation: parseFloat(allocation.toFixed(2)),
+      change24h: asset.change24h || 0,
+      changePercent: asset.changePercent || 0,
+    };
+  });
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-full">

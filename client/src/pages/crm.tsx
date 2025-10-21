@@ -43,8 +43,8 @@ export default function CRMPage() {
     <div className="h-full overflow-auto p-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">CRM</h1>
-          <p className="text-sm text-muted-foreground">Manage your relationships and pipeline</p>
+          <h1 className="text-xl sm:text-2xl font-bold">CRM</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage your relationships and pipeline</p>
         </div>
         <div className="flex gap-2">
           <CreateOrganizationDialog />
@@ -175,7 +175,7 @@ function ContactCard({ contact, organizations }: { contact: CrmContact; organiza
   return (
     <Card className="hover-elevate" data-testid={`card-contact-${contact.id}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
+        <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{contact.firstName} {contact.lastName}</span>
           <Badge variant={contact.status === 'active' ? 'default' : 'secondary'}>
             {contact.status}
@@ -214,7 +214,7 @@ function LeadCard({ lead, contacts, organizations }: { lead: CrmLead; contacts: 
   return (
     <Card className="hover-elevate" data-testid={`card-lead-${lead.id}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
+        <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{lead.source}</span>
           <Badge variant={lead.status === 'qualified' ? 'default' : lead.status === 'new' ? 'secondary' : 'outline'}>
             {lead.status}
@@ -264,7 +264,7 @@ function DealCard({ deal, contacts, organizations }: { deal: CrmDeal; contacts: 
   return (
     <Card className="hover-elevate" data-testid={`card-deal-${deal.id}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
+        <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{deal.title}</span>
           <Badge variant={stageColors[deal.stage as keyof typeof stageColors] || 'secondary'}>
             {deal.stage}
@@ -313,7 +313,7 @@ function ActivityCard({ activity, contacts, deals }: { activity: CrmActivity; co
   return (
     <Card className="hover-elevate" data-testid={`card-activity-${activity.id}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center justify-between">
+        <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{activity.subject}</span>
           <Badge variant={typeColors[activity.type as keyof typeof typeColors] || 'secondary'}>
             {activity.type}

@@ -411,11 +411,11 @@ export default function DigitalAccountant() {
     <div className="h-full overflow-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <Calculator className="h-6 w-6 text-primary" />
             Digital Accountant
           </h1>
-          <p className="text-sm text-muted-foreground">Complete accounting and financial management</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Complete accounting and financial management</p>
         </div>
       </div>
 
@@ -445,7 +445,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="accounts" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Chart of Accounts</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Chart of Accounts</h2>
             <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-account">
@@ -763,7 +763,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="journal" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Journal Entries</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Journal Entries</h2>
             <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-journal">
@@ -973,7 +973,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="invoices" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Invoices</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Invoices</h2>
             <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-invoice">
@@ -1142,7 +1142,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="payments" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Payments</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Payments</h2>
             <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-payment">

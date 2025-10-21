@@ -77,8 +77,8 @@ export default function HealthMonitoring() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">Health Monitoring</h1>
-          <p className="text-muted-foreground" data-testid="text-page-description">
+          <h1 className="text-xl sm:text-2xl font-bold" data-testid="text-page-title">Health Monitoring</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground" data-testid="text-page-description">
             Comprehensive health tracking with AI-powered insights
           </p>
         </div>
@@ -256,7 +256,7 @@ function StepsTab({ steps, isLoading }: { steps: StepRecord[]; isLoading: boolea
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Steps Tracking</h2>
+        <h2 className="text-base sm:text-lg font-bold">Steps Tracking</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-steps">
@@ -365,7 +365,7 @@ function ExerciseTab({ exercises, isLoading }: { exercises: ExerciseRecord[]; is
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Exercise Sessions</h2>
+        <h2 className="text-base sm:text-lg font-bold">Exercise Sessions</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-exercise">
@@ -528,7 +528,7 @@ function VitalsTab({ vitals, isLoading }: { vitals: VitalRecord[]; isLoading: bo
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Vital Signs</h2>
+        <h2 className="text-base sm:text-lg font-bold">Vital Signs</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-vitals">
@@ -685,7 +685,7 @@ function MindfulnessTab({ sessions, isLoading }: { sessions: MindfulnessSession[
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Mindfulness & Meditation</h2>
+        <h2 className="text-base sm:text-lg font-bold">Mindfulness & Meditation</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-mindfulness">
@@ -855,7 +855,7 @@ function SleepTab({ logs, isLoading }: { logs: SleepLog[]; isLoading: boolean })
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Sleep Tracking</h2>
+        <h2 className="text-base sm:text-lg font-bold">Sleep Tracking</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-sleep">
@@ -967,7 +967,7 @@ function FoodTab({ logs, isLoading }: { logs: FoodLog[]; isLoading: boolean }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Food & Nutrition</h2>
+        <h2 className="text-base sm:text-lg font-bold">Food & Nutrition</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-food">
@@ -1130,7 +1130,7 @@ function AISyncTab({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">AI Health Sync</h2>
+        <h2 className="text-base sm:text-lg font-bold">AI Health Sync</h2>
         <Button 
           onClick={() => onSync('all')} 
           disabled={isSyncing}

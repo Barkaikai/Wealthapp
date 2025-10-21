@@ -125,8 +125,8 @@ export default function NFTVault() {
     <div className="container mx-auto p-6 space-y-6" data-testid="page-nft-vault">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">NFT Vault</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your multi-chain NFT collection</p>
+          <h1 className="text-xl sm:text-2xl font-bold">NFT Vault</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Manage your multi-chain NFT collection</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -190,10 +190,10 @@ export default function NFTVault() {
                       {wallet.walletType}
                     </Badge>
                     <div>
-                      <div className="font-medium" data-testid={`text-wallet-address-${wallet.id}`}>
+                      <div className="text-sm sm:text-base font-medium" data-testid={`text-wallet-address-${wallet.id}`}>
                         {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
                       </div>
-                      <div className="text-sm text-muted-foreground" data-testid={`text-wallet-network-${wallet.id}`}>
+                      <div className="text-xs sm:text-sm text-muted-foreground" data-testid={`text-wallet-network-${wallet.id}`}>
                         {wallet.network}
                       </div>
                     </div>

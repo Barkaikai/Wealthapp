@@ -314,7 +314,7 @@ export default function WealthDashboard() {
                 </TabsList>
                 
                 <TabsContent value="stock" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Add stocks with automatic price fetching from Alpha Vantage</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Add stocks with automatic price fetching from Alpha Vantage</p>
                   <Form {...stockForm}>
                     <form onSubmit={stockForm.handleSubmit((data) => addStockPosition.mutate(data))} className="space-y-4">
                       <FormField
@@ -358,7 +358,7 @@ export default function WealthDashboard() {
                 </TabsContent>
 
                 <TabsContent value="crypto" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Add crypto with automatic price fetching from CoinGecko</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Add crypto with automatic price fetching from CoinGecko</p>
                   <Form {...cryptoForm}>
                     <form onSubmit={cryptoForm.handleSubmit((data) => addCryptoPosition.mutate(data))} className="space-y-4">
                       <FormField
@@ -402,7 +402,7 @@ export default function WealthDashboard() {
                 </TabsContent>
 
                 <TabsContent value="manual" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Manually enter asset details</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Manually enter asset details</p>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit((data) => createAsset.mutate(data))} className="space-y-4">
                       <FormField

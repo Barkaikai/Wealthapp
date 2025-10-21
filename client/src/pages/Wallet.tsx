@@ -231,11 +231,11 @@ export default function WalletPage() {
     <div className="h-full overflow-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <WalletIcon className="h-6 w-6 text-primary" />
             Personal Wallet
           </h1>
-          <p className="text-muted-foreground">Manage your fiat and crypto wallets</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage your fiat and crypto wallets</p>
         </div>
       </div>
 
@@ -733,8 +733,8 @@ export default function WalletPage() {
         <TabsContent value="web3" className="space-y-6">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
-              <h2 className="text-2xl font-bold">Connected Wallets</h2>
-              <p className="text-muted-foreground">Connect and manage your cryptocurrency wallets</p>
+              <h2 className="text-base sm:text-lg font-bold">Connected Wallets</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">Connect and manage your cryptocurrency wallets</p>
             </div>
             <Dialog open={web3DialogOpen} onOpenChange={setWeb3DialogOpen}>
               <DialogTrigger asChild>

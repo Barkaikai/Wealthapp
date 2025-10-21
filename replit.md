@@ -110,6 +110,21 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Recharts:** Financial data visualization.
 
 ## Recent Optimizations & Features (October 21, 2025)
+- **CSV Portfolio Export/Import with Full Round-Trip Support (NEW):**
+  - Export CSV button in Wealth Dashboard downloads complete portfolio
+  - Export format: Asset, Symbol, Type, Quantity, Value ($), Allocation (%), 24h change
+  - Proper CSV escaping for commas, quotes, and newlines in asset names
+  - Import supports both old format (symbol,quantity,type) and new full export format
+  - **Round-trip preservation:** Manual assets (cash, bonds, real_estate) maintain exact values and names
+  - Example: $500,000 "Beach House" exports and re-imports without data loss
+  - Live-priced assets (stocks, crypto) fetch fresh pricing on import
+  - Backward compatible with existing CSV imports
+- **Dynamic Asset Allocation Sync:** 
+  - Asset allocations now calculated on the fly from current portfolio values
+  - Ensures allocation percentages always match current state (no stale data)
+  - AI Portfolio Analysis section already synced correctly with target allocations
+  - Individual asset table allocations now perfectly aligned with total portfolio
+- **ChatGPT Assistant Fixed (CRITICAL):** Resolved CSRF token issue preventing AI chat responses - now uses apiRequest() helper for proper authentication
 - **Landing Page Accessibility Fix (CRITICAL):** Complete redesign of landing page to fix congestion and sign-in issues:
   - Removed excessive overlay effects (eliminated stacked data-stream, scan-lines, cyber-grid)
   - Simplified glassmorphism (removed glass-ultra, glass-light, holographic stacking)

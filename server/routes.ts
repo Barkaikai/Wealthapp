@@ -303,14 +303,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getNftAssets(userId).catch(() => []),
         storage.getTransactions(userId).catch(() => []),
         storage.getInvoices(userId).catch(() => []),
-        storage.getContacts(userId).catch(() => []),
-        storage.getDeals(userId).catch(() => []),
+        storage.getCrmContacts(userId).catch(() => []),
+        storage.getCrmDeals(userId).catch(() => []),
         storage.getTasks(userId).catch(() => []),
         storage.getCalendarEvents(userId).catch(() => []),
         storage.getRoutines(userId).catch(() => []),
         storage.getHealthMetrics(userId).catch(() => []),
         storage.getDiscordScheduledMessages(userId).catch(() => []),
-        storage.getSubscription(userId).catch(() => null),
+        storage.getUserSubscription(userId).catch(() => null),
       ]);
       
       console.log(`Briefing data gathered from ALL platforms: ${assets.length} assets, ${events.length} events, ${notes.length} notes, ${wallets.length} wallets, ${nfts.length} NFTs, ${transactions.length} transactions, ${invoices.length} invoices, ${crmContacts.length} contacts, ${crmDeals.length} deals, ${tasks.length} tasks, ${calendarEvents.length} events, ${routines.length} routines, ${healthMetrics.length} health metrics, ${discordMessages.length} discord msgs, market: ${marketContext ? 'available' : 'unavailable'}`);

@@ -55,11 +55,11 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background select-none">
       {/* Hero Section - Simplified with minimal overlays */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[rgb(10,12,20)] via-[rgb(20,25,35)] to-[rgb(10,12,20)]">
         {/* Single subtle animated gradient - no stacking */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,31,255,0.15)_0%,rgba(255,196,61,0.08)_50%,transparent_100%)] animate-pulse-slow" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,31,255,0.15)_0%,rgba(255,196,61,0.08)_50%,transparent_100%)] animate-pulse-slow pointer-events-none" />
 
         {/* Hero Content */}
         <div className="relative z-20 text-center px-6 max-w-5xl mx-auto">
@@ -86,16 +86,16 @@ export default function Landing() {
             <Button 
               size="lg" 
               onClick={() => window.location.href = '/api/login'}
-              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
+              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-auto"
               data-testid="button-login"
             >
-              <Lock className="mr-2 h-6 w-6" />
+              <Lock className="mr-2 h-6 w-6 pointer-events-none" />
               Secure Sign In
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30"
+              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30 cursor-pointer select-auto"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
               data-testid="button-learn-more"
             >
@@ -184,10 +184,10 @@ export default function Landing() {
           <Button 
             size="lg" 
             onClick={() => window.location.href = '/api/login'}
-            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
+            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-auto"
             data-testid="button-sign-in"
           >
-            <Shield className="mr-2 h-6 w-6" />
+            <Shield className="mr-2 h-6 w-6 pointer-events-none" />
             Secure Sign In
           </Button>
         </div>

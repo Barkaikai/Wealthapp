@@ -118,8 +118,8 @@ export default function ProductivityHub() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Productivity Hub</h1>
-        <p className="text-muted-foreground">Manage your calendar, tasks, and AI-powered productivity</p>
+        <h1 className="text-xl sm:text-2xl font-bold">Productivity Hub</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Manage your calendar, tasks, and AI-powered productivity</p>
       </div>
 
       <Tabs defaultValue="calendar" className="space-y-6">
@@ -136,7 +136,7 @@ export default function ProductivityHub() {
 
         <TabsContent value="calendar" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Calendar Events</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Calendar Events</h2>
             <div className="flex gap-2">
               <Button
                 variant="outline"

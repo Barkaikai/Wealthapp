@@ -314,11 +314,11 @@ export default function AIIntelligence() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
           <Brain className="h-8 w-8 text-primary" />
           AI Intelligence
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           AI-powered insights, analysis, and recommendations
         </p>
       </div>
@@ -405,10 +405,10 @@ export default function AIIntelligence() {
                           <CardHeader>
                             <div className="flex items-start justify-between">
                               <div>
-                                <CardTitle className="text-lg">
+                                <CardTitle className="text-sm sm:text-base">
                                   {report.reportType.charAt(0).toUpperCase() + report.reportType.slice(1)} Report
                                 </CardTitle>
-                                <CardDescription>
+                                <CardDescription className="text-xs sm:text-sm">
                                   {format(new Date(report.periodStart), "MMM d")} - {format(new Date(report.periodEnd), "MMM d, yyyy")}
                                 </CardDescription>
                               </div>
@@ -421,11 +421,11 @@ export default function AIIntelligence() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <p className="text-sm text-muted-foreground">Total Value</p>
-                                <p className="text-xl font-semibold">${report.totalValue.toLocaleString()}</p>
+                                <p className="text-base sm:text-lg font-semibold">${report.totalValue.toLocaleString()}</p>
                               </div>
                               <div>
                                 <p className="text-sm text-muted-foreground">Change</p>
-                                <p className={`text-xl font-semibold ${report.totalChange >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                <p className={`text-base sm:text-lg font-semibold ${report.totalChange >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                   ${report.totalChange.toLocaleString()}
                                 </p>
                               </div>

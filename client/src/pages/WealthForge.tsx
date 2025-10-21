@@ -305,8 +305,8 @@ export default function WealthForge() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold" data-testid="text-token-balance">{tokens}</div>
-              <p className="text-xs text-muted-foreground mt-1">WFG Balance</p>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-token-balance">{tokens}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">WFG Balance</p>
             </CardContent>
           </Card>
 
@@ -318,7 +318,7 @@ export default function WealthForge() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold" data-testid="text-level">{level}</div>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-level">{level}</div>
               <div className="mt-2">
                 <Progress value={(xpProgress / xpForNextLevel) * 100} className="h-2" data-testid="progress-xp" />
                 <p className="text-xs text-muted-foreground mt-1">{xpProgress}/{xpForNextLevel} XP</p>
@@ -334,8 +334,8 @@ export default function WealthForge() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold" data-testid="text-streak">{streak}</div>
-              <p className="text-xs text-muted-foreground mt-1">Longest: {longestStreak} days</p>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-streak">{streak}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Longest: {longestStreak} days</p>
             </CardContent>
           </Card>
 
@@ -347,8 +347,8 @@ export default function WealthForge() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold" data-testid="text-total-mined">{totalMined}</div>
-              <p className="text-xs text-muted-foreground mt-1">All-time earnings</p>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-mined">{totalMined}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">All-time earnings</p>
             </CardContent>
           </Card>
         </div>
@@ -872,7 +872,7 @@ function MiniGame({ onComplete }: { onComplete: (score: number) => void }) {
           <div className="text-lg font-medium text-primary">Drop here!</div>
         ) : score > 0 ? (
           <div className="space-y-2">
-            <div className="text-3xl font-bold text-primary">Score: {score}</div>
+            <div className="text-xl sm:text-2xl font-bold text-primary">Score: {score}</div>
             <div className="text-sm text-muted-foreground">
               {score >= 80 ? 'Bonus unlocked!' : 'Good job!'}
             </div>

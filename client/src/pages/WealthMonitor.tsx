@@ -143,8 +143,8 @@ export default function WealthMonitor() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Wealth Monitor</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">Wealth Monitor</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Track transactions, manage alerts, monitor goals, and optimize your financial health
         </p>
       </div>
@@ -196,10 +196,10 @@ export default function WealthMonitor() {
                   <Wallet className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold" data-testid="text-net-worth">
+                  <div className="text-base sm:text-lg font-bold" data-testid="text-net-worth">
                     ${analytics?.netWorth?.toLocaleString() || '0'}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Assets - Liabilities
                   </p>
                 </CardContent>
@@ -211,10 +211,10 @@ export default function WealthMonitor() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-total-assets">
+                  <div className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-total-assets">
                     ${analytics?.totalAssets?.toLocaleString() || '0'}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     {analytics?.assetCount || 0} holdings
                   </p>
                 </CardContent>
@@ -226,10 +226,10 @@ export default function WealthMonitor() {
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-total-liabilities">
+                  <div className="text-base sm:text-lg font-bold text-red-600 dark:text-red-400" data-testid="text-total-liabilities">
                     ${analytics?.totalLiabilities?.toLocaleString() || '0'}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     {analytics?.liabilityCount || 0} items
                   </p>
                 </CardContent>
@@ -246,12 +246,12 @@ export default function WealthMonitor() {
                 </CardHeader>
                 <CardContent>
                   <div 
-                    className={`text-2xl font-bold ${(analytics?.totalPL || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                    className={`text-base sm:text-lg font-bold ${(analytics?.totalPL || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
                     data-testid="text-total-pl"
                   >
                     ${analytics?.totalPL?.toLocaleString() || '0'}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Realized + Unrealized
                   </p>
                 </CardContent>

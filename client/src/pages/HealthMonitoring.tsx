@@ -1151,7 +1151,7 @@ function AISyncTab({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold" data-testid="text-ai-health-score">
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-ai-health-score">
                 {latestSync.healthScore || 0}/100
               </div>
               <p className="text-sm text-muted-foreground mt-2">

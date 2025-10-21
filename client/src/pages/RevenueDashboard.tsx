@@ -74,8 +74,8 @@ export default function RevenueDashboard() {
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Revenue Dashboard</h1>
-          <p className="text-muted-foreground">Enterprise analytics and insights</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Revenue Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Enterprise analytics and insights</p>
         </div>
       </div>
 
@@ -89,11 +89,11 @@ export default function RevenueDashboard() {
             {isLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <div className="text-2xl font-bold" data-testid="text-total-revenue">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-total-revenue">
                 {formatCurrency(summary?.total || 0)}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Last 30 days</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Last 30 days</p>
           </CardContent>
         </Card>
 
@@ -106,11 +106,11 @@ export default function RevenueDashboard() {
             {isLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold" data-testid="text-transaction-count">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-transaction-count">
                 {summary?.count || 0}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Revenue events</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Revenue events</p>
           </CardContent>
         </Card>
 
@@ -123,11 +123,11 @@ export default function RevenueDashboard() {
             {isLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <div className="text-2xl font-bold" data-testid="text-mrr">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-mrr">
                 {formatCurrency((summary?.bySource?.['stripe_subscription'] || 0))}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Monthly recurring</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Monthly recurring</p>
           </CardContent>
         </Card>
 
@@ -140,11 +140,11 @@ export default function RevenueDashboard() {
             {isLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <div className="text-2xl font-bold" data-testid="text-avg-transaction">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-avg-transaction">
                 {formatCurrency(summary?.count ? (summary.total / summary.count) : 0)}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Per transaction</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Per transaction</p>
           </CardContent>
         </Card>
       </div>

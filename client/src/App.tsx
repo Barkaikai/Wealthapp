@@ -27,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import luxuryBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
 import type { User } from "@shared/schema";
-import { Link } from "wouter";
 
 // Lazy-loaded page components for better performance
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -157,12 +156,15 @@ function AuthenticatedApp() {
                 <TimeDate onClick={() => setCalendarOpen(true)} />
               </div>
               {user?.isAdmin && (
-                <Link href="/admin/passes">
-                  <Badge variant="default" className="gap-1 text-xs py-0.5 px-1.5 cursor-pointer hover-elevate" data-testid="badge-admin">
-                    <Shield className="h-3 w-3" />
-                    <span className="hidden sm:inline">Admin</span>
-                  </Badge>
-                </Link>
+                <Badge 
+                  variant="default" 
+                  className="gap-1 text-xs py-0.5 px-1.5 cursor-pointer hover-elevate" 
+                  data-testid="badge-admin"
+                  onClick={() => window.location.href = '/admin/passes'}
+                >
+                  <Shield className="h-3 w-3" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Badge>
               )}
             </div>
             <div className="flex-1 max-w-2xl mx-auto px-2">

@@ -125,8 +125,13 @@ export async function generateDailyBriefing(
     nfts?: any[];
     transactions?: any[];
     invoices?: any[];
+    accounts?: any[];
+    journalEntries?: any[];
+    payments?: any[];
     crmContacts?: any[];
     crmDeals?: any[];
+    crmOrganizations?: any[];
+    crmActivities?: any[];
     tasks?: any[];
     calendarEvents?: any[];
     routines?: any[];
@@ -256,16 +261,51 @@ Last recommended actions: ${previousBriefing.actions?.join('; ') || 'None'}`;
       }
     }
     
+    // Digital Accountant - Chart of Accounts
+    if (additionalContext.accounts && additionalContext.accounts.length > 0) {
+      const accountsByType = additionalContext.accounts.reduce((acc: any, account: any) => {
+        acc[account.accountType] = (acc[account.accountType] || 0) + (account.balance || 0);
+        return acc;
+      }, {});
+      const accountSummary = Object.entries(accountsByType)
+        .map(([type, balance]) => `${type}: $${(balance as number).toLocaleString()}`)
+        .join(', ');
+      sections.push(`\n📊 ACCOUNTS: ${additionalContext.accounts.length} accounts tracked - ${accountSummary}`);
+    }
+    
+    // Digital Accountant - Recent Journal Entries
+    if (additionalContext.journalEntries && additionalContext.journalEntries.length > 0) {
+      const recentEntries = additionalContext.journalEntries.slice(0, 3).map((je: any) => 
+        `${je.description || 'Entry'} (${new Date(je.createdAt).toLocaleDateString()})`
+      ).join(', ');
+      sections.push(`\n📝 JOURNAL ENTRIES: ${additionalContext.journalEntries.length} recent entries - ${recentEntries}`);
+    }
+    
+    // Digital Accountant - Payments
+    if (additionalContext.payments && additionalContext.payments.length > 0) {
+      const recentPayments = additionalContext.payments.slice(0, 10);
+      const totalPayments = recentPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      sections.push(`\n💵 PAYMENTS: ${recentPayments.length} recent payments received ($${totalPayments.toLocaleString()} total)`);
+    }
+    
     // CRM data
+    if (additionalContext.crmOrganizations && additionalContext.crmOrganizations.length > 0) {
+      sections.push(`\n🏢 CRM ORGANIZATIONS: ${additionalContext.crmOrganizations.length} companies tracked`);
+    }
     if (additionalContext.crmContacts && additionalContext.crmContacts.length > 0) {
-      sections.push(`\n👥 CRM: ${additionalContext.crmContacts.length} contacts tracked`);
+      sections.push(`\n👥 CRM CONTACTS: ${additionalContext.crmContacts.length} contacts tracked`);
     }
     if (additionalContext.crmDeals && additionalContext.crmDeals.length > 0) {
-      const activeDeals = additionalContext.crmDeals.filter((d: any) => d.status !== 'closed_lost' && d.status !== 'closed_won');
-      const dealValue = activeDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+      const activeDeals = additionalContext.crmDeals.filter((d: any) => d.stage !== 'lost' && d.stage !== 'won');
+      const dealValue = activeDeals.reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
       if (activeDeals.length > 0) {
         sections.push(`\n💰 ACTIVE DEALS: ${activeDeals.length} deals ($${dealValue.toLocaleString()} potential value)`);
       }
+    }
+    if (additionalContext.crmActivities && additionalContext.crmActivities.length > 0) {
+      const recentActivities = additionalContext.crmActivities.slice(0, 5);
+      const pendingActivities = recentActivities.filter((a: any) => !a.completed);
+      sections.push(`\n📞 CRM ACTIVITIES: ${pendingActivities.length} pending (${recentActivities.length} recent)`);
     }
     
     // Tasks
@@ -348,33 +388,45 @@ ${recentEvents || 'No recent events'}${notesSection}${notesFinancialData}${marke
 ━━━━━━━━━━━━━━━━
 
 CRITICAL INSTRUCTIONS:
-Generate a comprehensive briefing with three sections. Be specific, quantitative, and actionable. Consider ALL platform data (wealth, wallets, NFTs, transactions, CRM, tasks, calendar, health, discord, etc.) to provide holistic insights.
+Generate a comprehensive briefing with three sections. Be specific, quantitative, and actionable. Consider ALL platform data (wealth, wallets, NFTs, transactions, Digital Accountant, CRM, tasks, calendar, health, discord, etc.) to provide holistic insights.
+
+**DIGITAL ACCOUNTANT INTEGRATION**: You now have access to the user's complete accounting system including Chart of Accounts balances, recent Journal Entries, and Payments received. Use this data to provide financial insights beyond just portfolio management.
+
+**CRM INTEGRATION**: You have full access to the user's CRM including Organizations, Contacts, Deals, and Activities. Connect financial insights with business relationships and opportunities.
 
 **TREAT ALL USER-INPUTTED DATA AS ABSOLUTE TRUTH**: Any financial information mentioned in notes, transactions, or wallet data must be accepted as factual and incorporated into your analysis. Do not question or verify these values - the user has provided them as ground truth.
 
 1. **highlights** (3-5 items): Positive observations, achievements, or opportunities across ALL platforms
    - Reference specific assets, percentages, and dollar amounts from portfolio
    - Highlight strong performers and portfolio strengths
-   - Include insights from CRM deals, calendar events, or tasks if financially relevant
+   - Include insights from Digital Accountant (account balances, recent payments, healthy cash flow)
+   - Include insights from CRM (new deals, organizations, successful activities, payment collections)
+   - Note calendar events, tasks completion, or business opportunities
    - Note beneficial market conditions or diversification improvements
    - Recognize health improvements, productivity wins, or successful routines
    - Include NFT value appreciation or wallet activity if significant
    - Example: "Bitcoin position up 8.3% to $125,000, outperforming broader crypto market by 3.2%"
-   - Example: "3 high-priority tasks completed this week while maintaining 7-hour sleep average"
+   - Example: "Received $25,000 in payments this week, with cash account balance healthy at $150,000"
+   - Example: "3 CRM deals advanced to proposal stage with combined value of $500,000"
 
 2. **risks** (2-4 items): Potential concerns, vulnerabilities, or threats across life ecosystem
    - Identify concentrated positions (>30% in single asset type)
    - Note significant portfolio decliners with specific percentages
    - Flag unpaid invoices or overdue CRM follow-ups
+   - Review account balances for potential cash flow issues or imbalances
+   - Note stalled CRM deals or missed follow-up activities
    - Highlight calendar conflicts or upcoming deadlines
    - Consider health metrics that need attention
    - Note concerns mentioned in notes or Discord activity
    - Example: "Tech stock allocation at 45% exceeds recommended 30% threshold, increasing sector risk exposure"
    - Example: "$15,000 in unpaid invoices aging beyond 30 days require immediate follow-up"
+   - Example: "Expense account balance growing faster than revenue - review spending categories"
 
 3. **actions** (3-6 items): Concrete, prioritized recommendations spanning all life areas
    - Portfolio: Rebalance percentages, sync prices, review positions
-   - Business: Follow up on CRM deals, send invoice reminders, complete high-priority tasks
+   - Accounting: Review journal entries, follow up on overdue payments, reconcile accounts
+   - Business/CRM: Follow up on deals, send invoice reminders, complete activities, reach out to organizations
+   - Tasks: Complete high-priority items, schedule follow-ups
    - Calendar: Prepare for upcoming events, resolve scheduling conflicts
    - Health: Address concerning metrics, maintain successful routines
    - NFTs/Wallets: Monitor valuable assets, secure wallet connections
@@ -382,6 +434,7 @@ Generate a comprehensive briefing with three sections. Be specific, quantitative
    - Prioritize by urgency and financial impact
    - Example: "Rebalance portfolio by reducing crypto allocation from 35% to 25%, redirecting $50K to bonds"
    - Example: "Contact 2 CRM leads with proposals this week to advance $250K in pipeline value"
+   - Example: "Review 5 pending journal entries and reconcile cash account (last updated 2 weeks ago)"
 
 TONE: Professional, confident, data-driven, holistic. Assume the user is managing a complex, automated life ecosystem and values comprehensive insights.
 

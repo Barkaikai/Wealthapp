@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, RefreshCw, Grid, List, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { PrintButton } from "@/components/PrintButton";
 
 interface WalletConnection {
   id: number;
@@ -145,6 +146,7 @@ export default function NFTVault() {
           >
             <List className="h-4 w-4" />
           </Button>
+          <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
         </div>
       </div>
 

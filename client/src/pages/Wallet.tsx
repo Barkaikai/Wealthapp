@@ -29,6 +29,7 @@ import {
   Coins
 } from "lucide-react";
 import type { Wallet, WalletTransaction, PaymentMethod } from "@shared/schema";
+import { PrintButton } from "@/components/PrintButton";
 
 type WalletConnection = {
   id: number;
@@ -237,6 +238,7 @@ export default function WalletPage() {
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Manage your fiat and crypto wallets</p>
         </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs defaultValue="fiat" className="space-y-6">

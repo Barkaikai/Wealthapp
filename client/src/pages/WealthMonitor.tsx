@@ -29,6 +29,7 @@ import {
 import { format } from "date-fns";
 import type { Transaction, WealthAlert, FinancialGoal, Liability } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PrintButton } from "@/components/PrintButton";
 
 export default function WealthMonitor() {
   const { toast } = useToast();
@@ -142,11 +143,14 @@ export default function WealthMonitor() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-2">Wealth Monitor</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          Track transactions, manage alerts, monitor goals, and optimize your financial health
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">Wealth Monitor</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Track transactions, manage alerts, monitor goals, and optimize your financial health
+          </p>
+        </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

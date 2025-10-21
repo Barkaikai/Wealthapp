@@ -11,6 +11,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { Asset, Briefing } from "@shared/schema";
+import { PrintButton } from "@/components/PrintButton";
 
 const quickAccessItems = [
   {
@@ -158,17 +159,20 @@ export default function DailyBriefing() {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <Button 
-          onClick={() => generateBriefing.mutate()} 
-          disabled={generateBriefing.isPending}
-          data-testid="button-generate-briefing"
-          className="w-full sm:w-auto flex-shrink-0"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${generateBriefing.isPending ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">{generateBriefing.isPending ? 'Generating...' : 'Generate AI Briefing'}</span>
-          <span className="sm:hidden">{generateBriefing.isPending ? 'Generating...' : 'Generate'}</span>
-        </Button>
+        <div className="flex gap-2">
+          <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
+          <Button 
+            onClick={() => generateBriefing.mutate()} 
+            disabled={generateBriefing.isPending}
+            data-testid="button-generate-briefing"
+            className="flex-1 sm:flex-none"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${generateBriefing.isPending ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{generateBriefing.isPending ? 'Generating...' : 'Generate AI Briefing'}</span>
+            <span className="sm:hidden">{generateBriefing.isPending ? 'Generating...' : 'Generate'}</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

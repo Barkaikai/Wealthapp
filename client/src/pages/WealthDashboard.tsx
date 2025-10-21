@@ -3,6 +3,7 @@ import { AssetChart } from "@/components/AssetChart";
 import { PortfolioTimeline } from "@/components/PortfolioTimeline";
 import { AssetTable } from "@/components/AssetTable";
 import MarketOverview from "@/components/MarketOverview";
+import { PrintButton } from "@/components/PrintButton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -576,6 +577,7 @@ export default function WealthDashboard() {
             <span className="hidden sm:inline">AI Analysis</span>
             <span className="sm:hidden">AI</span>
           </Button>
+          <PrintButton variant="outline" className="flex-1 sm:flex-none" size="sm" />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button data-testid="button-add-asset" className="flex-1 sm:flex-none" size="sm">

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Users, UserPlus, Briefcase, TrendingUp, Building, Phone, Mail, Calendar, DollarSign } from "lucide-react";
 import type { CrmContact, CrmLead, CrmDeal, CrmActivity, CrmOrganization } from "@shared/schema";
+import { PrintButton } from "@/components/PrintButton";
 
 export default function CRMPage() {
   const { toast } = useToast();
@@ -47,6 +48,7 @@ export default function CRMPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">Manage your relationships and pipeline</p>
         </div>
         <div className="flex gap-2">
+          <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
           <CreateOrganizationDialog />
           <CreateContactDialog organizations={organizations} />
         </div>

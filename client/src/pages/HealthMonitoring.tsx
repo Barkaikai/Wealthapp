@@ -21,6 +21,7 @@ import type {
   FoodLog,
   AISyncLog 
 } from '@shared/schema';
+import { PrintButton } from '@/components/PrintButton';
 
 export default function HealthMonitoring() {
   const { toast } = useToast();
@@ -82,6 +83,7 @@ export default function HealthMonitoring() {
             Comprehensive health tracking with AI-powered insights
           </p>
         </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Bot, Send, Edit, Calendar, Trash2, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { PrintButton } from '@/components/PrintButton';
 
 interface Server {
   id: string;
@@ -212,7 +213,10 @@ export default function DiscordManager() {
           <h1 className="text-xl sm:text-2xl font-bold">Discord AI Manager</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">AI-powered Discord bot management</p>
         </div>
-        <Bot className="w-10 h-10 text-primary" />
+        <div className="flex gap-2 items-center">
+          <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
+          <Bot className="w-10 h-10 text-primary" />
+        </div>
       </div>
 
       {/* Bot Connection */}

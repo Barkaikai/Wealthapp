@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wallet, Mail, Calendar, Shield, BarChart3, ChevronDown, Lock, CheckCircle } from "lucide-react";
 
@@ -83,28 +82,21 @@ export default function Landing() {
 
           {/* Primary CTA - High Contrast, No Overlays */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button 
-              asChild
-              size="lg" 
-              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
+            <a 
+              href="/api/login"
+              className="inline-flex items-center justify-center text-lg px-12 py-6 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 font-medium"
               data-testid="button-login"
             >
-              <a href="/api/login">
-                <Lock className="mr-2 h-6 w-6" />
-                Secure Sign In
-              </a>
-            </Button>
-            <Button 
-              asChild
-              size="lg" 
-              variant="outline"
-              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30"
+              <Lock className="mr-2 h-6 w-6" />
+              Secure Sign In
+            </a>
+            <a 
+              href="#features"
+              className="inline-flex items-center justify-center text-lg px-12 py-6 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-300 relative z-30 font-medium"
               data-testid="button-learn-more"
             >
-              <a href="#features">
-                Explore Features
-              </a>
-            </Button>
+              Explore Features
+            </a>
           </div>
           
           {/* Scroll Indicator */}
@@ -185,17 +177,14 @@ export default function Landing() {
           <p className="text-base sm:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
             Join the elite circle of individuals who've mastered the art of sophisticated automation
           </p>
-          <Button 
-            asChild
-            size="lg" 
-            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30"
+          <a 
+            href="/api/login"
+            className="inline-flex items-center justify-center text-lg px-12 py-6 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 font-medium"
             data-testid="button-sign-in"
           >
-            <a href="/api/login">
-              <Shield className="mr-2 h-6 w-6" />
-              Secure Sign In
-            </a>
-          </Button>
+            <Shield className="mr-2 h-6 w-6" />
+            Secure Sign In
+          </a>
         </div>
       </div>
     </div>

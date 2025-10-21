@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Asset {
+  id?: number;
   name: string;
   symbol: string;
   value: number;
@@ -31,9 +32,9 @@ export function AssetTable({ assets, title }: AssetTableProps) {
             </tr>
           </thead>
           <tbody>
-            {assets.map((asset) => (
+            {assets.map((asset, index) => (
               <tr 
-                key={asset.symbol} 
+                key={asset.id || `${asset.symbol}-${index}`} 
                 className="border-b border-border/50 hover-elevate"
                 data-testid={`asset-row-${asset.symbol}`}
               >

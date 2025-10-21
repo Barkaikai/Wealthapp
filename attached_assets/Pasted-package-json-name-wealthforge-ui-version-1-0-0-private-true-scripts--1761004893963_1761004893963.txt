@@ -1,0 +1,710 @@
+package.json
+{
+  "name": "wealthforge-ui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "framer-motion": "^10.12.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.17.0",
+    "lucide-react": "^0.268.0",
+    "recharts": "^2.6.2",
+    "ethers": "^6.9.0",
+    "@walletconnect/web3-provider": "^1.8.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.5.2",
+    "vite": "^5.2.0"
+  }
+}
+
+2) index.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WealthForge</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+3) tailwind.config.js
+export default {
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        primary: "#4f46e5",
+        accent: "#06b6d4"
+      }
+    }
+  },
+  plugins: []
+};
+
+4) postcss.config.js
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {}
+  }
+};
+
+5) src/index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --text: #0f172a;
+}
+
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --card: #071129;
+  --text: #e6eef8;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* small scrollbar styling for card lists */
+.card-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.card-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99,102,241,0.18);
+  border-radius: 99px;
+}
+
+6) src/main.jsx
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import "./index.css";
+
+createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+7) src/api.js — lightweight backend adapter (edit endpoints as needed)
+// Simple helpers that call same-origin endpoints so your backend auth/cookies continue to work.
+// Replace paths ("/api/login", "/api/daily-brief", "/api/wealth") with your actual endpoints.
+
+const base = window.location.origin;
+
+async function fetchJSON(path, opts = {}) {
+  const res = await fetch(`${base}${path}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    ...opts
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status} ${txt}`);
+  }
+  return res.json().catch(() => ({}));
+}
+
+export function getJSON(path) {
+  return fetchJSON(path, { method: "GET" });
+}
+
+export function postJSON(path, body) {
+  return fetchJSON(path, { method: "POST", body: JSON.stringify(body) });
+}
+
+// Auth convenience wrappers (replace routes as needed)
+export async function login(email, password) {
+  return postJSON("/api/login", { email, password }); // adapt to your route
+}
+
+export async function logout() {
+  return postJSON("/api/logout", {});
+}
+
+export async function me() {
+  return getJSON("/api/me"); // returns current user or 401
+}
+
+export async function fetchDailyBrief() {
+  return getJSON("/api/daily-brief");
+}
+
+export async function fetchWealthMetrics() {
+  return getJSON("/api/wealth-metrics");
+}
+
+export async function fetchNFTs() {
+  return getJSON("/api/nfts");
+}
+
+8) src/App.jsx — the consolidated app (includes theme, routing, login modal)
+import React, { useEffect, useState } from "react";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
+import MobileNav from "./components/MobileNav";
+import LoginModal from "./components/LoginModal";
+import Overview from "./pages/Overview";
+import Daily from "./pages/Daily";
+import Wallet from "./pages/Wallet";
+import Forge from "./pages/Forge";
+import WealthDashboard from "./pages/WealthDashboard";
+import NFTVault from "./components/NFTVault";
+import { Routes, Route } from "react-router-dom";
+import { me } from "./api";
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("wf_theme") || "light");
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+    localStorage.setItem("wf_theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    // try to fetch current user; if 401 -> no user
+    me().then((data) => {
+      if (data?.user) setUser(data.user);
+    }).catch(() => setUser(null));
+  }, []);
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar user={user} onLogin={() => setLoginOpen(true)} theme={theme} setTheme={setTheme} />
+      <div className="flex-1 p-4 md:p-8">
+        <Topbar user={user} onLogin={() => setLoginOpen(true)} />
+        <main className="mt-6">
+          <Routes>
+            <Route path="/" element={<Overview />} />
+            <Route path="/daily" element={<Daily />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/forge" element={<Forge />} />
+            <Route path="/wealth" element={<WealthDashboard />} />
+            <Route path="/nft" element={<NFTVault user={user} />} />
+          </Routes>
+        </main>
+      </div>
+
+      <MobileNav onLogin={() => setLoginOpen(true)} />
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onLoginSuccess={(u) => { setUser(u); setLoginOpen(false); }} />
+    </div>
+  );
+}
+
+9) src/components/Sidebar.jsx
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { Home, Newspaper, PieChart, Wallet, Settings, Zap, Image } from "lucide-react";
+
+const links = [
+  { to: "/", name: "Overview", icon: Home },
+  { to: "/daily", name: "Daily Brief", icon: Newspaper },
+  { to: "/wealth", name: "Wealth", icon: PieChart },
+  { to: "/wallet", name: "Wallet", icon: Wallet },
+  { to: "/forge", name: "Wealth Forge", icon: Zap },
+  { to: "/nft", name: "NFT Vault", icon: Image },
+  { to: "/settings", name: "Settings", icon: Settings }
+];
+
+export default function Sidebar({ user, onLogin, theme, setTheme }) {
+  return (
+    <aside className="hidden md:block w-72 p-6 bg-card border-r border-gray-100 min-h-screen">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">WealthForge</h2>
+        <p className="text-sm text-gray-500 mt-1">Consolidated financial control</p>
+      </div>
+
+      <nav className="flex flex-col gap-1">
+        {links.map(({ to, name, icon: Icon }) => (
+          <NavLink
+            key={name}
+            to={to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                isActive ? "bg-primary/5 text-primary" : "text-gray-700 hover:bg-gray-50"
+              }`
+            }
+          >
+            <Icon size={18} />
+            {name}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="mt-8">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="px-3 py-2 rounded-lg border text-sm">
+            Toggle {theme === "dark" ? "Light" : "Dark"}
+          </button>
+          <button onClick={() => { if (!user) onLogin(); }} className="ml-auto px-3 py-2 rounded-lg bg-primary text-white text-sm">
+            {user ? "Open" : "Login"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 text-xs text-gray-400">
+        <div>Pro Tip: Use the Daily Brief for quick action items.</div>
+      </div>
+    </aside>
+  );
+}
+
+10) src/components/Topbar.jsx
+import React from "react";
+import { Bell, Search } from "lucide-react";
+
+export default function Topbar({ user = null, onLogin = () => {} }) {
+  return (
+    <header className="flex items-center justify-between gap-4 p-4 bg-card shadow-sm rounded-xl">
+      <div className="flex items-center gap-4">
+        <div className="hidden md:block text-lg font-semibold text-gray-800">Overview</div>
+
+        <div className="flex items-center bg-gray-100 rounded-xl p-2">
+          <Search size={16} />
+          <input
+            className="bg-transparent ml-2 outline-none text-sm"
+            placeholder="Search reports, wallets, AI…"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <button className="relative p-2 rounded-md hover:bg-gray-100">
+          <Bell size={18} />
+          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] px-1 rounded-full">3</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white flex items-center justify-center font-medium">B</div>
+          <div className="hidden sm:block text-sm">
+            <div className="font-medium">{user ? user.name : "Guest"}</div>
+            <div className="text-xs text-gray-400">{user ? user.role || "Member" : "Not signed in"}</div>
+          </div>
+
+          {!user && <button onClick={onLogin} className="ml-3 px-3 py-1 text-sm rounded-lg border">Sign in</button>}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+11) src/components/MobileNav.jsx
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { Home, Newspaper, Wallet } from "lucide-react";
+
+const items = [
+  { to: "/", icon: Home },
+  { to: "/daily", icon: Newspaper },
+  { to: "/wallet", icon: Wallet }
+];
+
+export default function MobileNav({ onLogin = () => {} }) {
+  return (
+    <nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-card px-4 py-2 rounded-3xl shadow-lg md:hidden">
+      <div className="flex gap-6">
+        {items.map(({ to, icon: Icon }, i) => (
+          <NavLink key={i} to={to} className={({ isActive }) => isActive ? "text-primary" : "text-gray-500"}>
+            <Icon size={22} />
+          </NavLink>
+        ))}
+        <button onClick={onLogin} className="text-gray-500">
+          Sign
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+12) src/components/Card.jsx
+import React from "react";
+import { motion } from "framer-motion";
+
+export default function Card({ title, subtitle, children, className = "" }) {
+  return (
+    <motion.div
+      whileHover={{ y: -4 }}
+      className={`bg-card rounded-2xl shadow-sm border border-gray-100 p-5 ${className}`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-sm font-semibold text-gray-800">{title}</div>
+          {subtitle && <div className="text-xs text-gray-400">{subtitle}</div>}
+        </div>
+      </div>
+
+      <div>{children}</div>
+    </motion.div>
+  );
+}
+
+13) src/components/LoginModal.jsx
+import React, { useState } from "react";
+import { login, me } from "../api";
+import { motion } from "framer-motion";
+
+export default function LoginModal({ open = false, onClose = () => {}, onLoginSuccess = () => {} }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  if (!open) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await login(email, password);
+      const user = await me();
+      onLoginSuccess(user.user || user);
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md bg-card p-6 rounded-2xl shadow-lg">
+        <h3 className="text-lg font-semibold mb-2">Sign in to WealthForge</h3>
+        <p className="text-xs text-gray-500 mb-4">Use your account to sync data and access secure features</p>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input className="w-full p-3 rounded-lg border" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="w-full p-3 rounded-lg border" placeholder="Password" value={password} type="password" onChange={(e) => setPassword(e.target.value)} />
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <div className="flex items-center gap-2 justify-between">
+            <button disabled={loading} type="submit" className="px-4 py-2 rounded-lg bg-primary text-white">
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+            <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg border">Cancel</button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+14) src/components/NFTVault.jsx (wallet connect sample + simple UI)
+import React, { useState } from "react";
+import Card from "./Card";
+import WalletConnectProvider from "@walletconnect/web3-provider";
+import { ethers } from "ethers";
+
+export default function NFTVault({ user }) {
+  const [address, setAddress] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [chain, setChain] = useState(null);
+  const [nfts, setNfts] = useState([]);
+
+  async function connectMetaMask() {
+    if (!window.ethereum) {
+      alert("MetaMask not found. Install or use WalletConnect.");
+      return;
+    }
+    const web3Provider = new ethers.BrowserProvider(window.ethereum);
+    await web3Provider.send("eth_requestAccounts", []);
+    const signer = await web3Provider.getSigner();
+    const a = await signer.getAddress();
+    setAddress(a);
+    setProvider(web3Provider);
+    const network = await web3Provider.getNetwork();
+    setChain(network.name);
+  }
+
+  async function connectWalletConnect() {
+    const wcProvider = new WalletConnectProvider({
+      rpc: { 1: "https://mainnet.infura.io/v3/" } // replace with your RPC key if needed
+    });
+    await wcProvider.enable();
+    const web3Provider = new ethers.BrowserProvider(wcProvider);
+    const signer = await web3Provider.getSigner();
+    const a = await signer.getAddress();
+    setAddress(a);
+    setProvider(web3Provider);
+    const network = await web3Provider.getNetwork();
+    setChain(network.name);
+  }
+
+  async function loadNFTs() {
+    // Replace with your backend endpoint that returns NFTs for connected address
+    if (!address) return alert("Connect a wallet first");
+    try {
+      const res = await fetch(`/api/nfts?owner=${address}`, { credentials: "include" });
+      const json = await res.json();
+      setNfts(json.items || []);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch NFTs from backend");
+    }
+  }
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card title="NFT Vault" subtitle="Connect wallet to view holdings">
+        <div className="flex gap-3">
+          <button className="px-4 py-2 rounded-lg bg-primary text-white" onClick={connectMetaMask}>Connect MetaMask</button>
+          <button className="px-4 py-2 rounded-lg border" onClick={connectWalletConnect}>WalletConnect</button>
+          <button onClick={loadNFTs} className="px-3 py-2 rounded-lg bg-gray-100">Load NFTs</button>
+        </div>
+
+        {address && (
+          <div className="mt-4 text-sm text-gray-600">
+            <div>Address: {address}</div>
+            <div>Network: {chain}</div>
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-3">
+          {nfts.length === 0 && <div className="text-xs text-gray-400">No NFTs loaded. Click "Load NFTs" or connect different wallet.</div>}
+          {nfts.map((nft, i) => (
+            <div key={i} className="p-3 bg-gray-50 rounded-lg flex gap-3 items-center">
+              {nft.image && <img src={nft.image} alt={nft.name} className="w-12 h-12 rounded-md object-cover" />}
+              <div>
+                <div className="font-medium text-sm">{nft.name || "Untitled"}</div>
+                <div className="text-xs text-gray-500">{nft.collection || "Unknown collection"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Add / Manage NFTs">
+        <div className="text-sm text-gray-500">Placeholder management UI — connect this to your smart-contract or backend for full control.</div>
+      </Card>
+    </div>
+  );
+}
+
+15) src/pages/Overview.jsx
+import React from "react";
+import Card from "../components/Card";
+import { Link } from "react-router-dom";
+
+export default function Overview() {
+  return (
+    <div className="grid gap-6 md:grid-cols-3">
+      <Card title="Net Worth" subtitle="Updated live">
+        <div className="text-2xl font-bold">$124,582</div>
+        <div className="mt-2 text-xs text-gray-400">+2.6% since last week</div>
+      </Card>
+
+      <Card title="Daily Actions" subtitle="Quick tasks">
+        <ul className="text-sm list-disc pl-5 text-gray-600">
+          <li>Review Daily Brief</li>
+          <li>Top up Wallet</li>
+          <li>Approve Invoice</li>
+        </ul>
+      </Card>
+
+      <Card title="Upcoming" subtitle="Reminders">
+        <div className="text-sm text-gray-600">Subscription renewal: Oct 29</div>
+      </Card>
+
+      <div className="md:col-span-3">
+        <Card title="Wealth Forge" subtitle="Active projects">
+          <div className="grid md:grid-cols-3 gap-4 mt-3">
+            <Link to="/forge" className="p-4 bg-gray-50 rounded-lg">Mini Business</Link>
+            <Link to="/nft" className="p-4 bg-gray-50 rounded-lg">NFT Vault</Link>
+            <div className="p-4 bg-gray-50 rounded-lg">Digital Accountant</div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+16) src/pages/Daily.jsx
+import React, { useEffect, useState } from "react";
+import Card from "../components/Card";
+import { fetchDailyBrief } from "../api";
+
+export default function Daily() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchDailyBrief().then((d) => setItems(d.items || [])).catch(() => {
+      setItems([
+        { title: "Market snapshot", desc: "S&P +0.6%" },
+        { title: "Action", desc: "Consider rebalancing portfolio" }
+      ]);
+    });
+  }, []);
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card title="Today">
+        <ul className="space-y-3">
+          {items.map((it, i) => (
+            <li key={i} className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-sm">{it.title}</div>
+              <div className="text-xs text-gray-500">{it.desc}</div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card title="AI Suggestions">
+        <div className="text-sm text-gray-500">Use the AI Assistant to generate a savings plan.</div>
+      </Card>
+    </div>
+  );
+}
+
+17) src/pages/Wallet.jsx
+import React, { useEffect, useState } from "react";
+import Card from "../components/Card";
+
+export default function Wallet() {
+  const [balance, setBalance] = useState("$3,210.45");
+
+  useEffect(() => {
+    // load wallet info from backend if available
+    // fetch('/api/wallet').then...
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <Card title="Personal Wallet">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-lg font-semibold">{balance}</div>
+            <div className="text-xs text-gray-400">Available balance</div>
+          </div>
+          <div>
+            <button className="px-3 py-1 bg-primary text-white rounded-lg text-sm">Top up</button>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Storage / Savings">
+        <div className="text-sm text-gray-500">Three savings goals in progress.</div>
+      </Card>
+    </div>
+  );
+}
+
+18) src/pages/Forge.jsx
+import React from "react";
+import Card from "../components/Card";
+
+export default function Forge() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card title="Mini Businesses" subtitle="Manage projects">
+        <ul className="text-sm text-gray-600 list-disc pl-5">
+          <li>Design shop (in progress)</li>
+          <li>Subscription idea</li>
+        </ul>
+      </Card>
+
+      <Card title="NFT Vault" subtitle="Holdings & status">
+        <div className="text-sm text-gray-500">0 items (connect wallet to view)</div>
+      </Card>
+    </div>
+  );
+}
+
+19) src/pages/WealthDashboard.jsx (analytics charts with Recharts)
+import React, { useEffect, useState } from "react";
+import Card from "../components/Card";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { fetchWealthMetrics } from "../api";
+
+const sampleNetWorth = [
+  { date: "2025-07-01", value: 90000 },
+  { date: "2025-08-01", value: 95000 },
+  { date: "2025-09-01", value: 103000 },
+  { date: "2025-10-01", value: 124582 }
+];
+
+export default function WealthDashboard() {
+  const [metrics, setMetrics] = useState({ netWorth: sampleNetWorth });
+
+  useEffect(() => {
+    fetchWealthMetrics().then((d) => {
+      if (d && d.netWorth) setMetrics(d);
+    }).catch(() => {
+      // keep sample data
+    });
+  }, []);
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card title="Net Worth">
+        <div style={{ width: "100%", height: 220 }}>
+          <ResponsiveContainer>
+            <AreaChart data={metrics.netWorth}>
+              <defs>
+                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2}/>
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Area type="monotone" dataKey="value" stroke="#6366f1" fill="url(#colorNet)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <Card title="Performance (last 90 days)">
+        <div style={{ width: "100%", height: 220 }}>
+          <ResponsiveContainer>
+            <LineChart data={metrics.netWorth}>
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+Notes / Next steps & small checklist
+
+Replace backend paths in src/api.js to match your actual server routes (I used /api/login, /api/me, /api/daily-brief, /api/wealth-metrics, /api/nfts).
+
+WalletConnect RPC: in NFTVault.jsx replace the RPC endpoint with one from Infura/Alchemy if you need a stable provider.
+
+Auth behavior: the login modal uses /api/login and /api/me. If your login uses OAuth or redirects, instead alter the modal to open your OAuth flow (a button linking to /auth/google etc.). I kept a simple email/password flow that should work with session cookies.
+
+Styles: tweak colors in tailwind.config.js and index.css for brand customization.
+
+Performance: load heavy libraries lazily if you need smaller initial bundles (e.g., dynamic import of ethers or recharts when visiting those pages).

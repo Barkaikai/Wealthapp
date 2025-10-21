@@ -1,0 +1,105 @@
+🔧 Code (paste into App.jsx)
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Home, LineChart, Settings, User } from "lucide-react";
+import "./index.css"; // Ensure Tailwind is imported
+
+const navItems = [
+  { name: "Home", icon: Home, path: "/" },
+  { name: "Analytics", icon: LineChart, path: "/analytics" },
+  { name: "Profile", icon: User, path: "/profile" },
+  { name: "Settings", icon: Settings, path: "/settings" },
+];
+
+const Layout = ({ children }) => (
+  <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900">
+    <header className="bg-white shadow-sm fixed w-full top-0 z-10">
+      <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
+        <h1 className="text-xl font-bold text-indigo-600">WealthForge</h1>
+        <nav className="flex gap-6">
+          {navItems.map(({ name, icon: Icon, path }) => (
+            <NavLink
+              key={name}
+              to={path}
+              className={({ isActive }) =>
+                `flex items-center gap-2 text-sm font-medium ${
+                  isActive ? "text-indigo-600" : "text-gray-600 hover:text-indigo-500"
+                }`
+              }
+            >
+              <Icon size={18} />
+              {name}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+    </header>
+
+    <main className="flex-1 pt-20 pb-16 px-4 sm:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-6xl mx-auto"
+      >
+        {children}
+      </motion.div>
+    </main>
+
+    <footer className="text-center py-4 text-xs text-gray-500">
+      © {new Date().getFullYear()} WealthForge — Empowering Financial Growth
+    </footer>
+  </div>
+);
+
+const HomePage = () => (
+  <div className="grid md:grid-cols-2 gap-6">
+    <Card title="Daily Brief" desc="Track your financial insights and market news." />
+    <Card title="Mini Business" desc="Start and manage your entrepreneurial journey." />
+    <Card title="Savings Goals" desc="Visualize and reach your saving milestones." />
+    <Card title="Investments" desc="Monitor and optimize your portfolio performance." />
+  </div>
+);
+
+const Card = ({ title, desc }) => (
+  <motion.div
+    whileHover={{ scale: 1.03 }}
+    className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 cursor-pointer hover:shadow-lg transition"
+  >
+    <h2 className="text-lg font-semibold mb-2 text-gray-800">{title}</h2>
+    <p className="text-sm text-gray-500">{desc}</p>
+  </motion.div>
+);
+
+const App = () => (
+  <Router>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        {/* Add your other pages here */}
+      </Routes>
+    </Layout>
+  </Router>
+);
+
+export default App;
+
+🧠 WHY THIS FIXES YOUR PROBLEMS
+
+✅ Cleaner Layout – Cards and tabs replace cluttered sections
+✅ Unified Design System – Tailwind ensures consistent spacing, fonts, and colors
+✅ Smooth Motion – Framer Motion adds subtle animations
+✅ Professional Feel – Proper typography, shadows, and navigation hierarchy
+✅ Mobile Responsive – Fully resizes for phone/tablet screens
+✅ Future Ready – Add new pages without visual mess
+
+🪄 OPTIONAL: Improve Startup Performance
+
+If your app loads slowly, add a loading animation while routes initialize:
+
+const Loading = () => (
+  <div className="flex justify-center items-center h-screen bg-gray-50">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-indigo-600"></div>
+  </div>
+);

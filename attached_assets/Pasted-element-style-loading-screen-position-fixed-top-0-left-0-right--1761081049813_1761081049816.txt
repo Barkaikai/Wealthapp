@@ -1,0 +1,556 @@
+element.style {
+}
+
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0A001E 0%, #1E0A3C 50%, #0A001E 100%);
+    display: flex
+;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: 'Orbitron', sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *:before, *:after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+* {
+    --tw-border-opacity: 1;
+    border-color: hsl(var(--border) / var(--tw-border-opacity, 1));
+}
+
+*, :before, :after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+*, :before, :after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+user agent stylesheet
+div {
+    display: block;
+    unicode-bidi: isolate;
+}
+body {
+    --tw-text-opacity: 1;
+    color: hsl(var(--foreground) / var(--tw-text-opacity, 1));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    font-weight: 500;
+    position: relative;
+    overflow-x: hidden;
+    background: hsl(var(--background));
+}
+
+body {
+    margin: 0;
+    line-height: inherit;
+}
+
+* {
+    --tw-border-opacity: 1;
+    border-color: hsl(var(--border) / var(--tw-border-opacity, 1));
+}
+
+*, :before, :after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+.dark {
+    --button-outline: rgba(108, 31, 255, .4);
+    --badge-outline: rgba(108, 31, 255, .25);
+    --opaque-button-border-intensity: 12;
+    --elevate-1: rgba(108, 31, 255, .15);
+    --elevate-2: rgba(108, 31, 255, .28);
+    --background: 260 55% 6%;
+    --foreground: 260 20% 98%;
+    --border: 260 40% 25%;
+    --card: 260 50% 10%;
+    --card-foreground: 260 20% 98%;
+    --card-border: 260 40% 20%;
+    --sidebar: 260 45% 10%;
+    --sidebar-foreground: 260 15% 95%;
+    --sidebar-border: 260 35% 16%;
+    --sidebar-primary: 264 100% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 35% 18%;
+    --sidebar-accent-foreground: 260 15% 90%;
+    --sidebar-ring: 264 100% 62%;
+    --popover: 260 40% 12%;
+    --popover-foreground: 260 15% 95%;
+    --popover-border: 260 35% 22%;
+    --primary: 264 100% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 100% 68%;
+    --secondary-foreground: 260 45% 8%;
+    --muted: 260 35% 16%;
+    --muted-foreground: 260 15% 70%;
+    --accent: 45 100% 68%;
+    --accent-foreground: 260 45% 8%;
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --input: 260 35% 20%;
+    --ring: 264 100% 62%;
+    --chart-1: 264 100% 62%;
+    --chart-2: 45 100% 68%;
+    --chart-3: 280 90% 70%;
+    --chart-4: 195 100% 55%;
+    --chart-5: 160 84% 58%;
+    --shadow-2xs: 0px 1px 2px 0px rgba(108, 31, 255, .25), 0px 0px 8px 0px rgba(108, 31, 255, .15);
+    --shadow-xs: 0px 1px 3px 0px rgba(108, 31, 255, .3), 0px 0px 12px 0px rgba(108, 31, 255, .2);
+    --shadow-sm: 0px 2px 4px 0px rgba(108, 31, 255, .28), 0px 1px 2px -1px rgba(108, 31, 255, .3), 0px 0px 16px 0px rgba(108, 31, 255, .15);
+    --shadow: 0px 4px 6px -1px rgba(108, 31, 255, .35), 0px 2px 4px -2px rgba(108, 31, 255, .3), 0px 0px 20px 0px rgba(108, 31, 255, .2);
+    --shadow-md: 0px 6px 12px -2px rgba(108, 31, 255, .4), 0px 3px 6px -3px rgba(108, 31, 255, .35), 0px 0px 24px 0px rgba(108, 31, 255, .25);
+    --shadow-lg: 0px 10px 20px -4px rgba(108, 31, 255, .5), 0px 4px 8px -4px rgba(108, 31, 255, .4), 0px 0px 32px 0px rgba(108, 31, 255, .3);
+    --shadow-xl: 0px 20px 30px -6px rgba(108, 31, 255, .6), 0px 8px 12px -6px rgba(108, 31, 255, .5), 0px 0px 40px 0px rgba(108, 31, 255, .35);
+    --shadow-2xl: 0px 25px 40px -8px rgba(108, 31, 255, .7), 0px 0px 56px 0px rgba(108, 31, 255, .45);
+    --glass-bg: rgba(10, 0, 18, .6);
+    --glass-border: rgba(108, 31, 255, .35);
+    --glass-blur: 16px;
+Show all properties (7 more)
+}
+
+:root {
+    --button-outline: rgba(108, 31, 255, .25);
+    --badge-outline: rgba(108, 31, 255, .15);
+    --opaque-button-border-intensity: -10;
+    --elevate-1: rgba(108, 31, 255, .08);
+    --elevate-2: rgba(108, 31, 255, .15);
+    --background: 260 25% 98%;
+    --foreground: 260 15% 15%;
+    --border: 260 20% 80%;
+    --card: 260 30% 96%;
+    --card-foreground: 260 15% 15%;
+    --card-border: 260 25% 85%;
+    --sidebar: 260 35% 94%;
+    --sidebar-foreground: 260 15% 15%;
+    --sidebar-border: 260 25% 82%;
+    --sidebar-primary: 264 100% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 30% 88%;
+    --sidebar-accent-foreground: 260 15% 15%;
+    --sidebar-ring: 264 100% 56%;
+    --popover: 260 30% 96%;
+    --popover-foreground: 260 15% 15%;
+    --popover-border: 260 20% 80%;
+    --primary: 264 100% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 100% 62%;
+    --secondary-foreground: 260 15% 15%;
+    --muted: 260 25% 92%;
+    --muted-foreground: 260 10% 40%;
+    --accent: 45 100% 62%;
+    --accent-foreground: 260 15% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --input: 260 20% 85%;
+    --ring: 264 100% 56%;
+    --chart-1: 264 100% 56%;
+    --chart-2: 45 100% 62%;
+    --chart-3: 280 90% 65%;
+    --chart-4: 195 100% 50%;
+    --chart-5: 160 84% 52%;
+    --font-sans: "Rajdhani", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-display: "Orbitron", "Rajdhani", "Inter", sans-serif;
+    --font-serif: Georgia, serif;
+    --font-mono: "JetBrains Mono", "Menlo", "Monaco", "Courier New", monospace;
+    --radius: .5rem;
+    --text-display: clamp(2.5rem, 5vw + 1rem, 3.5rem);
+    --text-h1: clamp(2rem, 4vw + .5rem, 2.75rem);
+    --text-h2: clamp(1.625rem, 3vw + .5rem, 2rem);
+    --text-h3: clamp(1.375rem, 2.5vw + .5rem, 1.625rem);
+    --text-body: clamp(1rem, 1.5vw + .5rem, 1.125rem);
+    --text-small: clamp(.9375rem, 1vw + .5rem, 1rem);
+Show all properties (31 more)
+}
+
+html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    font-family: var(--font-sans);
+    font-feature-settings: normal;
+    font-variation-settings: normal;
+    -webkit-tap-highlight-color: transparent;
+}
+
+* {
+    --tw-border-opacity: 1;
+    border-color: hsl(var(--border) / var(--tw-border-opacity, 1));
+}
+
+*, :before, :after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *:before, *:after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+:before, :after {
+    --tw-content: "";
+}
+*, :before, :after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+*, :before, :after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *:before, *:after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+:before, :after {
+    --tw-content: "";
+}
+*, :before, :after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+*, :before, :after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+::backdrop {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / .5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+Show all properties (1 more)
+}
+
+Chrome DevTools (MCP) for your AI agent
+With the newly launched Chrome DevTools MCP server, AI coding assistants can now debug web pages directly in Chrome, and benefit from DevTools debugging capabilities and performance insights.
+
+Debug the network dependency tree with Gemini
+In Performance > Insights > Network dependency tree, click the corresponding AI button to discuss and debug said tree with Gemini in the 'AI assistance' panel.
+
+Export your chats with Gemini
+You can now export your current chat with Gemini or copy its response to clipboard with a click of a button.
+
+Filter IP protected network requests
+In the Network panel, you can now filter requests sent to IP Protection proxies.

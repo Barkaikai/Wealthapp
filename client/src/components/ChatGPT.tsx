@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Message {
   role: "user" | "assistant";
@@ -35,17 +36,9 @@ export function ChatGPT() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          messages: [...messages, userMessage]
-        }),
+      const response = await apiRequest("POST", "/api/chat", { 
+        messages: [...messages, userMessage]
       });
-
-      if (!response.ok) {
-        throw new Error("Chat request failed");
-      }
 
       const data = await response.json();
       const assistantMessage: Message = { 
@@ -53,10 +46,11 @@ export function ChatGPT() {
         content: data.message 
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("ChatGPT error:", error);
       toast({
         title: "Chat Error",
-        description: "Unable to get response. Please try again.",
+        description: error.message || "Unable to get response. Please try again.",
         variant: "destructive",
       });
     } finally {

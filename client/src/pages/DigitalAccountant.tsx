@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +32,9 @@ import {
   Loader2,
   TrendingUp,
   TrendingDown,
-  DollarSign
+  DollarSign,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { z } from "zod";
 import { 
@@ -114,6 +117,9 @@ const getStatusBadgeColor = (status: string) => {
 export default function DigitalAccountant() {
   const { toast } = useToast();
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [editAccountDialogOpen, setEditAccountDialogOpen] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -154,6 +160,24 @@ export default function DigitalAccountant() {
   });
 
   const accountForm = useForm({
+    resolver: zodResolver(insertAccountSchema.extend({
+      userId: z.string().optional(),
+      isReconcilable: z.number().optional(),
+      balance: z.number().optional(),
+    })),
+    defaultValues: {
+      userId: "",
+      code: "",
+      name: "",
+      accountType: "asset" as const,
+      currency: "USD",
+      isReconcilable: 0,
+      balance: 0,
+      description: "",
+    },
+  });
+
+  const editAccountForm = useForm({
     resolver: zodResolver(insertAccountSchema.extend({
       userId: z.string().optional(),
       isReconcilable: z.number().optional(),
@@ -232,6 +256,35 @@ export default function DigitalAccountant() {
     },
   });
 
+  const updateAccountMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<z.infer<typeof insertAccountSchema>> }) => {
+      return await apiRequest("PUT", `/api/accounting/accounts/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/accounts"] });
+      toast({ title: "Success", description: "Account updated successfully" });
+      handleCloseEditDialog();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/accounting/accounts/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/accounts"] });
+      toast({ title: "Success", description: "Account deleted successfully" });
+      setAccountToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setAccountToDelete(null);
+    },
+  });
+
   const createJournalMutation = useMutation({
     mutationFn: async (data: { description: string; lines: Array<{ accountId: number; amount: number; isDebit: boolean }> }) => {
       const transformedData = {
@@ -301,6 +354,37 @@ export default function DigitalAccountant() {
       }
       return next;
     });
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setAccountToEdit(account);
+    editAccountForm.reset({
+      code: account.code,
+      name: account.name,
+      accountType: account.accountType as any,
+      currency: account.currency || "USD",
+      balance: account.balance || 0,
+      description: account.description || "",
+    });
+    setEditAccountDialogOpen(true);
+  };
+
+  const handleEditSubmit = editAccountForm.handleSubmit((data) => {
+    if (accountToEdit) {
+      updateAccountMutation.mutate({ id: accountToEdit.id, data });
+    }
+  });
+
+  const handleCloseEditDialog = () => {
+    setEditAccountDialogOpen(false);
+    setAccountToEdit(null);
+    editAccountForm.reset();
+  };
+
+  const handleConfirmDelete = () => {
+    if (accountToDelete) {
+      deleteAccountMutation.mutate(accountToDelete.id);
+    }
   };
 
   const addJournalLine = () => {
@@ -477,24 +561,47 @@ export default function DigitalAccountant() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead className="text-xs">Code</TableHead>
+                      <TableHead className="text-xs">Name</TableHead>
+                      <TableHead className="text-xs">Type</TableHead>
+                      <TableHead className="text-right text-xs">Balance</TableHead>
+                      <TableHead className="text-right text-xs">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {accounts.map((account) => (
                       <TableRow key={account.id} data-testid={`row-account-${account.id}`}>
-                        <TableCell className="font-mono" data-testid={`text-account-code-${account.id}`}>{account.code}</TableCell>
-                        <TableCell data-testid={`text-account-name-${account.id}`}>{account.name}</TableCell>
+                        <TableCell className="font-mono text-sm" data-testid={`text-account-code-${account.id}`}>{account.code}</TableCell>
+                        <TableCell className="text-sm" data-testid={`text-account-name-${account.id}`}>{account.name}</TableCell>
                         <TableCell>
-                          <Badge className={getAccountTypeBadgeColor(account.accountType)} data-testid={`badge-account-type-${account.id}`}>
+                          <Badge className={`${getAccountTypeBadgeColor(account.accountType)} text-xs`} data-testid={`badge-account-type-${account.id}`}>
                             {account.accountType}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono" data-testid={`text-account-balance-${account.id}`}>
+                        <TableCell className="text-right font-mono text-sm" data-testid={`text-account-balance-${account.id}`}>
                           {formatCurrency(account.balance || 0, account.currency || 'USD')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              onClick={() => handleEditAccount(account)}
+                              data-testid={`button-edit-account-${account.id}`}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              onClick={() => setAccountToDelete(account)}
+                              data-testid={`button-delete-account-${account.id}`}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -503,6 +610,155 @@ export default function DigitalAccountant() {
               )}
             </CardContent>
           </Card>
+
+          {/* Edit Account Dialog */}
+          <Dialog open={editAccountDialogOpen} onOpenChange={(open) => !open && handleCloseEditDialog()}>
+            <DialogContent className="max-w-2xl" data-testid="dialog-edit-account">
+              <DialogHeader>
+                <DialogTitle className="text-sm">Edit Account</DialogTitle>
+                <DialogDescription className="text-xs">Update account information</DialogDescription>
+              </DialogHeader>
+              <Form {...editAccountForm}>
+                <form onSubmit={handleEditSubmit} className="space-y-3">
+                  <FormField
+                    control={editAccountForm.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Account Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., 1000" data-testid="input-edit-account-code" className="text-sm" />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editAccountForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Account Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Cash" data-testid="input-edit-account-name" className="text-sm" />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editAccountForm.control}
+                    name="accountType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Account Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-account-type" className="text-sm">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="asset" className="text-sm">Asset</SelectItem>
+                            <SelectItem value="liability" className="text-sm">Liability</SelectItem>
+                            <SelectItem value="equity" className="text-sm">Equity</SelectItem>
+                            <SelectItem value="income" className="text-sm">Income</SelectItem>
+                            <SelectItem value="expense" className="text-sm">Expense</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={editAccountForm.control}
+                      name="balance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Balance</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              {...field} 
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              placeholder="0.00" 
+                              data-testid="input-edit-account-balance" 
+                              className="text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editAccountForm.control}
+                      name="currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Currency</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="USD" data-testid="input-edit-account-currency" className="text-sm" />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={editAccountForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Account description" data-testid="input-edit-account-description" className="text-sm" />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={handleCloseEditDialog} data-testid="button-cancel-edit-account" size="sm">
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={updateAccountMutation.isPending} data-testid="button-submit-edit-account" size="sm">
+                      {updateAccountMutation.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                      Update Account
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={!!accountToDelete} onOpenChange={(open) => !open && setAccountToDelete(null)}>
+            <AlertDialogContent data-testid="dialog-delete-account-confirm">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-sm">Delete Account</AlertDialogTitle>
+                <AlertDialogDescription className="text-xs">
+                  Are you sure you want to delete account "{accountToDelete?.code} - {accountToDelete?.name}"?
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setAccountToDelete(null)} data-testid="button-cancel-delete-account" className="text-xs">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleConfirmDelete} 
+                  disabled={deleteAccountMutation.isPending}
+                  data-testid="button-confirm-delete-account"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs"
+                >
+                  {deleteAccountMutation.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
 
         <TabsContent value="journal" className="space-y-4">

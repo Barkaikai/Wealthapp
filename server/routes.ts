@@ -2837,6 +2837,31 @@ ${processedText}`;
     }
   });
 
+  app.put('/api/accounting/accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      const accountData = insertAccountSchema.partial().parse(req.body);
+      const account = await storage.updateAccount(id, userId, accountData);
+      res.json(account);
+    } catch (error: any) {
+      console.error("Error updating account:", error);
+      res.status(400).json({ message: error.message || "Failed to update account" });
+    }
+  });
+
+  app.delete('/api/accounting/accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteAccount(id, userId);
+      res.json({ message: "Account deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      res.status(400).json({ message: error.message || "Failed to delete account" });
+    }
+  });
+
   app.get('/api/accounting/journal', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

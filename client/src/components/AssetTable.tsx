@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Asset {
@@ -15,14 +16,16 @@ interface Asset {
 interface AssetTableProps {
   assets: Asset[];
   title: string;
+  onEdit?: (asset: Asset) => void;
+  onDelete?: (assetId: number) => void;
 }
 
-export function AssetTable({ assets, title }: AssetTableProps) {
+export function AssetTable({ assets, title, onEdit, onDelete }: AssetTableProps) {
   return (
     <Card className="p-3 sm:p-6" data-testid="table-assets">
       <h3 className="font-semibold mb-4 sm:mb-6 text-sm sm:text-base">{title}</h3>
       <div className="overflow-x-auto -mx-3 sm:mx-0">
-        <div className="min-w-[500px] sm:min-w-0">
+        <div className="min-w-[600px] sm:min-w-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -30,6 +33,9 @@ export function AssetTable({ assets, title }: AssetTableProps) {
                 <th className="text-right py-2 sm:py-3 px-2 text-xs sm:text-sm font-medium text-muted-foreground">Value</th>
                 <th className="text-right py-2 sm:py-3 px-2 text-xs sm:text-sm font-medium text-muted-foreground hidden sm:table-cell">Allocation</th>
                 <th className="text-right py-2 sm:py-3 px-2 text-xs sm:text-sm font-medium text-muted-foreground">24h</th>
+                {(onEdit || onDelete) && (
+                  <th className="text-right py-2 sm:py-3 px-2 text-xs sm:text-sm font-medium text-muted-foreground">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -66,6 +72,36 @@ export function AssetTable({ assets, title }: AssetTableProps) {
                       </span>
                     </div>
                   </td>
+                  {(onEdit || onDelete) && (
+                    <td className="py-3 sm:py-4 px-2 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {onEdit && asset.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEdit(asset)}
+                            data-testid={`button-edit-asset-${asset.id}`}
+                            className="h-7 px-2"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                        )}
+                        {onDelete && asset.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDelete(asset.id)}
+                            data-testid={`button-delete-asset-${asset.id}`}
+                            className="h-7 px-2 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

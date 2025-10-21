@@ -396,6 +396,8 @@ export interface IStorage {
   // Accounting operations
   getAccounts(userId: string): Promise<Account[]>;
   createAccount(data: InsertAccount): Promise<Account>;
+  updateAccount(id: number, userId: string, data: Partial<InsertAccount>): Promise<Account>;
+  deleteAccount(id: number, userId: string): Promise<void>;
   getJournalEntries(userId: string, limit?: number): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
   createJournalEntry(userId: string, description: string, lines: Omit<InsertJournalLine, 'entryId'>[], clientRef?: string): Promise<JournalEntry>;
   validateDoubleEntry(lines: { amount: number; isDebit: number }[]): boolean;
@@ -1573,6 +1575,55 @@ export class DatabaseStorage implements IStorage {
     });
     
     return account;
+  }
+
+  async updateAccount(id: number, userId: string, data: Partial<InsertAccount>): Promise<Account> {
+    const [updatedAccount] = await db.update(accounts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+      .returning();
+    
+    if (!updatedAccount) {
+      throw new Error("Account not found or you don't have permission to update it");
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'update_account',
+      entityType: 'account',
+      entityId: id,
+      details: { updates: data }
+    });
+    
+    return updatedAccount;
+  }
+
+  async deleteAccount(id: number, userId: string): Promise<void> {
+    // Check if account has any journal entries
+    const accountLines = await db.select()
+      .from(journalLines)
+      .where(eq(journalLines.accountId, id))
+      .limit(1);
+    
+    if (accountLines.length > 0) {
+      throw new Error("Cannot delete account with existing journal entries");
+    }
+    
+    const [deletedAccount] = await db.delete(accounts)
+      .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+      .returning();
+    
+    if (!deletedAccount) {
+      throw new Error("Account not found or you don't have permission to delete it");
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'delete_account',
+      entityType: 'account',
+      entityId: id,
+      details: { code: deletedAccount.code, name: deletedAccount.name }
+    });
   }
 
   async getJournalEntries(userId: string, limit?: number): Promise<(JournalEntry & { lines: JournalLine[] })[]> {

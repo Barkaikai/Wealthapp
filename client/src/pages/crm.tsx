@@ -43,8 +43,8 @@ export default function CRMPage() {
     <div className="h-full overflow-auto p-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">CRM</h1>
-          <p className="text-muted-foreground">Manage your relationships and pipeline</p>
+          <h1 className="text-2xl font-bold">CRM</h1>
+          <p className="text-sm text-muted-foreground">Manage your relationships and pipeline</p>
         </div>
         <div className="flex gap-2">
           <CreateOrganizationDialog />

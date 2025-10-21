@@ -231,8 +231,8 @@ export default function WalletPage() {
     <div className="h-full overflow-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <WalletIcon className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <WalletIcon className="h-6 w-6 text-primary" />
             Personal Wallet
           </h1>
           <p className="text-muted-foreground">Manage your fiat and crypto wallets</p>

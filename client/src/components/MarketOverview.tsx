@@ -118,6 +118,8 @@ function MarketSection({
 export default function MarketOverview({ compact = false }: { compact?: boolean }) {
   const { data, isLoading } = useQuery<MarketOverview>({
     queryKey: ['/api/market/overview'],
+    refetchInterval: 30000, // Auto-refresh every 30 seconds for real-time data
+    refetchIntervalInBackground: true,
   });
 
   if (compact) {

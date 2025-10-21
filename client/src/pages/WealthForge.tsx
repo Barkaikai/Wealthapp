@@ -287,7 +287,7 @@ export default function WealthForge() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-2"
         >
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent" data-testid="heading-wealthforge">
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent" data-testid="heading-wealthforge">
             Wealth Forge
           </h1>
           <p className="text-muted-foreground text-lg" data-testid="text-subtitle">

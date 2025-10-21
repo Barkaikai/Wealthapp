@@ -125,8 +125,8 @@ export default function NFTVault() {
     <div className="container mx-auto p-6 space-y-6" data-testid="page-nft-vault">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">NFT Vault</h1>
-          <p className="text-muted-foreground mt-1">Manage your multi-chain NFT collection</p>
+          <h1 className="text-2xl font-bold">NFT Vault</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your multi-chain NFT collection</p>
         </div>
         <div className="flex gap-2">
           <Button

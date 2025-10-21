@@ -73,10 +73,20 @@ const journalFormSchema = z.object({
 });
 
 const formatCurrency = (amount: number, currency: string = "USD") => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(amount);
+  try {
+    // Ensure currency is a valid 3-letter code, not a concatenated value
+    const cleanCurrency = currency.trim().split(' ')[0].toUpperCase();
+    // Validate currency code is 3 letters
+    const validCurrency = /^[A-Z]{3}$/.test(cleanCurrency) ? cleanCurrency : 'USD';
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: validCurrency,
+    }).format(amount || 0);
+  } catch (error) {
+    console.error('Currency formatting error:', error, 'currency:', currency, 'amount:', amount);
+    return `$${(amount || 0).toFixed(2)}`;
+  }
 };
 
 const getAccountTypeBadgeColor = (type: string) => {
@@ -317,11 +327,11 @@ export default function DigitalAccountant() {
     <div className="h-full overflow-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calculator className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-primary" />
             Digital Accountant
           </h1>
-          <p className="text-muted-foreground">Complete accounting and financial management</p>
+          <p className="text-sm text-muted-foreground">Complete accounting and financial management</p>
         </div>
       </div>
 
@@ -351,7 +361,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="accounts" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Chart of Accounts</h2>
+            <h2 className="text-lg font-semibold">Chart of Accounts</h2>
             <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-account">
@@ -497,7 +507,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="journal" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Journal Entries</h2>
+            <h2 className="text-lg font-semibold">Journal Entries</h2>
             <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-journal">
@@ -707,7 +717,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="invoices" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Invoices</h2>
+            <h2 className="text-lg font-semibold">Invoices</h2>
             <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-invoice">
@@ -876,7 +886,7 @@ export default function DigitalAccountant() {
 
         <TabsContent value="payments" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Payments</h2>
+            <h2 className="text-lg font-semibold">Payments</h2>
             <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-payment">

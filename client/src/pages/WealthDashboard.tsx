@@ -207,8 +207,8 @@ export default function WealthDashboard() {
     <div className="space-y-4 sm:space-y-6 max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Wealth Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Track and manage your portfolio</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Wealth Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track and manage your portfolio</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button 

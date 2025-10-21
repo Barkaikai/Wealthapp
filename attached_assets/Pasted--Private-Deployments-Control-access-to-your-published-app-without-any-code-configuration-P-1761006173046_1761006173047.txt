@@ -1,0 +1,70 @@
+# Private Deployments
+
+> Control access to your published app without any code configuration.
+
+Private published apps add authentication to your Replit Apps without requiring any
+code changes. When enabled, Replit restricts access to your app using a Replit login screen.
+Only logged in members of your Organization that have access can use the site.
+
+<Note>
+  Private Deployments are available only to Teams subscribers. Your Replit App
+  must be in a Team workspace to use Private Deployments.
+</Note>
+
+Restricted app access is useful for project types including the following:
+
+* Internal tools
+* Apps in the beta testing phase
+* Apps that access sensitive information
+
+<Frame caption="Login page for Private Deployments">
+  <img src="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=ecad9adfb9c2409ff7001aad4690870b" alt="screenshot of a Private Deployment login page" data-og-width="1920" width="1920" data-og-height="1080" height="1080" data-path="images/deployments/private-deployments/private-deployment-login.jpg" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=280&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=c8ba54e5f550c069bfab0c127a06fe0c 280w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=560&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=0bb99256026bdb60c2c93f631c43b517 560w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=840&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=edb94a6dabc904588d686e5117801c69 840w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=1100&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=5987164df00f13b7fe44c8f195032cb2 1100w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=1650&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=da35954c571f55651766bb38cb0f1629 1650w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-login.jpg?w=2500&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=9e1f2c8b143ac19ff95a292513c6ee9a 2500w" />
+</Frame>
+
+## Features
+
+Private published apps provide the following features:
+
+* **Access Management**: Grant or restrict app access to any users or groups within your Replit Team
+* **Zero Code Configuration**: Seamless authentication for your app with no code changes required
+
+## Usage
+
+When publishing your Replit App from a Teams workspace, you can choose between a **Public** or **Private** published app.
+The following sections describe how to set up and manage your Private published apps.
+
+<Info>
+  Scheduled Jobs omit this option because they do not listen for incoming
+  traffic.
+</Info>
+
+<Accordion title="Create a Private Published App">
+  1. Select the user menu at the top left of the Home screen to view your workspaces.
+  2. Verify or select the Team workspace in which to publish your Replit App.
+  3. Open the Replit App you want to publish.
+  4. Toggle the **Private Deployment** option to the "on" position as shown below:
+     <img src="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=2ddb81101b45ef44be8f08653bfb893b" alt="Private Deployment toggle in the on position" data-og-width="1340" width="1340" data-og-height="146" height="146" data-path="images/deployments/private-deployments/private-deployment-toggle-on.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=280&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=b9e305a37156ddf902ad88fe97a50ae7 280w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=560&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=3afd8d1330e8e84a1b8fb6ee9dc9c1c9 560w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=840&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=f2361847bb258728a440baca3f08b147 840w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=1100&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=72fcc3f95d6377e4559d42113c97bc21 1100w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=1650&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=12dee6895279b2880b0a4a67361b76a5 1650w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployment-toggle-on.png?w=2500&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=d1a60e98f70776a6d653e2e6891352ff 2500w" />
+  5. After setting the publishing options, select **Publish** to confirm the publishing.
+</Accordion>
+
+<Accordion title="View your Private Published Apps">
+  1. Select the user menu at the top left of the Home screen to view your workspaces.
+  2. Verify or select the Team workspace in which to publish your Replit App.
+  3. From the Home screen, select <img class="svg-icon" src="https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=df3fa2573b451c54591523c9d9111db1" alt="Deployments icon" data-og-width="16" width="16" data-og-height="16" height="16" data-path="images/icons/deploy-icon.svg" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=280&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=115e9383e0350a6ef201a41f78f8a19a 280w, https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=560&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=667b93ae66d0b69569409fb90d9fc280 560w, https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=840&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=ae927e5aadcb7a470ad726f0acb0f782 840w, https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=1100&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=16ee8f7b3d9db6b4f74ea8c2ebb6730f 1100w, https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=1650&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=ad04a5984543c13895fd30182294ec0a 1650w, https://mintcdn.com/replit/rBzGsKp9NcWJ7sib/images/icons/deploy-icon.svg?w=2500&fit=max&auto=format&n=rBzGsKp9NcWJ7sib&q=85&s=2449268bce371256727b17027eb180f3 2500w" /> **Deployments** from the left dock.
+     You should see a list of the Team's published apps similar to the screenshot below:
+
+     <img src="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=6d281dc091dcab5857da49257bacbc05" alt="List of Private Deployments" data-og-width="2782" width="2782" data-og-height="526" height="526" data-path="images/deployments/private-deployments/private-deployments-list.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=280&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=602c7ad6808a6c78452b52b7c6f58454 280w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=560&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=6843a88a349467efe68e728a7a7ee7be 560w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=840&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=2959500926227ed9fa34dee82d09c154 840w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=1100&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=268627fed87eb4d9bd7ee59c34a432b9 1100w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=1650&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=e5fe88aac072ca5c0db3dc05d8fb96eb 1650w, https://mintcdn.com/replit/jSmYU1wBTvl8UMyc/images/deployments/private-deployments/private-deployments-list.png?w=2500&fit=max&auto=format&n=jSmYU1wBTvl8UMyc&q=85&s=e5f16bdcc6b6f3ad5398c1fc8c29b467 2500w" />
+</Accordion>
+
+<Accordion title="Edit existing published app visibility">
+  1. Select the published app and open the Deployment tool.
+  2. In the Deployment tab, select **Edit commands and secrets**, toggle the setting on or off.
+  3. Select **Publish** to confirm the publishing.
+</Accordion>
+
+## Next steps
+
+To learn more about Private published apps, see the following resources:
+
+* [Replit App Access Management](/teams/identity-and-access-management/repl-access-management): Manage access to your Private published app
+* [Billing for Teams](/billing/teams-billing/overview): View pricing for Replit Teams

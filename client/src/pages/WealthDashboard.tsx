@@ -210,6 +210,55 @@ export default function WealthDashboard() {
     },
   });
 
+  const handleExportCsv = () => {
+    try {
+      // Calculate total value for allocations
+      const total = assets.reduce((sum, a) => sum + a.value, 0);
+      
+      // Generate CSV content with all required columns
+      const headers = ['Asset', 'Symbol', 'Quantity', 'Value ($)', 'Allocation (%)', '24h'];
+      const rows = assets.map(asset => {
+        const allocation = total > 0 ? ((asset.value / total) * 100).toFixed(2) : '0.00';
+        const change24h = asset.changePercent ? 
+          (asset.changePercent >= 0 ? `+${asset.changePercent.toFixed(2)}%` : `${asset.changePercent.toFixed(2)}%`) : 
+          '+0.00%';
+        
+        return [
+          asset.name,
+          asset.symbol,
+          asset.quantity || 1,
+          asset.value.toFixed(2),
+          allocation,
+          change24h
+        ].join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `portfolio_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "CSV Exported",
+        description: `Downloaded portfolio with ${assets.length} assets`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -223,14 +272,17 @@ export default function WealthDashboard() {
         throw new Error("CSV file must have at least a header and one data row");
       }
 
-      // Parse CSV (expecting: symbol,quantity,assetType)
+      // Parse CSV - support both formats:
+      // Format 1 (simple): symbol,quantity,type
+      // Format 2 (full export): Asset,Symbol,Quantity,Value ($),Allocation (%),24h
       const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-      const symbolIndex = headers.indexOf('symbol');
-      const quantityIndex = headers.indexOf('quantity');
-      const typeIndex = headers.indexOf('type') !== -1 ? headers.indexOf('type') : headers.indexOf('assettype');
+      const symbolIndex = headers.findIndex(h => h.includes('symbol'));
+      const quantityIndex = headers.findIndex(h => h.includes('quantity'));
+      const typeIndex = headers.findIndex(h => h.includes('type') || h.includes('assettype'));
+      const assetNameIndex = headers.findIndex(h => h === 'asset' || h === 'name');
       
       if (symbolIndex === -1 || quantityIndex === -1) {
-        throw new Error("CSV must have 'symbol' and 'quantity' columns");
+        throw new Error("CSV must have 'Symbol' and 'Quantity' columns");
       }
 
       let imported = 0;
@@ -436,6 +488,18 @@ export default function WealthDashboard() {
             <Upload className={`h-4 w-4 mr-2 ${csvUploading ? 'animate-pulse' : ''}`} />
             <span className="hidden sm:inline">{csvUploading ? 'Uploading...' : 'Import CSV'}</span>
             <span className="sm:hidden">{csvUploading ? 'Upload' : 'CSV'}</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExportCsv}
+            disabled={assets.length === 0}
+            data-testid="button-download-csv"
+            className="flex-1 sm:flex-none"
+            size="sm"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           <Button 
             variant="outline" 

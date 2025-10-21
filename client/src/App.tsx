@@ -22,10 +22,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { useLocation } from "wouter";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import luxuryBackground from "@assets/stock_images/luxury_villa_mansion_f81fdf36.jpg";
 import type { User } from "@shared/schema";
+import { Link } from "wouter";
 
 // Lazy-loaded page components for better performance
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -148,14 +150,22 @@ function AuthenticatedApp() {
       <div className="flex h-screen w-full relative overflow-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 relative z-10 min-w-0">
-          <header className="glass flex items-center justify-between gap-2 p-2 sm:p-4 border-b flex-shrink-0">
+          <header className="glass flex items-center justify-between gap-2 p-2 sm:p-3 border-b flex-shrink-0">
             <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="flex-shrink-0" />
               <div className="hidden sm:block">
                 <TimeDate onClick={() => setCalendarOpen(true)} />
               </div>
+              {user?.isAdmin && (
+                <Link href="/admin/passes">
+                  <Badge variant="default" className="gap-1 text-xs py-0.5 px-1.5 cursor-pointer hover-elevate" data-testid="badge-admin">
+                    <Shield className="h-3 w-3" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Badge>
+                </Link>
+              )}
             </div>
-            <div className="hidden lg:flex flex-1 max-w-2xl mx-auto">
+            <div className="flex-1 max-w-2xl mx-auto px-2">
               <WebSearchBar compact />
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -171,7 +181,7 @@ function AuthenticatedApp() {
                 data-testid="button-open-calendar"
                 className="hidden sm:flex flex-shrink-0"
               >
-                <CalendarDays className="h-5 w-5" />
+                <CalendarDays className="h-4 w-4" />
               </Button>
               <ChatGPT />
               <Calculator />

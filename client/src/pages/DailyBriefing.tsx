@@ -153,8 +153,8 @@ export default function DailyBriefing() {
       
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Daily Briefing</h1>
-          <p className="text-sm sm:text-base text-muted-foreground break-words">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Daily Briefing</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground break-words">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -178,7 +178,7 @@ export default function DailyBriefing() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4 neon-text" data-testid="text-quick-access-title">Quick Access</h2>
+        <h2 className="text-base sm:text-lg font-semibold mb-4 neon-text" data-testid="text-quick-access-title">Quick Access</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {quickAccessItems.map((item) => (
             <Link

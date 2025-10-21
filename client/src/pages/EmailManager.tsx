@@ -154,8 +154,8 @@ export default function EmailManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Email Manager</h1>
-          <p className="text-muted-foreground">AI-powered email categorization and drafting</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Email Manager</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">AI-powered email categorization and drafting</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>

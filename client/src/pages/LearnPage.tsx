@@ -127,7 +127,7 @@ export default function LearnPage() {
     lines.forEach((line, index) => {
       if (line.startsWith('## ')) {
         elements.push(
-          <h2 key={key++} className="text-2xl font-semibold mt-8 mb-4 first:mt-0">
+          <h2 key={key++} className="text-base sm:text-lg font-semibold mt-8 mb-4 first:mt-0">
             {line.replace('## ', '')}
           </h2>
         );
@@ -159,11 +159,11 @@ export default function LearnPage() {
       </Link>
 
       <div>
-        <h1 className="text-4xl font-bold mb-2" data-testid="learn-title">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2" data-testid="learn-title">
           {content.topic}
         </h1>
         {content.summary && (
-          <p className="text-lg text-muted-foreground" data-testid="learn-summary">
+          <p className="text-xs sm:text-sm text-muted-foreground" data-testid="learn-summary">
             {content.summary}
           </p>
         )}

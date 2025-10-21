@@ -206,11 +206,11 @@ export default function ReceiptManager() {
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2" data-testid="heading-receipt-manager">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2" data-testid="heading-receipt-manager">
               <ReceiptIcon className="w-8 h-8 text-primary" />
               Receipt Manager
             </h1>
-            <p className="text-muted-foreground mt-1">Upload and manage your receipts with AI-powered OCR</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Upload and manage your receipts with AI-powered OCR</p>
           </div>
           <Button 
             onClick={() => setUploadDialogOpen(true)} 
@@ -228,7 +228,7 @@ export default function ReceiptManager() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Receipts</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-receipts">{filteredReceipts.length}</div>
+              <div className="text-base sm:text-lg font-bold" data-testid="text-total-receipts">{filteredReceipts.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -236,7 +236,7 @@ export default function ReceiptManager() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Amount</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-amount">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-total-amount">
                 ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </CardContent>
@@ -246,7 +246,7 @@ export default function ReceiptManager() {
               <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-month-count">
+              <div className="text-base sm:text-lg font-bold" data-testid="text-month-count">
                 {filteredReceipts.filter(r => {
                   const receiptDate = new Date(r.receiptDate);
                   const now = new Date();

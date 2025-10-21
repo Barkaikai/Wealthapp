@@ -44,11 +44,11 @@ export default function Videos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3">
             <Video className="h-8 w-8 text-primary" />
             AI Video Recommendations
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2">
             Personalized YouTube video recommendations generated from your Daily Briefing
           </p>
         </div>
@@ -108,8 +108,8 @@ export default function Videos() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Video className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Videos Yet</h3>
-            <p className="text-muted-foreground text-center mb-6">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">No Videos Yet</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground text-center mb-6">
               Generate personalized video recommendations based on your Daily Briefing
             </p>
             <Button

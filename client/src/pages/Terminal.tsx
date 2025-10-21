@@ -122,11 +122,11 @@ export default function Terminal() {
     <div className="h-full overflow-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <TerminalIcon className="h-8 w-8 text-primary" />
             Terminal
           </h1>
-          <p className="text-muted-foreground">Execute commands and interact with the system</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Execute commands and interact with the system</p>
         </div>
         <Button 
           variant="outline" 

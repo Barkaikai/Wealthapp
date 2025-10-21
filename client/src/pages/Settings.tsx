@@ -213,8 +213,8 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and application preferences</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Settings</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Manage your account and application preferences</p>
       </div>
 
       <Tabs defaultValue="account" className="w-full">

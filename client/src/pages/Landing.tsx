@@ -66,10 +66,10 @@ export default function Landing() {
 
         {/* Hero Content */}
         <div className="relative z-10 text-center px-6 max-w-5xl mx-auto fade-in-up">
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text float-slow">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 bg-gradient-to-br from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text float-slow">
             Elite Life Automation
           </h1>
-          <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed fade-in-delay">
+          <p className="text-xs sm:text-sm text-foreground/90 mb-8 max-w-3xl mx-auto leading-relaxed fade-in-delay">
             Command your wealth, time, and communications with the sophistication of a private office—powered by cutting-edge AI
           </p>
           
@@ -116,10 +116,10 @@ export default function Landing() {
         
         <div className="relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            <h2 className="text-base sm:text-lg font-bold tracking-tight mb-4">
               Executive-Level <span className="text-primary">Automation</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
               Experience the precision and efficiency reserved for the world's elite
             </p>
           </div>
@@ -136,8 +136,8 @@ export default function Landing() {
                     <feature.icon className="h-7 w-7 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold mb-2 neon-text">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                    <h3 className="text-sm sm:text-base font-semibold mb-2 neon-text">{feature.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
               </Card>
@@ -147,10 +147,10 @@ export default function Landing() {
           {/* Security Section */}
           <div className="mb-20">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight mb-4">
                 <span className="text-primary">Secure</span> & Reliable
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
                 Your data is protected with modern security practices
               </p>
             </div>
@@ -167,8 +167,8 @@ export default function Landing() {
                       <security.icon className="h-6 w-6 text-accent" />
                     </div>
                     <div>
-                      <h4 className="text-base font-semibold mb-1">{security.title}</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{security.description}</p>
+                      <h4 className="text-sm sm:text-base font-semibold mb-1">{security.title}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{security.description}</p>
                     </div>
                   </div>
                 </Card>
@@ -186,10 +186,10 @@ export default function Landing() {
             
             {/* Content */}
             <div className="relative z-10 p-16 text-center">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text">
+              <h2 className="text-base sm:text-lg font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent neon-text">
                 Elevate Your Lifestyle
               </h2>
-              <p className="text-lg text-foreground/90 mb-10 max-w-2xl mx-auto">
+              <p className="text-xs sm:text-sm text-foreground/90 mb-10 max-w-2xl mx-auto">
                 Join the elite circle of individuals who've mastered the art of sophisticated automation
               </p>
               <Button 

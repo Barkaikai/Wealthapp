@@ -42,8 +42,8 @@ export default function Web3Wallets() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Web3 Wallets</h1>
-          <p className="text-muted-foreground">Connect and manage your cryptocurrency wallets</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Web3 Wallets</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Connect and manage your cryptocurrency wallets</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>

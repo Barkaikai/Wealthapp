@@ -137,8 +137,8 @@ export default function Subscription() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Subscription</h1>
-        <p className="text-muted-foreground">Manage your subscription and billing</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Subscription</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Manage your subscription and billing</p>
       </div>
 
       {/* Current Plan Card */}
@@ -165,13 +165,13 @@ export default function Subscription() {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold" data-testid="text-current-price">
+              <p className="text-xl sm:text-2xl font-bold" data-testid="text-current-price">
                 {currentSubscription?.billingInterval === 'annual' 
                   ? formatPrice(currentPlan?.annualPrice)
                   : formatPrice(currentPlan?.monthlyPrice)
                 }
                 {currentPlan && (currentPlan.monthlyPrice || currentPlan.annualPrice) && (
-                  <span className="text-base text-muted-foreground">
+                  <span className="text-sm sm:text-base text-muted-foreground">
                     /{currentSubscription?.billingInterval === 'annual' ? 'year' : 'month'}
                   </span>
                 )}
@@ -203,7 +203,7 @@ export default function Subscription() {
 
       {/* Available Plans */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Available Plans</h2>
+        <h2 className="text-base sm:text-lg font-bold mb-4">Available Plans</h2>
         
         <Tabs defaultValue="monthly" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md mb-6">
@@ -272,16 +272,16 @@ export default function Subscription() {
                             {plan.name}
                           </Badge>
                         </div>
-                        <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
+                        <CardTitle className="text-base sm:text-lg">{plan.name}</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">{plan.description}</CardDescription>
                       </CardHeader>
 
                       <CardContent className="space-y-4">
                         <div>
-                          <p className="text-4xl font-bold" data-testid={`text-price-${plan.tier}`}>
+                          <p className="text-xl sm:text-2xl font-bold" data-testid={`text-price-${plan.tier}`}>
                             {formatPrice(price)}
                             {price && (
-                              <span className="text-base text-muted-foreground">
+                              <span className="text-sm sm:text-base text-muted-foreground">
                                 /{interval === 'monthly' ? 'mo' : 'yr'}
                               </span>
                             )}

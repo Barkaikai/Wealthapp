@@ -209,8 +209,8 @@ export default function DiscordManager() {
     <div className="container mx-auto p-6 space-y-6" data-testid="page-discord-manager">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Discord AI Manager</h1>
-          <p className="text-muted-foreground">AI-powered Discord bot management</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Discord AI Manager</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">AI-powered Discord bot management</p>
         </div>
         <Bot className="w-10 h-10 text-primary" />
       </div>

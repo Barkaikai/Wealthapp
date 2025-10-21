@@ -81,10 +81,10 @@ export default function AdminPasses() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">
           Free Pass Management
         </h1>
-        <p className="text-muted-foreground">Create and manage promotional access passes</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">Create and manage promotional access passes</p>
       </div>
 
       {/* Stats Card */}
@@ -96,17 +96,17 @@ export default function AdminPasses() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Total Created</p>
-              <p className="text-2xl font-bold" data-testid="text-total-passes">{total}</p>
+              <p className="text-base sm:text-lg font-bold" data-testid="text-total-passes">{total}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Redeemed</p>
-              <p className="text-2xl font-bold" data-testid="text-redeemed-passes">
+              <p className="text-base sm:text-lg font-bold" data-testid="text-redeemed-passes">
                 {passes.filter(p => p.redeemedAt).length}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Available</p>
-              <p className="text-2xl font-bold" data-testid="text-available-passes">
+              <p className="text-base sm:text-lg font-bold" data-testid="text-available-passes">
                 {maxTotal - total}
               </p>
             </div>

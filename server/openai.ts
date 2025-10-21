@@ -119,7 +119,21 @@ export async function generateDailyBriefing(
   events: any[],
   notes: any[],
   marketContext?: any,
-  previousBriefing?: any
+  previousBriefing?: any,
+  additionalContext?: {
+    wallets?: any[];
+    nfts?: any[];
+    transactions?: any[];
+    invoices?: any[];
+    crmContacts?: any[];
+    crmDeals?: any[];
+    tasks?: any[];
+    calendarEvents?: any[];
+    routines?: any[];
+    healthMetrics?: any[];
+    discordActivity?: any[];
+    subscription?: any;
+  }
 ): Promise<{
   highlights: string[];
   risks: string[];
@@ -202,7 +216,112 @@ Last highlights: ${previousBriefing.highlights?.join('; ') || 'None'}
 Last recommended actions: ${previousBriefing.actions?.join('; ') || 'None'}`;
   }
   
-  const prompt = `You are an elite wealth advisor for ultra-high-net-worth individuals. Generate a precise, actionable daily financial briefing based on real portfolio data and market conditions.
+  // Format additional platform context
+  let platformContext = '';
+  
+  if (additionalContext) {
+    const sections: string[] = [];
+    
+    // Wallet connections
+    if (additionalContext.wallets && additionalContext.wallets.length > 0) {
+      const walletInfo = additionalContext.wallets.slice(0, 5).map(w => 
+        `${w.walletType} (${w.network || 'unknown'}): ${w.walletAddress?.substring(0, 10)}...`
+      ).join(', ');
+      sections.push(`\n💳 WALLET CONNECTIONS (${additionalContext.wallets.length}): ${walletInfo}`);
+    }
+    
+    // NFT holdings
+    if (additionalContext.nfts && additionalContext.nfts.length > 0) {
+      const nftValue = additionalContext.nfts.reduce((sum: number, nft: any) => sum + (nft.estimatedValue || 0), 0);
+      const nftInfo = additionalContext.nfts.slice(0, 5).map(n => 
+        `${n.name} (${n.collectionName || 'Unknown'}): ${n.estimatedValue ? '$' + n.estimatedValue.toLocaleString() : 'Not valued'}`
+      ).join(', ');
+      sections.push(`\n🖼️ NFT VAULT (${additionalContext.nfts.length} items, est. $${nftValue.toLocaleString()}): ${nftInfo}`);
+    }
+    
+    // Recent transactions
+    if (additionalContext.transactions && additionalContext.transactions.length > 0) {
+      const recentTxs = additionalContext.transactions.slice(0, 5).map(t => 
+        `${t.type.toUpperCase()}: ${t.symbol} ${t.quantity} @ $${t.pricePerUnit} (${new Date(t.transactionDate).toLocaleDateString()})`
+      ).join(', ');
+      sections.push(`\n📊 RECENT TRANSACTIONS: ${recentTxs}`);
+    }
+    
+    // Invoices
+    if (additionalContext.invoices && additionalContext.invoices.length > 0) {
+      const unpaidInvoices = additionalContext.invoices.filter((i: any) => i.status === 'unpaid');
+      const totalUnpaid = unpaidInvoices.reduce((sum: number, i: any) => sum + i.amount, 0);
+      if (unpaidInvoices.length > 0) {
+        sections.push(`\n💼 INVOICES: ${unpaidInvoices.length} unpaid ($${totalUnpaid.toLocaleString()} outstanding)`);
+      }
+    }
+    
+    // CRM data
+    if (additionalContext.crmContacts && additionalContext.crmContacts.length > 0) {
+      sections.push(`\n👥 CRM: ${additionalContext.crmContacts.length} contacts tracked`);
+    }
+    if (additionalContext.crmDeals && additionalContext.crmDeals.length > 0) {
+      const activeDeals = additionalContext.crmDeals.filter((d: any) => d.status !== 'closed_lost' && d.status !== 'closed_won');
+      const dealValue = activeDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+      if (activeDeals.length > 0) {
+        sections.push(`\n💰 ACTIVE DEALS: ${activeDeals.length} deals ($${dealValue.toLocaleString()} potential value)`);
+      }
+    }
+    
+    // Tasks
+    if (additionalContext.tasks && additionalContext.tasks.length > 0) {
+      const openTasks = additionalContext.tasks.filter((t: any) => t.status !== 'completed');
+      const highPriority = openTasks.filter((t: any) => t.priority === 'high');
+      sections.push(`\n✅ TASKS: ${openTasks.length} open (${highPriority.length} high priority)`);
+    }
+    
+    // Calendar events (today + upcoming week)
+    if (additionalContext.calendarEvents && additionalContext.calendarEvents.length > 0) {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const upcomingEvents = additionalContext.calendarEvents.filter((e: any) => {
+        const eventDate = new Date(e.date);
+        return eventDate >= today && eventDate <= nextWeek;
+      });
+      if (upcomingEvents.length > 0) {
+        const eventList = upcomingEvents.slice(0, 3).map((e: any) => 
+          `${e.title} (${new Date(e.date).toLocaleDateString()})`
+        ).join(', ');
+        sections.push(`\n📅 UPCOMING: ${upcomingEvents.length} events this week - ${eventList}`);
+      }
+    }
+    
+    // Daily routines
+    if (additionalContext.routines && additionalContext.routines.length > 0) {
+      sections.push(`\n⏰ ROUTINES: ${additionalContext.routines.length} daily activities tracked`);
+    }
+    
+    // Health metrics
+    if (additionalContext.healthMetrics && additionalContext.healthMetrics.length > 0) {
+      const latestMetrics = additionalContext.healthMetrics.slice(0, 3);
+      const metricsInfo = latestMetrics.map(m => 
+        `${m.metricType}: ${m.value} ${m.unit || ''}`
+      ).join(', ');
+      sections.push(`\n💪 HEALTH: ${metricsInfo}`);
+    }
+    
+    // Discord activity
+    if (additionalContext.discordActivity && additionalContext.discordActivity.length > 0) {
+      sections.push(`\n💬 DISCORD: ${additionalContext.discordActivity.length} recent messages tracked`);
+    }
+    
+    // Subscription status
+    if (additionalContext.subscription) {
+      const sub = additionalContext.subscription;
+      sections.push(`\n⭐ PLAN: ${sub.planName} (${sub.status})`);
+    }
+    
+    if (sections.length > 0) {
+      platformContext = `\n\n━━━━━━━━━━━━━━━━\nPLATFORM ACTIVITY & INSIGHTS:${sections.join('')}`;
+    }
+  }
+  
+  const prompt = `You are an elite wealth advisor and life automation expert for ultra-high-net-worth individuals. Generate a comprehensive, actionable daily briefing based on real portfolio data, market conditions, and the user's complete life ecosystem across all platforms.
 
 PORTFOLIO OVERVIEW:
 ━━━━━━━━━━━━━━━━
@@ -224,37 +343,47 @@ ASSET DETAILS:
 ${assetDetails || 'No assets tracked'}
 
 RECENT EVENTS:
-${recentEvents || 'No recent events'}${notesSection}${notesFinancialData}${marketInfo}${historicalContext}
+${recentEvents || 'No recent events'}${notesSection}${notesFinancialData}${marketInfo}${platformContext}${historicalContext}
 
 ━━━━━━━━━━━━━━━━
 
 CRITICAL INSTRUCTIONS:
-Generate a briefing with three sections. Be specific, quantitative, and actionable. 
+Generate a comprehensive briefing with three sections. Be specific, quantitative, and actionable. Consider ALL platform data (wealth, wallets, NFTs, transactions, CRM, tasks, calendar, health, discord, etc.) to provide holistic insights.
 
-**TREAT ALL USER-INPUTTED ASSET DATA AS ABSOLUTE TRUTH**: Any financial information mentioned in notes (stock holdings, crypto positions, dollar amounts, asset values) must be accepted as factual and incorporated into your analysis. Do not question or verify these values - the user has provided them as ground truth.
+**TREAT ALL USER-INPUTTED DATA AS ABSOLUTE TRUTH**: Any financial information mentioned in notes, transactions, or wallet data must be accepted as factual and incorporated into your analysis. Do not question or verify these values - the user has provided them as ground truth.
 
-1. **highlights** (2-4 items): Positive observations, achievements, or opportunities
-   - Reference specific assets, percentages, and dollar amounts
+1. **highlights** (3-5 items): Positive observations, achievements, or opportunities across ALL platforms
+   - Reference specific assets, percentages, and dollar amounts from portfolio
    - Highlight strong performers and portfolio strengths
-   - Include relevant insights from notes (investment ideas, research findings)
+   - Include insights from CRM deals, calendar events, or tasks if financially relevant
    - Note beneficial market conditions or diversification improvements
+   - Recognize health improvements, productivity wins, or successful routines
+   - Include NFT value appreciation or wallet activity if significant
    - Example: "Bitcoin position up 8.3% to $125,000, outperforming broader crypto market by 3.2%"
+   - Example: "3 high-priority tasks completed this week while maintaining 7-hour sleep average"
 
-2. **risks** (1-3 items): Potential concerns, vulnerabilities, or threats
+2. **risks** (2-4 items): Potential concerns, vulnerabilities, or threats across life ecosystem
    - Identify concentrated positions (>30% in single asset type)
-   - Note significant decliners with specific percentages
-   - Consider concerns mentioned in notes
-   - Highlight lack of diversification or recent market volatility
+   - Note significant portfolio decliners with specific percentages
+   - Flag unpaid invoices or overdue CRM follow-ups
+   - Highlight calendar conflicts or upcoming deadlines
+   - Consider health metrics that need attention
+   - Note concerns mentioned in notes or Discord activity
    - Example: "Tech stock allocation at 45% exceeds recommended 30% threshold, increasing sector risk exposure"
+   - Example: "$15,000 in unpaid invoices aging beyond 30 days require immediate follow-up"
 
-3. **actions** (2-4 items): Concrete, prioritized recommendations
-   - Provide specific steps (rebalance percentages, sync prices, review positions)
-   - Suggest portfolio adjustments based on allocation imbalances
-   - Address action items from notes if financially relevant
-   - Recommend timely actions based on market conditions
+3. **actions** (3-6 items): Concrete, prioritized recommendations spanning all life areas
+   - Portfolio: Rebalance percentages, sync prices, review positions
+   - Business: Follow up on CRM deals, send invoice reminders, complete high-priority tasks
+   - Calendar: Prepare for upcoming events, resolve scheduling conflicts
+   - Health: Address concerning metrics, maintain successful routines
+   - NFTs/Wallets: Monitor valuable assets, secure wallet connections
+   - Discord: Respond to important messages or opportunities
+   - Prioritize by urgency and financial impact
    - Example: "Rebalance portfolio by reducing crypto allocation from 35% to 25%, redirecting $50K to bonds"
+   - Example: "Contact 2 CRM leads with proposals this week to advance $250K in pipeline value"
 
-TONE: Professional, confident, data-driven. Assume the user understands financial terminology.
+TONE: Professional, confident, data-driven, holistic. Assume the user is managing a complex, automated life ecosystem and values comprehensive insights.
 
 Respond with JSON in this exact format:
 {

@@ -83,6 +83,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug route to verify auth domains configuration
+  app.get('/api/debug/auth-domains', (req, res) => {
+    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+    const host = req.headers.host;
+    const isAllowed = domains.includes(host || '');
+    res.json({
+      currentHost: host,
+      allowedDomains: domains,
+      message: isAllowed
+        ? '✅ This domain is configured for authentication'
+        : '❌ This domain is NOT in REPLIT_DOMAINS',
+    });
+  });
+
   // Admin status endpoint - detailed system information
   app.get('/api/admin/status', async (_req, res) => {
     try {

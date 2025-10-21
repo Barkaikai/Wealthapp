@@ -32,9 +32,14 @@ export function PrintButton({
           size={size}
           className={className}
           data-testid="button-print"
+          aria-label={label}
         >
           <Printer className="w-4 h-4 mr-2" />
-          {size !== "icon" && <span className="hidden sm:inline">{label}</span>}
+          {size !== "icon" && (
+            <>
+              <span className="sr-only sm:not-sr-only">{label}</span>
+            </>
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent>

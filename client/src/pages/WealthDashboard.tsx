@@ -33,7 +33,9 @@ const cryptoFormSchema = z.object({
 
 export default function WealthDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addMode, setAddMode] = useState<"manual" | "stock" | "crypto">("manual");
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const { toast } = useToast();
 
   const { data: assets = [], isLoading } = useQuery<Asset[]>({
@@ -159,6 +161,49 @@ export default function WealthDashboard() {
     },
   });
 
+  const updateAsset = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Asset> }) => {
+      await apiRequest("PATCH", `/api/assets/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({
+        title: "Success",
+        description: "Asset updated successfully",
+      });
+      setEditDialogOpen(false);
+      setEditingAsset(null);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update asset",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAsset = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/assets/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({
+        title: "Success",
+        description: "Asset deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete asset",
+        variant: "destructive",
+      });
+    },
+  });
+
   const assetData = assets.reduce((acc, asset) => {
     const existing = acc.find(a => a.name === asset.assetType);
     if (existing) {
@@ -194,7 +239,28 @@ export default function WealthDashboard() {
     { date: "Sep", value: totalValue },
   ];
 
+  const handleEdit = (asset: Asset) => {
+    setEditingAsset(asset);
+    form.reset({
+      name: asset.name,
+      symbol: asset.symbol,
+      assetType: asset.assetType,
+      value: asset.value,
+      allocation: asset.allocation || 0,
+      change24h: asset.change24h || 0,
+      changePercent: asset.changePercent || 0,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (assetId: number) => {
+    if (window.confirm("Are you sure you want to delete this asset?")) {
+      deleteAsset.mutate(assetId);
+    }
+  };
+
   const tableAssets = assets.map(asset => ({
+    id: asset.id,
     name: asset.name,
     symbol: asset.symbol,
     value: asset.value,
@@ -446,9 +512,147 @@ export default function WealthDashboard() {
 
           <MarketOverview />
 
-          {tableAssets.length > 0 && <AssetTable assets={tableAssets} title="Portfolio Holdings" />}
+          {tableAssets.length > 0 && (
+            <AssetTable 
+              assets={tableAssets} 
+              title="Portfolio Holdings" 
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          )}
         </>
       )}
+
+      {/* Edit Asset Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Asset</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form 
+              onSubmit={form.handleSubmit((data) => {
+                if (editingAsset?.id) {
+                  updateAsset.mutate({ id: editingAsset.id, data });
+                }
+              })} 
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Asset Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="S&P 500 ETF" {...field} data-testid="input-edit-asset-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="symbol"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Symbol</FormLabel>
+                    <FormControl>
+                      <Input placeholder="SPY" {...field} data-testid="input-edit-asset-symbol" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="assetType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Asset Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-asset-type">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="stocks">Stocks</SelectItem>
+                        <SelectItem value="crypto">Crypto</SelectItem>
+                        <SelectItem value="bonds">Bonds</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="real_estate">Real Estate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Value ($)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="50000" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        data-testid="input-edit-asset-value"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="allocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm">Allocation (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="0" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        data-testid="input-edit-asset-allocation"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setEditDialogOpen(false);
+                    setEditingAsset(null);
+                  }}
+                  className="flex-1"
+                  data-testid="button-cancel-edit"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateAsset.isPending} 
+                  className="flex-1" 
+                  data-testid="button-submit-edit"
+                >
+                  {updateAsset.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { db } from './db';
 import { scheduledTasks, type InsertScheduledTask } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import { parseExpression } from 'cron-parser';
+import cronParser from 'cron-parser';
 
 /**
  * TaskQueue - Database-backed task tracking system
@@ -137,15 +137,21 @@ export class TaskQueue {
         ? this.getNextRunTime(task[0].cronExpression)
         : task[0].nextRunAt;
 
+      const updateData: any = {
+        lastRunStatus: status,
+        lastRunError: error || null,
+        nextRunAt: nextRun,
+        updatedAt: now,
+      };
+
+      // Only update lastRunAt for terminal states to avoid masking missed runs
+      if (status === 'success' || status === 'failed') {
+        updateData.lastRunAt = now;
+      }
+
       await db
         .update(scheduledTasks)
-        .set({
-          lastRunAt: now,
-          lastRunStatus: status,
-          lastRunError: error || null,
-          nextRunAt: nextRun,
-          updatedAt: now,
-        })
+        .set(updateData)
         .where(eq(scheduledTasks.name, name));
 
       if (status === 'success') {
@@ -208,7 +214,7 @@ export class TaskQueue {
    */
   private getNextRunTime(cronExpression: string, from?: Date): Date {
     try {
-      const interval = parseExpression(cronExpression, {
+      const interval = cronParser.parseExpression(cronExpression, {
         currentDate: from || new Date(),
       });
       return interval.next().toDate();

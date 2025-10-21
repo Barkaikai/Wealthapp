@@ -204,11 +204,11 @@ export default function WealthDashboard() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Wealth Dashboard</h1>
-          <p className="text-muted-foreground">Track and manage your portfolio</p>
+    <div className="space-y-4 sm:space-y-6 max-w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Wealth Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track and manage your portfolio</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button 
@@ -217,19 +217,20 @@ export default function WealthDashboard() {
             disabled={syncPrices.isPending || isLoading}
             data-testid="button-sync-prices"
             className="flex-1 sm:flex-none"
+            size="sm"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${syncPrices.isPending ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{syncPrices.isPending ? 'Syncing...' : 'Sync Prices'}</span>
             <span className="sm:hidden">{syncPrices.isPending ? 'Sync' : 'Sync'}</span>
           </Button>
-          <Button variant="outline" data-testid="button-export-report" className="flex-1 sm:flex-none">
+          <Button variant="outline" data-testid="button-export-report" className="flex-1 sm:flex-none" size="sm">
             <Download className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Export Report</span>
             <span className="sm:hidden">Export</span>
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-add-asset" className="flex-1 sm:flex-none">
+              <Button data-testid="button-add-asset" className="flex-1 sm:flex-none" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Asset
               </Button>

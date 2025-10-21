@@ -145,27 +145,31 @@ function AuthenticatedApp() {
   return (
     <SidebarProvider style={style as React.CSSProperties} defaultOpen={true}>
       <MobileSidebarHandler />
-      <div className="flex h-screen w-full relative">
+      <div className="flex h-screen w-full relative overflow-hidden">
         <AppSidebar />
-        <div className="flex flex-col flex-1 relative z-10">
-          <header className="glass flex items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 border-b">
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <SidebarTrigger data-testid="button-sidebar-toggle" className="!h-11 !w-11" />
-              <TimeDate onClick={() => setCalendarOpen(true)} />
+        <div className="flex flex-col flex-1 relative z-10 min-w-0">
+          <header className="glass flex items-center justify-between gap-2 p-2 sm:p-4 border-b flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="flex-shrink-0" />
+              <div className="hidden sm:block">
+                <TimeDate onClick={() => setCalendarOpen(true)} />
+              </div>
             </div>
-            <div className="hidden md:flex flex-1 max-w-2xl mx-auto">
+            <div className="hidden lg:flex flex-1 max-w-2xl mx-auto">
               <WebSearchBar compact />
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <ConnectionStatus />
-              <OnlineStatus />
-              <BluetoothConnect />
+              <div className="hidden md:flex items-center gap-1">
+                <ConnectionStatus />
+                <OnlineStatus />
+                <BluetoothConnect />
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => setCalendarOpen(true)}
                 data-testid="button-open-calendar"
-                className="hidden sm:flex"
+                className="hidden sm:flex flex-shrink-0"
               >
                 <CalendarDays className="h-5 w-5" />
               </Button>
@@ -174,12 +178,12 @@ function AuthenticatedApp() {
               <ThemeToggle />
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
             <Router />
           </main>
-          <footer className="glass border-t p-4 flex items-center justify-between">
-            <div className="text-sm text-muted-foreground neon-text">
-              © 2025 WealthForge - Elite Automation Platform
+          <footer className="glass border-t p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
+            <div className="text-xs sm:text-sm text-muted-foreground neon-text text-center sm:text-left truncate">
+              © 2025 WealthForge
             </div>
             <ViewModeSwitcher />
           </footer>

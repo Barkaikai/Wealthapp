@@ -144,17 +144,17 @@ export default function DailyBriefing() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-full">
       <QuickAssetEntry 
         open={assetDialogOpen} 
         onOpenChange={setAssetDialogOpen}
         defaultType={selectedAssetType}
       />
       
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2" data-testid="text-page-title">Daily Briefing</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 truncate" data-testid="text-page-title">Daily Briefing</h1>
+          <p className="text-sm sm:text-base text-muted-foreground break-words">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -162,13 +162,16 @@ export default function DailyBriefing() {
           onClick={() => generateBriefing.mutate()} 
           disabled={generateBriefing.isPending}
           data-testid="button-generate-briefing"
+          className="w-full sm:w-auto flex-shrink-0"
+          size="sm"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${generateBriefing.isPending ? 'animate-spin' : ''}`} />
-          {generateBriefing.isPending ? 'Generating...' : 'Generate AI Briefing'}
+          <span className="hidden sm:inline">{generateBriefing.isPending ? 'Generating...' : 'Generate AI Briefing'}</span>
+          <span className="sm:hidden">{generateBriefing.isPending ? 'Generating...' : 'Generate'}</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}

@@ -21,6 +21,7 @@ import { z } from "zod";
 import { EmailList } from "@/components/EmailList";
 import { RoutineTimeBlock } from "@/components/RoutineTimeBlock";
 import { SkeletonEmailCard } from "@/components/Skeleton";
+import { PrintButton } from "@/components/PrintButton";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const MAX_RECEIPT_FILE_SIZE = 10 * 1024 * 1024;
@@ -769,9 +770,12 @@ export default function ProductivityHubConsolidated() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Productivity Hub</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">All your productivity tools in one place</p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Productivity Hub</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">All your productivity tools in one place</p>
+        </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs defaultValue="notes" className="space-y-6">

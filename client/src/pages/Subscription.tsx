@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { SubscriptionPlan, UserSubscription } from "@shared/schema";
 import RedeemPass from "@/components/RedeemPass";
+import { PrintButton } from "@/components/PrintButton";
 
 interface CurrentSubscription {
   subscription: UserSubscription | null;
@@ -136,9 +137,12 @@ export default function Subscription() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Subscription</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">Manage your subscription and billing</p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Subscription</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage your subscription and billing</p>
+        </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       {/* Current Plan Card */}

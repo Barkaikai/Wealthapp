@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Textarea } from "@/components/ui/textarea";
+import { PrintButton } from "@/components/PrintButton";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -282,18 +283,21 @@ export default function WealthForge() {
       
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-2"
-        >
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent" data-testid="heading-wealthforge">
-            Wealth Forge
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground" data-testid="text-subtitle">
-            Build habits, earn tokens, and unlock assets
-          </p>
-        </motion.div>
+        <div className="flex justify-between items-start gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-2 flex-1"
+          >
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent" data-testid="heading-wealthforge">
+              Wealth Forge
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground" data-testid="text-subtitle">
+              Build habits, earn tokens, and unlock assets
+            </p>
+          </motion.div>
+          <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

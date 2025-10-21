@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { PortfolioReport, TradingRecommendation, TaxEvent, RebalancingRecommendation, AnomalyDetection } from "@shared/schema";
+import { PrintButton } from "@/components/PrintButton";
 
 interface TerminalOutput {
   id: number;
@@ -313,14 +314,17 @@ export default function AIIntelligence() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-          <Brain className="h-8 w-8 text-primary" />
-          AI Intelligence
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          AI-powered insights, analysis, and recommendations
-        </p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Brain className="h-8 w-8 text-primary" />
+            AI Intelligence
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            AI-powered insights, analysis, and recommendations
+          </p>
+        </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-4">

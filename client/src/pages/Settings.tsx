@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
+import { PrintButton } from "@/components/PrintButton";
 
 interface DiagnosticResult {
   category: string;
@@ -212,9 +213,12 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Settings</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">Manage your account and application preferences</p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" data-testid="text-page-title">Settings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage your account and application preferences</p>
+        </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs defaultValue="account" className="w-full">

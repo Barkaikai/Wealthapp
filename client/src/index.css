@@ -832,3 +832,224 @@
     -webkit-touch-callout: none !important;
   }
 }
+
+/* ==========================================
+   PROFESSIONAL PRINT STYLES
+   ========================================== */
+@media print {
+  /* General print optimizations */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  /* Hide navigation and UI elements */
+  header,
+  nav,
+  aside,
+  .sidebar,
+  [data-sidebar],
+  footer,
+  button:not(.print-visible),
+  .no-print,
+  [data-testid*="button"]:not([data-testid="button-print"]),
+  [data-testid*="toggle"],
+  [data-testid*="nav"],
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Main content full width */
+  main,
+  .print-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+  }
+
+  /* Page breaks */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  table, figure, img {
+    page-break-inside: avoid;
+  }
+
+  p, li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Cards and containers */
+  .card, [class*="glass"], [class*="Card"] {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding: 0.5rem !important;
+    margin-bottom: 1rem;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tbody {
+    display: table-row-group;
+  }
+
+  th {
+    background-color: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    padding: 0.5rem !important;
+    text-align: left;
+    font-weight: bold;
+  }
+
+  td {
+    border: 1px solid #ddd !important;
+    padding: 0.5rem !important;
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 20pt;
+    margin: 1rem 0;
+    color: #6C1FFF !important;
+  }
+
+  h2 {
+    font-size: 16pt;
+    margin: 0.8rem 0;
+  }
+
+  h3 {
+    font-size: 14pt;
+    margin: 0.6rem 0;
+  }
+
+  p {
+    margin: 0.5rem 0;
+  }
+
+  /* Links - show URL */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.9em;
+    color: #666;
+  }
+
+  a[href^="#"]:after,
+  a[href^="javascript:"]:after {
+    content: "";
+  }
+
+  /* Remove animations and transitions */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Charts and graphs - ensure visibility */
+  svg, canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Stat cards and metrics */
+  .stat-card, [class*="StatCard"] {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+  }
+
+  /* Print-specific utilities */
+  .print-only {
+    display: block !important;
+  }
+
+  .print-inline {
+    display: inline !important;
+  }
+
+  /* Header/Logo for printed pages */
+  .print-header {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #6C1FFF;
+    margin-bottom: 1.5rem;
+  }
+
+  .print-header h1 {
+    color: #6C1FFF !important;
+    font-size: 24pt;
+    margin: 0;
+  }
+
+  .print-footer {
+    text-align: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid #ddd;
+    margin-top: 1.5rem;
+    font-size: 9pt;
+    color: #666;
+  }
+
+  /* Ensure colors are visible */
+  .text-primary,
+  .text-accent {
+    color: #6C1FFF !important;
+  }
+
+  .bg-primary,
+  .bg-accent {
+    background-color: #f3f0ff !important;
+  }
+
+  /* Grid layouts */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    margin-bottom: 1rem;
+  }
+
+  /* Dialog/Modal content - if visible */
+  [role="dialog"] {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+}

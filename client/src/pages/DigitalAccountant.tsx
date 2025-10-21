@@ -49,6 +49,7 @@ import {
   type Invoice, 
   type Payment
 } from "@shared/schema";
+import { PrintButton } from "@/components/PrintButton";
 
 type JournalEntryWithLines = JournalEntry & {
   lines?: JournalLine[];
@@ -417,6 +418,7 @@ export default function DigitalAccountant() {
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Complete accounting and financial management</p>
         </div>
+        <PrintButton variant="outline" size="sm" className="flex-1 sm:flex-none" />
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-6">

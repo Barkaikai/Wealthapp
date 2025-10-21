@@ -9,15 +9,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Download, RefreshCw } from "lucide-react";
+import { Plus, Download, RefreshCw, Upload, TrendingUp } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAssetSchema, type Asset } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { z } from "zod";
 import { SkeletonAssetCard, Skeleton } from "@/components/Skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 const stockFormSchema = z.object({
   symbol: z.string().min(1, "Symbol is required"),
@@ -36,6 +39,9 @@ export default function WealthDashboard() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addMode, setAddMode] = useState<"manual" | "stock" | "crypto">("manual");
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: assets = [], isLoading } = useQuery<Asset[]>({
@@ -204,6 +210,109 @@ export default function WealthDashboard() {
     },
   });
 
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setCsvUploading(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error("CSV file must have at least a header and one data row");
+      }
+
+      // Parse CSV (expecting: symbol,quantity,assetType)
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      const symbolIndex = headers.indexOf('symbol');
+      const quantityIndex = headers.indexOf('quantity');
+      const typeIndex = headers.indexOf('type') !== -1 ? headers.indexOf('type') : headers.indexOf('assettype');
+      
+      if (symbolIndex === -1 || quantityIndex === -1) {
+        throw new Error("CSV must have 'symbol' and 'quantity' columns");
+      }
+
+      let imported = 0;
+      let failed = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const symbol = values[symbolIndex];
+        const quantity = parseFloat(values[quantityIndex]);
+        const assetType = typeIndex !== -1 ? values[typeIndex].toLowerCase() : null;
+        
+        if (!symbol || isNaN(quantity)) continue;
+
+        try {
+          // Determine if stock or crypto based on type or symbol
+          const isStock = assetType === 'stock' || assetType === 'stocks' || 
+                         !assetType && !['BTC', 'ETH', 'SOL', 'XRP', 'ADA'].includes(symbol.toUpperCase());
+          
+          if (isStock) {
+            await apiRequest("POST", "/api/financial/stocks/add", { symbol, quantity });
+          } else {
+            await apiRequest("POST", "/api/financial/crypto/add", { symbol, quantity });
+          }
+          imported++;
+        } catch (err) {
+          failed++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({
+        title: "CSV Import Complete",
+        description: `Imported ${imported} assets successfully${failed > 0 ? `, ${failed} failed` : ''}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "CSV Import Failed",
+        description: error.message || "Failed to import CSV",
+        variant: "destructive",
+      });
+    } finally {
+      setCsvUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const calculateAllocation = () => {
+    // Calculate current allocations by type
+    const cryptoAssets = assets.filter(a => a.assetType === 'crypto');
+    const stockAssets = assets.filter(a => a.assetType === 'stocks');
+    const cashAssets = assets.filter(a => a.assetType === 'cash');
+    
+    const cryptoValue = cryptoAssets.reduce((sum, a) => sum + a.value, 0);
+    const stockValue = stockAssets.reduce((sum, a) => sum + a.value, 0);
+    const cashValue = cashAssets.reduce((sum, a) => sum + a.value, 0);
+    
+    const cryptoAllocation = totalValue > 0 ? (cryptoValue / totalValue) * 100 : 0;
+    const stockAllocation = totalValue > 0 ? (stockValue / totalValue) * 100 : 0;
+    const cashAllocation = totalValue > 0 ? (cashValue / totalValue) * 100 : 0;
+
+    // Major crypto breakdown
+    const btcValue = cryptoAssets.find(a => a.symbol.toUpperCase() === 'BTC')?.value || 0;
+    const ethValue = cryptoAssets.find(a => a.symbol.toUpperCase() === 'ETH')?.value || 0;
+    const solValue = cryptoAssets.find(a => a.symbol.toUpperCase() === 'SOL')?.value || 0;
+    const majorCryptoValue = btcValue + ethValue + solValue;
+    const majorCryptoAllocation = totalValue > 0 ? (majorCryptoValue / totalValue) * 100 : 0;
+    const otherCryptoAllocation = cryptoAllocation - majorCryptoAllocation;
+
+    return {
+      crypto: cryptoAllocation,
+      stocks: stockAllocation,
+      cash: cashAllocation,
+      majorCrypto: majorCryptoAllocation,
+      otherCrypto: otherCryptoAllocation,
+      cryptoValue,
+      stockValue,
+      cashValue,
+    };
+  };
+
   const assetData = assets.reduce((acc, asset) => {
     const existing = acc.find(a => a.name === asset.assetType);
     if (existing) {
@@ -278,6 +387,26 @@ export default function WealthDashboard() {
           <p className="text-xs sm:text-sm text-muted-foreground">Track and manage your portfolio</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCsvUpload}
+            className="hidden"
+            data-testid="input-csv-file"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={csvUploading}
+            data-testid="button-upload-csv"
+            className="flex-1 sm:flex-none"
+            size="sm"
+          >
+            <Upload className={`h-4 w-4 mr-2 ${csvUploading ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline">{csvUploading ? 'Uploading...' : 'Import CSV'}</span>
+            <span className="sm:hidden">{csvUploading ? 'Upload' : 'CSV'}</span>
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => syncPrices.mutate()} 
@@ -290,10 +419,16 @@ export default function WealthDashboard() {
             <span className="hidden sm:inline">{syncPrices.isPending ? 'Syncing...' : 'Sync Prices'}</span>
             <span className="sm:hidden">{syncPrices.isPending ? 'Sync' : 'Sync'}</span>
           </Button>
-          <Button variant="outline" data-testid="button-export-report" className="flex-1 sm:flex-none" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Export Report</span>
-            <span className="sm:hidden">Export</span>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAnalysis(!showAnalysis)}
+            data-testid="button-toggle-analysis" 
+            className="flex-1 sm:flex-none" 
+            size="sm"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">AI Analysis</span>
+            <span className="sm:hidden">AI</span>
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -506,6 +641,111 @@ export default function WealthDashboard() {
         </div>
       ) : (
         <>
+          {showAnalysis && totalValue > 0 && (() => {
+            const allocation = calculateAllocation();
+            const targets = {
+              majorCrypto: 35,
+              otherCrypto: 20,
+              stocks: 40,
+              cash: 5,
+            };
+            
+            return (
+              <Card className="glass-card" data-testid="card-portfolio-analysis">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base sm:text-lg">AI Portfolio Analysis</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">Allocation vs. Target Recommendations</CardDescription>
+                    </div>
+                    <Badge variant="outline" className="text-xs">Live</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs sm:text-sm mb-2">
+                          <span className="text-muted-foreground">Major Crypto (BTC+ETH+SOL)</span>
+                          <span className="font-medium">{allocation.majorCrypto.toFixed(1)}% / {targets.majorCrypto}%</span>
+                        </div>
+                        <Progress value={(allocation.majorCrypto / targets.majorCrypto) * 100} className="h-2" />
+                        {Math.abs(allocation.majorCrypto - targets.majorCrypto) > 5 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {allocation.majorCrypto < targets.majorCrypto ? 'Consider increasing' : 'Consider decreasing'} by {Math.abs(allocation.majorCrypto - targets.majorCrypto).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs sm:text-sm mb-2">
+                          <span className="text-muted-foreground">Other Crypto</span>
+                          <span className="font-medium">{allocation.otherCrypto.toFixed(1)}% / {targets.otherCrypto}%</span>
+                        </div>
+                        <Progress value={(allocation.otherCrypto / targets.otherCrypto) * 100} className="h-2" />
+                        {Math.abs(allocation.otherCrypto - targets.otherCrypto) > 5 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {allocation.otherCrypto < targets.otherCrypto ? 'Consider increasing' : 'Consider decreasing'} by {Math.abs(allocation.otherCrypto - targets.otherCrypto).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs sm:text-sm mb-2">
+                          <span className="text-muted-foreground">Stocks/ETFs</span>
+                          <span className="font-medium">{allocation.stocks.toFixed(1)}% / {targets.stocks}%</span>
+                        </div>
+                        <Progress value={(allocation.stocks / targets.stocks) * 100} className="h-2" />
+                        {Math.abs(allocation.stocks - targets.stocks) > 5 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {allocation.stocks < targets.stocks ? 'Consider increasing' : 'Consider decreasing'} by {Math.abs(allocation.stocks - targets.stocks).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs sm:text-sm mb-2">
+                          <span className="text-muted-foreground">Cash</span>
+                          <span className="font-medium">{allocation.cash.toFixed(1)}% / {targets.cash}%</span>
+                        </div>
+                        <Progress value={(allocation.cash / targets.cash) * 100} className="h-2" />
+                        {Math.abs(allocation.cash - targets.cash) > 2 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {allocation.cash < targets.cash ? 'Consider increasing' : 'Consider decreasing'} by {Math.abs(allocation.cash - targets.cash).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <h4 className="text-xs sm:text-sm font-semibold mb-2">Current Values</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Crypto</p>
+                        <p className="font-medium">${allocation.cryptoValue.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Stocks</p>
+                        <p className="font-medium">${allocation.stockValue.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Cash</p>
+                        <p className="font-medium">${allocation.cashValue.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total</p>
+                        <p className="font-medium">${totalValue.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AssetChart data={assetData} title="Asset Allocation" />
             <PortfolioTimeline data={timelineData} title="Portfolio Growth (YTD)" />

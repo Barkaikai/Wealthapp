@@ -269,10 +269,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/briefing/generate', aiRateLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      console.log(`Starting briefing generation for user ${userId}`);
+      console.log(`Starting comprehensive briefing generation for user ${userId} across ALL platform sections`);
       
-      // Gather comprehensive data for accurate briefing (including notes with AI analysis)
-      const [assets, events, notes, marketContext, previousBriefing] = await Promise.all([
+      // Gather comprehensive data from ALL platform sections for holistic briefing
+      const [
+        assets, 
+        events, 
+        notes, 
+        marketContext, 
+        previousBriefing,
+        wallets,
+        nfts,
+        transactions,
+        invoices,
+        crmContacts,
+        crmDeals,
+        tasks,
+        calendarEvents,
+        routines,
+        healthMetrics,
+        discordMessages,
+        subscription
+      ] = await Promise.all([
         storage.getAssets(userId),
         storage.getEvents(userId),
         storage.getNotes(userId),
@@ -281,16 +299,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return null;
         }),
         storage.getLatestBriefing(userId).catch(() => null),
+        storage.getWalletConnections(userId).catch(() => []),
+        storage.getNftAssets(userId).catch(() => []),
+        storage.getTransactions(userId).catch(() => []),
+        storage.getInvoices(userId).catch(() => []),
+        storage.getContacts(userId).catch(() => []),
+        storage.getDeals(userId).catch(() => []),
+        storage.getTasks(userId).catch(() => []),
+        storage.getCalendarEvents(userId).catch(() => []),
+        storage.getRoutines(userId).catch(() => []),
+        storage.getHealthMetrics(userId).catch(() => []),
+        storage.getDiscordScheduledMessages(userId).catch(() => []),
+        storage.getSubscription(userId).catch(() => null),
       ]);
       
-      console.log(`Briefing data gathered: ${assets.length} assets, ${events.length} events, ${notes.length} notes, market data: ${marketContext ? 'available' : 'unavailable'}`);
+      console.log(`Briefing data gathered from ALL platforms: ${assets.length} assets, ${events.length} events, ${notes.length} notes, ${wallets.length} wallets, ${nfts.length} NFTs, ${transactions.length} transactions, ${invoices.length} invoices, ${crmContacts.length} contacts, ${crmDeals.length} deals, ${tasks.length} tasks, ${calendarEvents.length} events, ${routines.length} routines, ${healthMetrics.length} health metrics, ${discordMessages.length} discord msgs, market: ${marketContext ? 'available' : 'unavailable'}`);
       
       const { highlights, risks, actions } = await generateDailyBriefing(
         assets, 
         events, 
         notes,
         marketContext,
-        previousBriefing
+        previousBriefing,
+        {
+          wallets,
+          nfts,
+          transactions: transactions.slice(0, 20), // Recent 20 transactions
+          invoices,
+          crmContacts,
+          crmDeals,
+          tasks,
+          calendarEvents,
+          routines,
+          healthMetrics: healthMetrics.slice(0, 10), // Recent 10 metrics
+          discordActivity: discordMessages.slice(0, 10), // Recent 10 messages
+          subscription
+        }
       );
       
       console.log(`AI briefing generated: ${highlights.length} highlights, ${risks.length} risks, ${actions.length} actions`);

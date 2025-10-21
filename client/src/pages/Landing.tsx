@@ -82,24 +82,32 @@ export default function Landing() {
           </div>
 
           {/* Primary CTA - High Contrast, No Overlays */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center select-none">
             <Button 
               size="lg" 
-              onClick={() => window.location.href = '/api/login'}
-              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-auto"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = '/api/login';
+              }}
+              className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-none"
               data-testid="button-login"
             >
-              <Lock className="mr-2 h-6 w-6 pointer-events-none" />
-              Secure Sign In
+              <Lock className="mr-2 h-6 w-6 pointer-events-none select-none" />
+              <span className="select-none">Secure Sign In</span>
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30 cursor-pointer select-auto"
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-lg px-12 py-6 h-auto rounded-lg relative z-30 cursor-pointer select-none"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+              }}
               data-testid="button-learn-more"
             >
-              Explore Features
+              <span className="select-none">Explore Features</span>
             </Button>
           </div>
           
@@ -183,12 +191,16 @@ export default function Landing() {
           </p>
           <Button 
             size="lg" 
-            onClick={() => window.location.href = '/api/login'}
-            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-auto"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.href = '/api/login';
+            }}
+            className="text-lg px-12 py-6 h-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 relative z-30 cursor-pointer select-none"
             data-testid="button-sign-in"
           >
-            <Shield className="mr-2 h-6 w-6 pointer-events-none" />
-            Secure Sign In
+            <Shield className="mr-2 h-6 w-6 pointer-events-none select-none" />
+            <span className="select-none">Secure Sign In</span>
           </Button>
         </div>
       </div>

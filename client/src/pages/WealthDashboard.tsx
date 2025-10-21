@@ -240,22 +240,52 @@ export default function WealthDashboard() {
         const values = lines[i].split(',').map(v => v.trim());
         const symbol = values[symbolIndex];
         const quantity = parseFloat(values[quantityIndex]);
-        const assetType = typeIndex !== -1 ? values[typeIndex].toLowerCase() : null;
+        let assetType = typeIndex !== -1 ? values[typeIndex].toLowerCase() : null;
         
         if (!symbol || isNaN(quantity)) continue;
 
         try {
-          // Determine if stock or crypto based on type or symbol
-          const isStock = assetType === 'stock' || assetType === 'stocks' || 
-                         !assetType && !['BTC', 'ETH', 'SOL', 'XRP', 'ADA'].includes(symbol.toUpperCase());
-          
-          if (isStock) {
-            await apiRequest("POST", "/api/financial/stocks/add", { symbol, quantity });
-          } else {
-            await apiRequest("POST", "/api/financial/crypto/add", { symbol, quantity });
+          // Normalize asset type
+          if (assetType === 'stock' || assetType === 'stocks') {
+            assetType = 'stocks';
+          } else if (assetType === 'cryptocurrency' || assetType === 'cryptocurrencies') {
+            assetType = 'crypto';
           }
-          imported++;
+
+          // Route based on explicit type
+          if (assetType === 'stocks') {
+            await apiRequest("POST", "/api/financial/stocks/add", { symbol, quantity });
+            imported++;
+          } else if (assetType === 'crypto') {
+            await apiRequest("POST", "/api/financial/crypto/add", { symbol, quantity });
+            imported++;
+          } else if (assetType === 'cash' || assetType === 'bonds' || assetType === 'real_estate') {
+            // Create manual asset for non-stock/crypto types
+            const pricePerUnit = assetType === 'cash' ? 1 : 100; // Default $1 for cash, $100 for others
+            await apiRequest("POST", "/api/assets", {
+              name: symbol,
+              symbol: symbol,
+              assetType: assetType,
+              value: quantity * pricePerUnit,
+              quantity: quantity,
+            });
+            imported++;
+          } else if (!assetType) {
+            // Auto-detect: try crypto symbols first, fallback to stock
+            const cryptoSymbols = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'DOT', 'MATIC', 'LINK', 'UNI', 'AVAX', 'ATOM', 'LTC', 'BCH', 'XLM'];
+            if (cryptoSymbols.includes(symbol.toUpperCase())) {
+              await apiRequest("POST", "/api/financial/crypto/add", { symbol, quantity });
+            } else {
+              await apiRequest("POST", "/api/financial/stocks/add", { symbol, quantity });
+            }
+            imported++;
+          } else {
+            // Unsupported type
+            console.warn(`Unsupported asset type "${assetType}" for symbol ${symbol}`);
+            failed++;
+          }
         } catch (err) {
+          console.error(`Failed to import ${symbol}:`, err);
           failed++;
         }
       }

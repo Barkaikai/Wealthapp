@@ -110,6 +110,14 @@ The system is designed for scalability and security, employing Helmet.js, rate l
 - **Recharts:** Financial data visualization.
 
 ## Recent Optimizations & Features (October 21, 2025)
+- **Landing Page Accessibility Fix (CRITICAL):** Complete redesign of landing page to fix congestion and sign-in issues:
+  - Removed excessive overlay effects (eliminated stacked data-stream, scan-lines, cyber-grid)
+  - Simplified glassmorphism (removed glass-ultra, glass-light, holographic stacking)
+  - Reduced competing animations (removed pulse-glow, float, neon-text overlays)
+  - Increased sign-in button size and contrast (px-12 py-6 with explicit z-30 z-index)
+  - Single subtle animated gradient instead of 3-4 stacked effects
+  - Maintained premium aesthetic while ensuring accessibility and functionality
+  - Architect verified: premium feel preserved, authentication accessible
 - **Asset Management CRUD:** Full edit and delete functionality for portfolio assets with inline table actions, pre-populated edit dialogs, and optimistic UI updates.
 - **Account Management CRUD:** Complete edit and delete capabilities for Digital Accountant accounts with confirmation dialogs and validation.
 - **Admin Access Badge:** Dynamic admin indicator in header with Shield icon, visible only to admin users, provides quick access to /admin/passes.

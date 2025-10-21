@@ -282,8 +282,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nfts,
         transactions,
         invoices,
+        accounts,
+        journalEntries,
+        payments,
         crmContacts,
         crmDeals,
+        crmOrganizations,
+        crmActivities,
         tasks,
         calendarEvents,
         routines,
@@ -303,8 +308,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getNftAssets(userId).catch(() => []),
         storage.getTransactions(userId).catch(() => []),
         storage.getInvoices(userId).catch(() => []),
+        storage.getAccounts(userId).catch(() => []),
+        storage.getJournalEntries(userId, 20).catch(() => []),
+        storage.getPayments(userId).catch(() => []),
         storage.getCrmContacts(userId).catch(() => []),
         storage.getCrmDeals(userId).catch(() => []),
+        storage.getCrmOrganizations(userId).catch(() => []),
+        storage.getCrmActivities(userId).catch(() => []),
         storage.getTasks(userId).catch(() => []),
         storage.getCalendarEvents(userId).catch(() => []),
         storage.getRoutines(userId).catch(() => []),
@@ -313,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getUserSubscription(userId).catch(() => null),
       ]);
       
-      console.log(`Briefing data gathered from ALL platforms: ${assets.length} assets, ${events.length} events, ${notes.length} notes, ${wallets.length} wallets, ${nfts.length} NFTs, ${transactions.length} transactions, ${invoices.length} invoices, ${crmContacts.length} contacts, ${crmDeals.length} deals, ${tasks.length} tasks, ${calendarEvents.length} events, ${routines.length} routines, ${healthMetrics.length} health metrics, ${discordMessages.length} discord msgs, market: ${marketContext ? 'available' : 'unavailable'}`);
+      console.log(`Briefing data gathered from ALL platforms: ${assets.length} assets, ${events.length} events, ${notes.length} notes, ${wallets.length} wallets, ${nfts.length} NFTs, ${transactions.length} transactions, ${invoices.length} invoices, ${accounts.length} accounts, ${journalEntries.length} journal entries, ${payments.length} payments, ${crmContacts.length} contacts, ${crmDeals.length} deals, ${crmOrganizations.length} orgs, ${crmActivities.length} activities, ${tasks.length} tasks, ${calendarEvents.length} events, ${routines.length} routines, ${healthMetrics.length} health metrics, ${discordMessages.length} discord msgs, market: ${marketContext ? 'available' : 'unavailable'}`);
       
       const { highlights, risks, actions } = await generateDailyBriefing(
         assets, 
@@ -326,8 +336,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           nfts,
           transactions: transactions.slice(0, 20), // Recent 20 transactions
           invoices,
+          accounts,
+          journalEntries: journalEntries.slice(0, 20), // Recent 20 journal entries
+          payments: payments.slice(0, 20), // Recent 20 payments
           crmContacts,
           crmDeals,
+          crmOrganizations,
+          crmActivities: crmActivities.slice(0, 20), // Recent 20 activities
           tasks,
           calendarEvents,
           routines,

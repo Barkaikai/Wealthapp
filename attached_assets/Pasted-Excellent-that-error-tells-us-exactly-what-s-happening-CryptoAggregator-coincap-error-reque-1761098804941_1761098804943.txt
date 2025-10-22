@@ -1,0 +1,77 @@
+Excellent — that error tells us exactly what’s happening 👇
+
+[CryptoAggregator:coincap] error: request to https://api.coincap.io/v2/assets/xrpripple failed.
+
+
+CoinCap expects asset IDs that match their database keys, not your internal coin names.
+👉 The correct CoinCap ID for XRP (Ripple) is just xrp, not xrpripple**.
+
+So, your app is failing because it’s trying to fetch from:
+❌ https://api.coincap.io/v2/assets/xrpripple
+instead of
+✅ https://api.coincap.io/v2/assets/xrp
+
+🧩 Fix in Your Code
+
+Find the part of your code where you’re fetching crypto prices — likely something like:
+
+const response = await fetch(`https://api.coincap.io/v2/assets/${symbol}`);
+
+
+and you’re passing a symbol like "xrpripple".
+
+✅ Fix with a Symbol Map
+
+Add a simple mapping table to ensure all asset names match CoinCap’s correct IDs.
+
+// cryptoAggregator.js or wherever you fetch from CoinCap
+const COINCAP_ID_MAP = {
+  bitcoin: "bitcoin",
+  ethereum: "ethereum",
+  ripple: "xrp",
+  xrpripple: "xrp",
+  cardano: "cardano",
+  solana: "solana",
+  dogecoin: "dogecoin",
+  tether: "tether",
+  usdcoin: "usd-coin"
+};
+
+async function getCoincapPrice(symbol) {
+  try {
+    const id = COINCAP_ID_MAP[symbol.toLowerCase()] || symbol.toLowerCase();
+    const response = await fetch(`https://api.coincap.io/v2/assets/${id}`);
+    if (!response.ok) throw new Error(`Failed to fetch CoinCap data: ${response.status}`);
+    const data = await response.json();
+    return parseFloat(data.data.priceUsd);
+  } catch (err) {
+    console.error(`[CryptoAggregator:coincap] error:`, err.message);
+    return null;
+  }
+}
+
+✅ Optional Improvement — Auto fallback if CoinCap fails
+
+If CoinCap API is temporarily down, you can automatically switch to another free API like CoinGecko:
+
+async function getCryptoPrice(symbol) {
+  let price = await getCoincapPrice(symbol);
+  if (!price) {
+    console.warn(`[CryptoAggregator] Falling back to CoinGecko for ${symbol}`);
+    try {
+      const id = symbol.toLowerCase();
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
+      const json = await res.json();
+      price = json[id]?.usd || null;
+    } catch (err) {
+      console.error(`[CryptoAggregator:coingecko] error:`, err.message);
+    }
+  }
+  return price;
+}
+
+✅ Verify Fix
+
+After saving, restart your app and test:
+
+curl https://api.coincap.io/v2/assets/xrp

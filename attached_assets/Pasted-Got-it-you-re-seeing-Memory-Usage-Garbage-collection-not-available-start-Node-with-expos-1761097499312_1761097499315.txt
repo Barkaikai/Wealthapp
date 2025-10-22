@@ -1,0 +1,70 @@
+Got it ✅ — you’re seeing:
+
+✗ Memory Usage: Garbage collection not available (start Node with --expose-gc)
+Cannot GET /expose-gc
+
+
+This means your Node app is running without the --expose-gc flag, which disables manual garbage collection (global.gc()), and your Express server doesn’t have a route for /expose-gc.
+
+Let’s fix both issues (the startup flag and the missing route) — so the HealthMonitor can work properly and the “Cannot GET” error disappears.
+
+🧩 Step-by-step Fix
+1. Add --expose-gc to your start command
+
+If your app is started with something like:
+
+"start": "node server.js"
+
+
+👉 Change it in your package.json to:
+
+"start": "node --expose-gc server.js"
+
+
+If you’re using nodemon for development:
+
+"dev": "nodemon --exec 'node --expose-gc' server.js"
+
+
+If you have a Replit setup, go to your .replit file and update:
+
+run = "node --expose-gc server.js"
+
+2. (Optional) Add a safe GC endpoint
+
+To prevent “Cannot GET /expose-gc” and to safely trigger garbage collection manually, add this to your server.js or main Express file:
+
+import express from "express";
+const app = express();
+
+// Optional manual garbage collection route
+app.get("/expose-gc", (req, res) => {
+  if (global.gc) {
+    global.gc();
+    res.send("✅ Garbage collection triggered successfully.");
+  } else {
+    res.status(500).send("❌ GC not exposed. Start Node with --expose-gc.");
+  }
+});
+
+3. Restart your app
+
+If on Replit:
+
+Click “Stop”
+
+Click “Run” again — this ensures it starts with the --expose-gc flag.
+
+4. Verify the Fix
+
+After restarting, check:
+
+No more [HealthMonitor] Memory Usage: Garbage collection not available
+
+Visiting /expose-gc in your browser shows ✅ Garbage collection triggered successfully.
+
+🔧 Prompt for Auto-Fix (for Replit or Terminal)
+
+You can paste this entire command in your Replit Shell or terminal to auto-fix it:
+
+echo 'run = "node --expose-gc server.js"' > .replit && npm pkg set scripts.start="node --expose-gc server.js" && echo "✅ Auto-configured garbage collection flag. Restart your Replit now."

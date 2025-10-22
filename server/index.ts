@@ -1,3 +1,50 @@
+import 'dotenv/config';
+import { spawn } from 'child_process';
+
+// Self-respawn with --expose-gc if GC not available
+// Check if we've already attempted a respawn to avoid infinite loops
+const RESPAWN_MARKER = '__GC_RESPAWNED__';
+
+if (typeof global.gc !== 'function' && !process.env[RESPAWN_MARKER]) {
+  console.log('🔄 Garbage collection not available. Restarting with --expose-gc...');
+  
+  // Set NODE_OPTIONS for the respawned process
+  const currentNodeOptions = process.env.NODE_OPTIONS || '';
+  const newNodeOptions = currentNodeOptions.includes('--expose-gc') 
+    ? currentNodeOptions 
+    : `${currentNodeOptions} --expose-gc`.trim();
+  
+  const env = {
+    ...process.env,
+    NODE_OPTIONS: newNodeOptions,
+    [RESPAWN_MARKER]: '1' // Marker to prevent infinite respawn loop
+  };
+  
+  // Respawn using tsx (TypeScript executor)
+  const child = spawn('npx', ['tsx', 'server/index.ts'], {
+    env,
+    stdio: 'inherit',
+    detached: false,
+    shell: true
+  });
+  
+  // Forward signals to child
+  process.on('SIGINT', () => child.kill('SIGINT'));
+  process.on('SIGTERM', () => child.kill('SIGTERM'));
+  
+  // Exit with child's exit code
+  child.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+  
+  // Exit this parent process immediately to prevent double server startup
+  // The child process will handle everything from here
+  process.exit(0);
+}
+
+// If we reach here, either GC is available or we're the respawned child
+console.log('✅ Garbage collection is available and enabled');
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";

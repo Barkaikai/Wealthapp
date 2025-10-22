@@ -74,7 +74,21 @@ const CRYPTO_ID_MAP: Record<string, {
   },
   'xrp': {
     coinpaprika: 'xrp-xrp',
-    coincap: 'ripple',
+    coincap: 'xrp',
+    cryptocompare: 'XRP',
+    coinmarketcap: 'XRP',
+    coingecko: 'ripple'
+  },
+  'ripple': {
+    coinpaprika: 'xrp-xrp',
+    coincap: 'xrp',
+    cryptocompare: 'XRP',
+    coinmarketcap: 'XRP',
+    coingecko: 'ripple'
+  },
+  'xrpripple': {
+    coinpaprika: 'xrp-xrp',
+    coincap: 'xrp',
     cryptocompare: 'XRP',
     coinmarketcap: 'XRP',
     coingecko: 'ripple'
@@ -253,6 +267,70 @@ const CRYPTO_ID_MAP: Record<string, {
     cryptocompare: 'OP',
     coinmarketcap: 'OP',
     coingecko: 'optimism'
+  },
+  // Common name variations
+  'bitcoin': {
+    coinpaprika: 'btc-bitcoin',
+    coincap: 'bitcoin',
+    cryptocompare: 'BTC',
+    coinmarketcap: 'BTC',
+    coingecko: 'bitcoin'
+  },
+  'ethereum': {
+    coinpaprika: 'eth-ethereum',
+    coincap: 'ethereum',
+    cryptocompare: 'ETH',
+    coinmarketcap: 'ETH',
+    coingecko: 'ethereum'
+  },
+  'cardano': {
+    coinpaprika: 'ada-cardano',
+    coincap: 'cardano',
+    cryptocompare: 'ADA',
+    coinmarketcap: 'ADA',
+    coingecko: 'cardano'
+  },
+  'solana': {
+    coinpaprika: 'sol-solana',
+    coincap: 'solana',
+    cryptocompare: 'SOL',
+    coinmarketcap: 'SOL',
+    coingecko: 'solana'
+  },
+  'dogecoin': {
+    coinpaprika: 'doge-dogecoin',
+    coincap: 'dogecoin',
+    cryptocompare: 'DOGE',
+    coinmarketcap: 'DOGE',
+    coingecko: 'dogecoin'
+  },
+  'polkadot': {
+    coinpaprika: 'dot-polkadot',
+    coincap: 'polkadot',
+    cryptocompare: 'DOT',
+    coinmarketcap: 'DOT',
+    coingecko: 'polkadot'
+  },
+  'polygon': {
+    coinpaprika: 'matic-polygon',
+    coincap: 'polygon',
+    cryptocompare: 'MATIC',
+    coinmarketcap: 'MATIC',
+    coingecko: 'matic-network'
+  },
+  'tether': {
+    coinpaprika: 'usdt-tether',
+    coincap: 'tether',
+    cryptocompare: 'USDT',
+    coinmarketcap: 'USDT',
+    coingecko: 'tether'
+  },
+  'usd-coin': {
+    coinpaprika: 'usdc-usd-coin',
+    coincap: 'usd-coin',
+    cryptocompare: 'USDC',
+    coinmarketcap: 'USDC',
+    coingecko: 'usd-coin'
   }
 };
 
@@ -285,7 +363,14 @@ export class CryptoAggregator {
    */
   private normalizeId(symbol: string, provider: string): string {
     const lower = symbol.toLowerCase();
-    const mapping = CRYPTO_ID_MAP[lower];
+    
+    // Clean up common variations - check longer patterns first!
+    const cleaned = lower
+      .replace('xrpripple', 'xrp')  // Check this BEFORE 'ripple'
+      .replace(/^ripple$/i, 'xrp')  // Only replace if it's exactly "ripple"
+      .replace(/\s+/g, '-');
+    
+    const mapping = CRYPTO_ID_MAP[cleaned] || CRYPTO_ID_MAP[lower];
     
     if (mapping) {
       return mapping[provider as keyof typeof mapping] || symbol;
@@ -299,7 +384,7 @@ export class CryptoAggregator {
       return symbol.toLowerCase();
     } else if (provider === 'coincap') {
       // Remove any dashes and use lowercase full name if available
-      return symbol.toLowerCase().replace('-', '');
+      return cleaned.replace('-', '');
     } else if (provider === 'cryptocompare' || provider === 'coinmarketcap') {
       // Use uppercase symbol
       return symbol.toUpperCase();

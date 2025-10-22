@@ -78,9 +78,9 @@ export async function getCryptoMarketData(): Promise<MarketDataPoint[]> {
   // Try crypto aggregator (uses CoinPaprika, CoinCap, CryptoCompare, CoinMarketCap)
   try {
     const { cryptoAggregator } = await import('./cryptoAggregator');
-    const symbols = ['btc-bitcoin', 'eth-ethereum', 'bnb-binance-coin', 'sol-solana', 
-                     'ada-cardano', 'xrp-ripple', 'dot-polkadot', 'doge-dogecoin', 
-                     'avax-avalanche', 'matic-polygon'];
+    const symbols = ['btc', 'eth', 'bnb', 'sol', 
+                     'ada', 'xrp', 'dot', 'doge', 
+                     'avax', 'matic'];
     
     const prices = await cryptoAggregator.getMultipleCryptoPrices(symbols);
     

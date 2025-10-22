@@ -405,37 +405,87 @@ export class CryptoAggregator {
   private async tryProviders<T>(
     pathMapper: (p: Provider) => { url: string; headers?: Record<string, string> } | null,
     cacheKey?: string,
-    ttlSec?: number
+    ttlSec?: number,
+    retryCount = 2
   ): Promise<T> {
+    // Check cache first
     if (cacheKey) {
       const cached = this.cache.get<T>(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        console.log(`[CryptoAggregator] Cache hit for ${cacheKey}`);
+        return cached;
+      }
     }
 
     await this.throttle();
 
+    const errors: Array<{ provider: string; error: string; url?: string }> = [];
+
+    // Try each provider with retry logic
     for (const p of this.PROVIDERS) {
-      try {
-        const req = pathMapper(p);
-        if (!req) continue;
+      for (let attempt = 0; attempt < retryCount; attempt++) {
+        try {
+          const req = pathMapper(p);
+          if (!req) {
+            console.log(`[CryptoAggregator:${p.name}] Skipped (no URL generated)`);
+            break;
+          }
 
-        const res = await fetch(req.url, { headers: req.headers });
-        if (!res.ok) {
-          continue;
-        }
+          console.log(`[CryptoAggregator:${p.name}] Attempting fetch from ${req.url}${attempt > 0 ? ` (retry ${attempt})` : ''}`);
+          
+          const res = await fetch(req.url, { 
+            headers: req.headers,
+            timeout: 8000 // 8 second timeout
+          });
+          
+          if (!res.ok) {
+            const errorMsg = `HTTP ${res.status}: ${res.statusText}`;
+            console.warn(`[CryptoAggregator:${p.name}] ${errorMsg} for ${req.url}`);
+            errors.push({ provider: p.name, error: errorMsg, url: req.url });
+            
+            // Don't retry on 4xx errors (client errors)
+            if (res.status >= 400 && res.status < 500) {
+              break;
+            }
+            continue;
+          }
 
-        const data = await res.json() as any;
-        if (cacheKey) {
-          this.cache.set(cacheKey, data, ttlSec ?? this.options.cacheTTL ?? 60);
+          const data = await res.json() as any;
+          
+          // Validate response has data
+          if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+            console.warn(`[CryptoAggregator:${p.name}] Empty response from ${req.url}`);
+            continue;
+          }
+
+          console.log(`[CryptoAggregator:${p.name}] ✓ Success fetching from ${req.url}`);
+          
+          if (cacheKey) {
+            this.cache.set(cacheKey, data, ttlSec ?? this.options.cacheTTL ?? 60);
+          }
+          return data as T;
+        } catch (err) {
+          const errorMsg = (err as Error).message;
+          console.warn(`[CryptoAggregator:${p.name}] Attempt ${attempt + 1}/${retryCount} failed: ${errorMsg}`);
+          errors.push({ provider: p.name, error: errorMsg });
+          
+          // Wait before retry (exponential backoff)
+          if (attempt < retryCount - 1) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
+          }
         }
-        return data as T;
-      } catch (err) {
-        console.warn(`[CryptoAggregator:${p.name}] error:`, (err as Error).message);
-        continue;
       }
     }
 
-    throw new Error('All crypto providers failed');
+    // All providers failed - log detailed error information
+    console.error('[CryptoAggregator] All crypto providers failed:', {
+      cacheKey,
+      attemptedProviders: this.PROVIDERS.length,
+      totalAttempts: errors.length,
+      errors: errors.map(e => `${e.provider}: ${e.error}${e.url ? ` (${e.url})` : ''}`)
+    });
+
+    throw new Error(`All crypto providers failed after ${errors.length} attempts. Last errors: ${errors.slice(-3).map(e => `${e.provider}: ${e.error}`).join('; ')}`);
   }
 
   /**

@@ -29,17 +29,26 @@ if (typeof global.gc !== 'function' && !process.env[RESPAWN_MARKER]) {
   });
   
   // Forward signals to child
-  process.on('SIGINT', () => child.kill('SIGINT'));
-  process.on('SIGTERM', () => child.kill('SIGTERM'));
+  process.on('SIGINT', () => {
+    child.kill('SIGINT');
+  });
+  
+  process.on('SIGTERM', () => {
+    child.kill('SIGTERM');
+  });
   
   // Exit with child's exit code
   child.on('exit', (code) => {
     process.exit(code || 0);
   });
   
-  // Exit this parent process immediately to prevent double server startup
-  // The child process will handle everything from here
-  process.exit(0);
+  // Keep parent alive to maintain child process
+  // Block forever to prevent this process from continuing to initialize the server
+  // Use an infinite loop that blocks execution rather than async setInterval
+  while (true) {
+    // Sleep indefinitely - this process only exists to manage the child
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
+  }
 }
 
 // If we reach here, either GC is available or we're the respawned child

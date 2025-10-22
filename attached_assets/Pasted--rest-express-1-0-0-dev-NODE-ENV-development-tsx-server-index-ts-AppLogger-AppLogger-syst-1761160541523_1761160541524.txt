@@ -1,0 +1,61 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[AppLogger] AppLogger system initialized
+[AIDataForwarder] Initialized with config: {
+  enabled: true,
+  batchSize: 100,
+  flushIntervalMs: 30000,
+  realTimeEvents: [ 'ERROR', 'AUTH_EVENT', 'USER_ACTION' ]
+}
+[HealthMonitor] Initialized with config: {
+  enabled: true,
+  autoFixEnabled: true,
+  intervalMs: 600000,
+  maxHistorySize: 200
+}
+🔄 Garbage collection not available. Restarting with --expose-gc...
+[AppLogger] AppLogger system initialized
+[AIDataForwarder] Initialized with config: {
+  enabled: true,
+  batchSize: 100,
+  flushIntervalMs: 30000,
+  realTimeEvents: [ 'ERROR', 'AUTH_EVENT', 'USER_ACTION' ]
+}
+[HealthMonitor] Initialized with config: {
+  enabled: true,
+  autoFixEnabled: true,
+  intervalMs: 600000,
+  maxHistorySize: 200
+}
+✅ Garbage collection is available and enabled
+⚠️  Optional services disabled due to missing environment variables:
+   - CRYPTOCOMPARE_KEY: Enhanced crypto data (optional - CoinPaprika used by default)
+   - COINMARKETCAP_KEY: CoinMarketCap API (optional - multi-source fallback)
+✓ Optional services configured: OPENAI_API_KEY, TAVILY_API_KEY, ALPHA_VANTAGE_API_KEY, CSRF_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, DISCORD_BOT_TOKEN, DISCORD_CLIENT_ID
+7:13:04 PM [express] CSRF protection will be enabled after session setup
+[CSRF] Protection enabled with session-based tokens
+7:13:04 PM [express] serving on port 5000
+7:13:04 PM [express] ✓ Server is ready and accepting connections
+7:13:05 PM [express] ✓ Vite development server ready
+7:13:05 PM [express] Initializing background services...
+7:13:05 PM [express] ✓ Background services scheduled to start in 2s
+[HealthMonitor] Starting continuous monitoring (interval: 600000ms)
+[HealthMonitor] Running diagnostics (runId: run-1761160387835-3hgp0rpi3, triggeredBy: scheduled)
+7:13:07 PM [express] ✓ Health monitor started
+[AutomationScheduler] Starting automated tasks
+7:13:07 PM [express] ✓ Automation scheduler started (email sync & routine reports)
+[DB] Connection pool initialized successfully
+[AutomationScheduler] ✓ Email sync scheduled (hourly at :00)
+[AutomationScheduler] ✓ Routine reports scheduled (daily at 9 PM)
+[AutomationScheduler] ✓ Queue concurrency set to 5
+[AutomationScheduler] ✓ All tasks scheduled and ready
+[HealthMonitor] Auto-fix enabled, attempting remediation...
+[HealthMonitor] High memory usage detected, triggering garbage collection...
+[GC Manager] Running manual garbage collection...
+[GC Manager] ✅ Garbage collection complete. Freed 2MB (134MB → 132MB)
+[HealthMonitor] Applied 1/1 fixes
+  ✓ Memory Usage: Garbage collection freed 2MB (134MB → 132MB)
+[HealthMonitor] Cleaned up 1 old diagnostic runs
+[AppLogger] AI Data Batch: 1 events

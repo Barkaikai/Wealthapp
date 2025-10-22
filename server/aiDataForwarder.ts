@@ -30,6 +30,8 @@ export interface AIDataForwarderConfig {
   batchSize: number;           // Number of events to batch before sending
   flushIntervalMs: number;     // How often to flush batched events
   realTimeEvents: string[];    // Event types to send immediately
+  maxBatchSizeBytes?: number;  // Maximum batch size in bytes
+  compressionEnabled?: boolean; // Enable compression for large batches
 }
 
 class AIDataForwarder {
@@ -38,6 +40,8 @@ class AIDataForwarder {
     batchSize: 100,
     flushIntervalMs: 30000, // 30 seconds
     realTimeEvents: ['ERROR', 'AUTH_EVENT', 'USER_ACTION'],
+    maxBatchSizeBytes: 1024 * 1024, // 1MB max batch size
+    compressionEnabled: true,
   };
 
   private eventBatch: AIDataEvent[] = [];
@@ -47,7 +51,12 @@ class AIDataForwarder {
     batchedEvents: 0,
     realTimeEvents: 0,
     errors: 0,
+    batchesSent: 0,
+    bytesProcessed: 0,
+    lastFlushTime: new Date(),
   };
+
+  private eventTypeCounters: Record<string, number> = {};
 
   constructor() {
     this.startFlushTimer();
@@ -183,6 +192,24 @@ class AIDataForwarder {
   }
 
   /**
+   * Calculate approximate size of event in bytes
+   */
+  private getEventSize(event: AIDataEvent): number {
+    try {
+      return new TextEncoder().encode(JSON.stringify(event)).length;
+    } catch {
+      return 1024; // Default estimate if serialization fails
+    }
+  }
+
+  /**
+   * Calculate total batch size in bytes
+   */
+  private getBatchSize(): number {
+    return this.eventBatch.reduce((total, event) => total + this.getEventSize(event), 0);
+  }
+
+  /**
    * Send an event to AI system
    */
   private async sendEvent(partialEvent: Omit<AIDataEvent, 'timestamp' | 'environment'>): Promise<void> {
@@ -201,20 +228,31 @@ class AIDataForwarder {
     };
 
     this.stats.totalEvents++;
+    
+    // Track event type counters
+    this.eventTypeCounters[event.event_type] = (this.eventTypeCounters[event.event_type] || 0) + 1;
 
     // Check if this is a real-time event
     if (this.config.realTimeEvents.includes(event.event_type)) {
       await this.forwardEventImmediately(event);
       this.stats.realTimeEvents++;
-    } else {
-      // Add to batch
-      this.eventBatch.push(event);
-      this.stats.batchedEvents++;
+      return;
+    }
 
-      // If batch is full, flush immediately
-      if (this.eventBatch.length >= this.config.batchSize) {
-        await this.flushBatch();
+    // Add to batch
+    this.eventBatch.push(event);
+    this.stats.batchedEvents++;
+
+    // Check if batch should be flushed (by count or size)
+    const currentBatchSize = this.getBatchSize();
+    const shouldFlushByCount = this.eventBatch.length >= this.config.batchSize;
+    const shouldFlushBySize = this.config.maxBatchSizeBytes && currentBatchSize >= this.config.maxBatchSizeBytes;
+
+    if (shouldFlushByCount || shouldFlushBySize) {
+      if (shouldFlushBySize) {
+        console.log(`[AIDataForwarder] Flushing batch due to size limit (${Math.round(currentBatchSize / 1024)}KB)`);
       }
+      await this.flushBatch();
     }
   }
 
@@ -253,27 +291,44 @@ class AIDataForwarder {
 
     const batch = [...this.eventBatch];
     this.eventBatch = [];
+    
+    const batchSizeBytes = batch.reduce((total, event) => total + this.getEventSize(event), 0);
 
     try {
+      this.stats.batchesSent++;
+      this.stats.bytesProcessed += batchSizeBytes;
+      this.stats.lastFlushTime = new Date();
+
+      const eventTypeCounts = this.getEventTypeCounts(batch);
+      
       // Log batch to appLogger for now (in production, send to external AI service)
       await appLogger.log({
         action: `AI Data Batch: ${batch.length} events`,
         metadata: {
           batch_size: batch.length,
-          event_types: this.getEventTypeCounts(batch),
+          batch_size_kb: Math.round(batchSizeBytes / 1024),
+          event_types: eventTypeCounts,
+          total_batches_sent: this.stats.batchesSent,
+          total_bytes_processed_mb: Math.round(this.stats.bytesProcessed / (1024 * 1024)),
           timestamp: new Date().toISOString(),
         },
-        insights: `Forwarded ${batch.length} batched events to AI system for analysis`,
+        insights: `Forwarded ${batch.length} batched events (${Math.round(batchSizeBytes / 1024)}KB) to AI system for analysis. Event breakdown: ${Object.entries(eventTypeCounts).map(([type, count]) => `${type}:${count}`).join(', ')}`,
       });
 
       // TODO: In production, send to external AI service
       // await this.sendToExternalAI(batch);
+      
+      console.log(`[AIDataForwarder] ✓ Batch flushed: ${batch.length} events, ${Math.round(batchSizeBytes / 1024)}KB`);
     } catch (error: any) {
       this.stats.errors++;
       console.error('[AIDataForwarder] Error flushing batch:', error);
       
-      // Put events back in batch if failed
-      this.eventBatch.unshift(...batch);
+      // Put events back in batch if failed (but limit retention to prevent memory issues)
+      if (this.eventBatch.length < this.config.batchSize * 2) {
+        this.eventBatch.unshift(...batch);
+      } else {
+        console.warn('[AIDataForwarder] Dropping batch due to queue overflow');
+      }
     }
   }
 

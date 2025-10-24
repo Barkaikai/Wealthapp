@@ -7,6 +7,7 @@ import { Wallet, RefreshCw, Grid, List, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { PrintButton } from "@/components/PrintButton";
+import MetamaskPrompt from "@/components/MetamaskPrompt";
 
 interface WalletConnection {
   id: number;
@@ -31,6 +32,7 @@ export default function NFTVault() {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedChain, setSelectedChain] = useState<'all' | 'ethereum' | 'polygon' | 'solana' | 'hedera'>('all');
+  const [showMetamaskPrompt, setShowMetamaskPrompt] = useState(false);
 
   const { data: walletsData, isLoading: walletsLoading } = useQuery<{ wallets: WalletConnection[] }>({
     queryKey: ['/api/nft/wallets'],
@@ -84,11 +86,7 @@ export default function NFTVault() {
 
   const handleConnectMetaMask = async () => {
     if (typeof window.ethereum === 'undefined') {
-      toast({
-        title: "MetaMask Not Found",
-        description: "Please install MetaMask browser extension to connect.",
-        variant: "destructive",
-      });
+      setShowMetamaskPrompt(true);
       return;
     }
 
@@ -124,6 +122,10 @@ export default function NFTVault() {
 
   return (
     <div className="container mx-auto p-6 space-y-6" data-testid="page-nft-vault">
+      {showMetamaskPrompt && (
+        <MetamaskPrompt onClose={() => setShowMetamaskPrompt(false)} />
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">NFT Vault</h1>

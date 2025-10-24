@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { AssetChart } from "@/components/AssetChart";
+import { AssetPriceChart } from "@/components/AssetPriceChart";
 import { PortfolioTimeline } from "@/components/PortfolioTimeline";
 import { AssetTable } from "@/components/AssetTable";
 import MarketOverview from "@/components/MarketOverview";
@@ -895,7 +895,7 @@ export default function WealthDashboard() {
           })()}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AssetChart data={assetData} title="Asset Allocation" />
+            <AssetPriceChart assets={assets} title="Live Asset Prices" />
             <PortfolioTimeline data={timelineData} title="Portfolio Growth (YTD)" />
           </div>
 

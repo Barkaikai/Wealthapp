@@ -419,7 +419,6 @@ Generate a comprehensive briefing with three sections. Be specific, quantitative
    - Consider health metrics that need attention
    - Note concerns mentioned in notes or Discord activity
    - Example: "Tech stock allocation at 45% exceeds recommended 30% threshold, increasing sector risk exposure"
-   - Example: "$15,000 in unpaid invoices aging beyond 30 days require immediate follow-up"
    - Example: "Expense account balance growing faster than revenue - review spending categories"
 
 3. **actions** (3-6 items): Concrete, prioritized recommendations spanning all life areas
@@ -433,7 +432,6 @@ Generate a comprehensive briefing with three sections. Be specific, quantitative
    - Discord: Respond to important messages or opportunities
    - Prioritize by urgency and financial impact
    - Example: "Rebalance portfolio by reducing crypto allocation from 35% to 25%, redirecting $50K to bonds"
-   - Example: "Contact 2 CRM leads with proposals this week to advance $250K in pipeline value"
    - Example: "Review 5 pending journal entries and reconcile cash account (last updated 2 weeks ago)"
 
 TONE: Professional, confident, data-driven, holistic. Assume the user is managing a complex, automated life ecosystem and values comprehensive insights.

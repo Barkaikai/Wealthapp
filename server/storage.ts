@@ -400,10 +400,12 @@ export interface IStorage {
   deleteAccount(id: number, userId: string): Promise<void>;
   getJournalEntries(userId: string, limit?: number): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
   createJournalEntry(userId: string, description: string, lines: Omit<InsertJournalLine, 'entryId'>[], clientRef?: string): Promise<JournalEntry>;
+  updateJournalEntry(id: number, userId: string, data: Partial<Pick<InsertJournalEntry, 'description' | 'status'>>): Promise<JournalEntry>;
   validateDoubleEntry(lines: { amount: number; isDebit: number }[]): boolean;
   updateAccountBalances(lines: JournalLine[]): Promise<void>;
   getInvoices(userId: string): Promise<Invoice[]>;
   createInvoice(userId: string, data: Omit<InsertInvoice, 'userId'>): Promise<Invoice>;
+  updateInvoice(id: number, userId: string, data: Partial<InsertInvoice>): Promise<Invoice>;
   getPayments(userId: string): Promise<Payment[]>;
   recordPayment(userId: string, invoiceId: number | null, amount: number, method: string): Promise<Payment>;
   getBankTransactions(userId: string): Promise<BankTransaction[]>;
@@ -1704,6 +1706,27 @@ export class DatabaseStorage implements IStorage {
     return entry;
   }
 
+  async updateJournalEntry(id: number, userId: string, data: Partial<Pick<InsertJournalEntry, 'description' | 'status'>>): Promise<JournalEntry> {
+    const [updatedEntry] = await db.update(journalEntries)
+      .set(data)
+      .where(and(eq(journalEntries.id, id), eq(journalEntries.userId, userId)))
+      .returning();
+    
+    if (!updatedEntry) {
+      throw new Error("Journal entry not found or you don't have permission to update it");
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'update_journal',
+      entityType: 'journal_entry',
+      entityId: id,
+      details: { updates: data }
+    });
+    
+    return updatedEntry;
+  }
+
   async updateAccountBalances(lines: JournalLine[]): Promise<void> {
     for (const line of lines) {
       const [account] = await db.select().from(accounts).where(eq(accounts.id, line.accountId));
@@ -1774,6 +1797,27 @@ export class DatabaseStorage implements IStorage {
     });
     
     return invoice;
+  }
+
+  async updateInvoice(id: number, userId: string, data: Partial<InsertInvoice>): Promise<Invoice> {
+    const [updatedInvoice] = await db.update(invoices)
+      .set(data)
+      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
+      .returning();
+    
+    if (!updatedInvoice) {
+      throw new Error("Invoice not found or you don't have permission to update it");
+    }
+    
+    await this.createAuditLog({
+      userId,
+      action: 'update_invoice',
+      entityType: 'invoice',
+      entityId: id,
+      details: { updates: data }
+    });
+    
+    return updatedInvoice;
   }
 
   async getPayments(userId: string): Promise<Payment[]> {

@@ -32,7 +32,7 @@ function getSessionPool() {
       connectionString: process.env.DATABASE_URL,
       max: 10, // Maximum pool size
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 30000,
     });
     
     sessionPool.on('error', (err) => {

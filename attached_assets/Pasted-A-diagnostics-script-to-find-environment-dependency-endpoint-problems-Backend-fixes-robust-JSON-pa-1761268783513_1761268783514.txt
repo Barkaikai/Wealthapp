@@ -1,0 +1,621 @@
+A diagnostics script to find environment/dependency/endpoint problems
+
+Backend fixes (robust JSON parsing, multipart receipt upload, Google Calendar sync sample)
+
+Frontend fixes (camera receipt capture, Metamask NFT Vault detection, editable Routine Builder blocks, CRM edit UI)
+
+An AI-briefing aggregator that pulls productivity + health monitoring + CRM data
+
+Instructions and Replit-ready commands
+
+I focused on practical, minimal changes that fix the specific errors you reported (e.g., Unexpected token '<' JSON error), add receipt camera upload, add Metamask integration prompts, and tighten up editing flows. Paste these files into your project and run the diagnostic. If you want, I can also help adapt the exact endpoints to your repository structure.
+
+Quick Replit prompt (paste into Replit shell or run as commands)
+
+Run these to install tooling and run diagnostics:
+
+# Install dependencies if package.json exists
+npm install
+
+# Add some helpful dev tools
+npm i --save express multer node-fetch@2 googleapis body-parser cors dotenv axios tesseract.js
+
+# Run the diagnostic script (create it from the code below as scripts/diagnose.js)
+node scripts/diagnose.js
+
+# Start app (adjust if using nodemon or pm2)
+npm run start
+
+1) Diagnostic script — scripts/diagnose.js
+
+Create scripts/diagnose.js. It will:
+
+Check required env vars
+
+Try to reach key endpoints (health, productivity, CRM, AI)
+
+Run npm audit and list top errors
+
+Report if backend returns HTML when JSON expected (helps find that "<DOCTYPE" error)
+
+// scripts/diagnose.js
+const https = require('https');
+const http = require('http');
+const { execSync } = require('child_process');
+const fetch = require('node-fetch');
+
+const CONFIG = {
+  baseUrl: process.env.APP_BASE_URL || 'https://wealthforge.app',
+  endpoints: [
+    '/health',
+    '/api/productivity/health-monitor',
+    '/api/crm/contacts',
+    '/api/ai/briefing',
+    '/api/receipt/upload'
+  ],
+  requiredEnv: ['PORT', 'DATABASE_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'AI_API_KEY']
+};
+
+async function checkUrl(path) {
+  const url = new URL(path, CONFIG.baseUrl).toString();
+  try {
+    const res = await fetch(url, { method: 'GET', timeout: 10000 });
+    const ct = res.headers.get('content-type') || '';
+    const text = await res.text();
+    const ok = res.ok;
+    let jsonParsed = null;
+    try {
+      jsonParsed = JSON.parse(text);
+    } catch (e) {
+      // not JSON
+    }
+    return { url, status: res.status, ok, contentType: ct, jsonParsed, textSnippet: text.slice(0, 500) };
+  } catch (err) {
+    return { url, error: String(err) };
+  }
+}
+
+(async () => {
+  console.log('=== DIAGNOSTIC START ===');
+  console.log('Base URL:', CONFIG.baseUrl);
+  console.log('Checking required env vars:');
+  CONFIG.requiredEnv.forEach(k => {
+    console.log(`  ${k}:`, process.env[k] ? 'OK' : 'MISSING');
+  });
+
+  console.log('\nRunning npm audit (top 30s) ...');
+  try {
+    const audit = execSync('npm audit --json', { stdio: ['pipe','pipe','pipe'], timeout: 60_000 }).toString();
+    const a = JSON.parse(audit);
+    const vulnCount = a.metadata?.vulnerabilities ? Object.values(a.metadata.vulnerabilities).reduce((s,n)=>s+n,0) : 'unknown';
+    console.log('  Vulnerabilities summary:', vulnCount);
+  } catch(e) {
+    console.log('  npm audit failed or not available:', e.message.slice(0,200));
+  }
+
+  console.log('\nChecking endpoints for HTML-instead-of-JSON problems:');
+  for (const ep of CONFIG.endpoints) {
+    const r = await checkUrl(ep);
+    console.log(`\n-> ${r.url}`);
+    if (r.error) {
+      console.log('   ERROR:', r.error);
+      continue;
+    }
+    console.log('   status:', r.status, 'content-type:', r.contentType);
+    if (r.jsonParsed) {
+      console.log('   JSON OK (length):', JSON.stringify(r.jsonParsed).length);
+    } else {
+      const prefix = r.textSnippet.replace(/\n/g,' ').slice(0,200);
+      console.log('   NOT JSON — snippet:', prefix);
+      if (prefix.match(/<!doctype|<html|<script|<\?xml/i)) {
+        console.log('   => Endpoint returned HTML. Likely error page. Check server error or route.');
+      }
+    }
+  }
+
+  console.log('\nRun complete. Fix endpoints that returned HTML when the client expected JSON.');
+  console.log('=== DIAGNOSTIC END ===');
+})();
+
+2) Backend: robust JSON parsing & error page handling
+
+Problem: fail to execute 'json' on response: unexpected token '<', "<!DOCTYPE"... — the client tried res.json() but server returned HTML (error page).
+Fix: always check content-type before calling response.json() and provide a helper fetch wrapper.
+
+Create lib/safeFetch.js:
+
+// lib/safeFetch.js
+const fetch = require('node-fetch');
+
+async function safeFetch(url, opts = {}) {
+  const res = await fetch(url, opts);
+  const ct = res.headers.get('content-type') || '';
+  const text = await res.text();
+  if (ct.includes('application/json') || ct.includes('json')) {
+    try {
+      return { ok: res.ok, status: res.status, json: JSON.parse(text) };
+    } catch (err) {
+      return { ok: false, status: res.status, error: 'invalid_json', text };
+    }
+  } else {
+    // return as text for debug
+    return { ok: res.ok, status: res.status, html: text };
+  }
+}
+
+module.exports = safeFetch;
+
+
+Usage example (where you do external fetch calls):
+
+const safeFetch = require('./lib/safeFetch');
+(async () => {
+  const r = await safeFetch('https://someapi.example.com/data');
+  if (!r.ok) {
+    console.error('External API returned invalid response', r.status);
+    if (r.html) {
+      console.error('HTML returned:', r.html.slice(0,300));
+    }
+  } else {
+    const data = r.json;
+    // continue
+  }
+})();
+
+
+Also wrap all frontend fetch consumers with a similar check (see frontend snippets below).
+
+3) Receipt upload (server) — accept camera images + OCR analysis
+
+Use multer for multipart uploads and Tesseract.js (or call a Vision/AI API) to analyze receipts.
+
+Create routes/receipt.js:
+
+// routes/receipt.js
+const express = require('express');
+const multer = require('multer');
+const Tesseract = require('tesseract.js');
+const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/upload', upload.single('receipt'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'no_file' });
+    // Use Tesseract to extract text (local)
+    const { path } = req.file;
+    const { data: { text } } = await Tesseract.recognize(path, 'eng');
+    // Basic line parsing to find totals / vendor
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const totalLine = lines.reverse().find(l => /total|amount|grand/i.test(l));
+    const totalMatch = totalLine && (totalLine.match(/[\d,.]+/) || [])[0];
+    res.json({ ok: true, text, total: totalMatch || null, lines });
+  } catch (err) {
+    console.error('Receipt OCR error', err);
+    res.status(500).json({ error: 'ocr_error', details: err.message });
+  }
+});
+
+module.exports = router;
+
+
+If you prefer to use a cloud Vision API (recommended in production), replace Tesseract with Google Vision or AWS Textract. For privacy-sensitive receipts, run Tesseract locally.
+
+4) Frontend: Camera capture + upload component (React)
+
+Add components/ReceiptCamera.js:
+
+// components/ReceiptCamera.js
+import React, { useState } from 'react';
+export default function ReceiptCamera() {
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('receipt', file);
+    try {
+      const r = await fetch('/api/receipt/upload', { method: 'POST', body: fd });
+      const ct = r.headers.get('content-type') || '';
+      const text = await r.text();
+      if (ct.includes('json')) {
+        const json = JSON.parse(text);
+        setResult(json);
+      } else {
+        console.error('Server returned HTML or non-JSON:', text.slice(0,200));
+        setResult({ error: 'server_returned_html', textSnippet: text.slice(0,200) });
+      }
+    } catch (err) {
+      console.error(err);
+      setResult({ error: err.message });
+    } finally { setUploading(false); }
+  }
+
+  return (
+    <div className="receipt-camera">
+      <label className="button">Snap receipt (camera)
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFile}
+          style={{ display: 'none' }}
+        />
+      </label>
+      {uploading && <div>Uploading & analyzing…</div>}
+      {result && <pre style={{whiteSpace:'pre-wrap', fontSize:12}}>{JSON.stringify(result, null, 2)}</pre>}
+    </div>
+  );
+}
+
+
+This component uses <input capture="environment"> so mobile devices open the camera.
+
+5) NFT Vault — detect/install Metamask flow
+
+Add a small helper to detect window.ethereum and guide the user.
+
+// components/MetamaskPrompt.js
+import React, { useEffect, useState } from 'react';
+
+export default function MetamaskPrompt() {
+  const [available, setAvailable] = useState(false);
+  useEffect(()=> {
+    setAvailable(Boolean(window.ethereum));
+  }, []);
+  async function connect() {
+    if (!window.ethereum) return window.open('https://metamask.io/download.html', '_blank');
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      console.log('connected', accounts);
+      setAvailable(true);
+    } catch (err) {
+      console.error('connect failed', err);
+    }
+  }
+  return (
+    <div>
+      {available ? (
+        <button onClick={connect}>Connect MetaMask</button>
+      ) : (
+        <div>
+          <p>To use the NFT Vault please install MetaMask browser extension.</p>
+          <a href="https://metamask.io/download.html" target="_blank" rel="noreferrer">Install MetaMask</a>
+          <button onClick={() => window.open('https://metamask.io/download.html','_blank')}>Open install page</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+Also detect and validate window.ethereum in server-side rendering cases by guarding typeof window !== 'undefined'.
+
+6) Calendar sync to Gmail (Google Calendar) — server sample
+
+Use googleapis and OAuth2. Make sure the redirect URI is registered in Google Console and allow https://yourdomain.com/api/auth/google/callback. Add these env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI.
+
+Create routes/googleCalendar.js:
+
+// routes/googleCalendar.js
+const express = require('express');
+const { google } = require('googleapis');
+const router = express.Router();
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+
+router.get('/auth-url', (req, res) => {
+  const scopes = ['https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/userinfo.email'];
+  const url = oauth2Client.generateAuthUrl({ access_type: 'offline', scope: scopes });
+  res.json({ url });
+});
+
+router.get('/callback', async (req, res) => {
+  const code = req.query.code;
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    // Save tokens for user (DB)
+    // tokens.access_token, tokens.refresh_token
+    res.json({ ok: true, tokens });
+  } catch(err) {
+    console.error('Google callback error', err);
+    res.status(500).json({ error: 'google_callback_failed', details: err.message });
+  }
+});
+
+router.get('/sync-events', async (req, res) => {
+  // load user's saved tokens from DB
+  const tokens = /* load tokens for user */;
+  if (!tokens) return res.status(401).json({ error: 'no_google_tokens' });
+  oauth2Client.setCredentials(tokens);
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  const events = await calendar.events.list({ calendarId: 'primary', timeMin: (new Date()).toISOString(), maxResults: 50, singleEvents: true, orderBy: 'startTime' });
+  res.json({ events: events.data.items });
+});
+
+module.exports = router;
+
+
+Important checks:
+
+Ensure the redirect URI matches exactly the URI in Google Console.
+
+Store refresh_token securely and use it to refresh access tokens.
+
+7) Productivity Hub — email sync + editable Routine Builder blocks
+
+Email sync: Use Gmail API (like above) or IMAP. Gmail OAuth is preferred for modern apps.
+
+Routin Builder editing issue fix: ensure state is controlled and updates save to the backend. Replace uncontrolled contentEditable without save handlers with a controlled structure.
+
+Example RoutineBuilderBlock.jsx:
+
+// components/RoutineBuilderBlock.jsx
+import React, { useState } from 'react';
+
+export default function RoutineBlock({ block, onSave }) {
+  const [title, setTitle] = useState(block.title || '');
+  const [duration, setDuration] = useState(block.duration || 10);
+  const [notes, setNotes] = useState(block.notes || '');
+
+  async function save() {
+    const payload = { id: block.id, title, duration, notes };
+    const res = await fetch(`/api/productivity/blocks/${block.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (onSave) onSave(json);
+    } else {
+      const text = await res.text();
+      console.error('Save failed', res.status, text.slice(0,500));
+    }
+  }
+
+  return (
+    <div className="routine-block">
+      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Block title" />
+      <input type="number" value={duration} onChange={e=>setDuration(Number(e.target.value))} />
+      <textarea value={notes} onChange={e=>setNotes(e.target.value)} />
+      <button onClick={save}>Save</button>
+    </div>
+  );
+}
+
+
+Make sure backend PUT /api/productivity/blocks/:id exists and saves to DB. If client couldn't edit before, it was probably missing controlled state or an API route.
+
+8) CRM: fix edit/save for contacts/leads/deals/activities
+
+A checklist and example code:
+
+Ensure CRUD endpoints exist and are RESTful: GET /api/crm/contacts, GET /api/crm/contacts/:id, PUT /api/crm/contacts/:id, POST /api/crm/contacts.
+
+Ensure server sets CORS if frontend served from different origin: app.use(cors());
+
+Ensure the frontend includes credentials or auth token in fetch headers.
+
+Example PUT handler:
+
+// routes/crm.js (server)
+router.put('/contacts/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+    // Validate and save to DB
+    const updated = await db.contacts.update(id, data);
+    res.json({ ok: true, contact: updated });
+  } catch (err) {
+    console.error('CRM update error', err);
+    res.status(500).json({ error: 'crm_update_failed', details: err.message });
+  }
+});
+
+
+Frontend edit form:
+
+// components/ContactEdit.jsx
+export default function ContactEdit({ contact }) {
+  const [form, setForm] = useState(contact);
+  async function submit(e) {
+    e.preventDefault();
+    const res = await fetch(`/api/crm/contacts/${contact.id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form)
+    });
+    const json = await res.json();
+    if(json.ok) alert('Saved');
+  }
+  return (
+    <form onSubmit={submit}>
+      <input value={form.name || ''} onChange={e=>setForm({...form, name:e.target.value})}/>
+      <input value={form.email||''} onChange={e=>setForm({...form, email:e.target.value})}/>
+      <button>Save</button>
+    </form>
+  );
+}
+
+9) AI Briefing: aggregate data from Productivity + Health + CRM
+
+Create an aggregator endpoint POST /api/ai/briefing/generate which pulls data from internal endpoints and calls your AI service.
+
+// routes/aiBriefing.js
+const express = require('express');
+const router = express.Router();
+const safeFetch = require('../lib/safeFetch');
+
+router.post('/generate', async (req, res) => {
+  try {
+    // fetch productivity summary
+    const prod = await safeFetch(`${process.env.APP_BASE_URL}/api/productivity/summary`);
+    const health = await safeFetch(`${process.env.APP_BASE_URL}/api/productivity/health-monitor`);
+    const crm = await safeFetch(`${process.env.APP_BASE_URL}/api/crm/brief-summary`);
+    // Build prompt
+    const prompt = `
+      Provide a concise briefing for the user, include:
+      - Productivity summary: ${JSON.stringify(prod.json || prod.html || prod.textSnippet).slice(0,2000)}
+      - Health monitoring: ${JSON.stringify(health.json || health.html).slice(0,2000)}
+      - CRM: ${JSON.stringify(crm.json || crm.html).slice(0,2000)}
+      Use professional business voice, include 3 action items and 1 high-priority risk.
+    `;
+    // Send to AI provider
+    const resp = await safeFetch(process.env.AI_API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.AI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, max_tokens: 500 })
+    });
+    if (!resp.ok) {
+      return res.status(500).json({ error: 'ai_provider_failed', details: resp.text || resp.html });
+    }
+    // Assume resp.json contains { text: '...' }
+    res.json({ ok: true, briefing: resp.json });
+  } catch (err) {
+    console.error('AI briefing error', err);
+    res.status(500).json({ error: 'briefing_failed', details: err.message });
+  }
+});
+
+module.exports = router;
+
+
+Key points:
+
+Use safeFetch to avoid invalid JSON errors.
+
+Limit prompt size and truncate external data as necessary.
+
+Validate AI response content-type before json().
+
+10) Fix "unable to perform websearch" & "AI recommendations invalid response format"
+
+When your AI integration returns non-JSON or malformed outputs, use the safeFetch helper and check for content-type.
+
+Wrap AI responses in try { JSON.parse(...) } catch and return structured error to the front-end with diagnostic text snippet.
+
+Example frontend consumer:
+
+async function callAiBriefing() {
+  const r = await fetch('/api/ai/briefing/generate', { method:'POST' });
+  const ct = r.headers.get('content-type')||'';
+  const text = await r.text();
+  if (ct.includes('json')) return JSON.parse(text);
+  // fallback: show raw text
+  return { raw: text };
+}
+
+11) General performance, layout, and style notes (Coinbase + MetaMask vibe)
+
+Use a modern, airy layout: top-left logo, top-right user/portfolio widget, card-based dashboard, subtle gradients for action buttons, high contrast primary color and muted secondary. Use system fonts, big clear number typography for balances.
+
+Use Tailwind/CSS variables for consistent spacing; add small micro-animations for card hover.
+
+Avoid heavy render loops. Debounce expensive operations like AI calls and OCR.
+
+Example Tailwind class for card:
+
+<div class="rounded-2xl p-4 shadow-md bg-white/90 backdrop-blur-sm">
+  ...
+</div>
+
+12) Dependency & environment check (Add to package.json scripts)
+
+Add to your package.json:
+
+"scripts": {
+  "start": "node server.js",
+  "dev": "nodemon server.js",
+  "diagnose": "node scripts/diagnose.js"
+}
+
+13) Server common fixes checklist (apply in server.js or app.js)
+// server.js (notes)
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+require('dotenv').config();
+
+const app = express();
+app.use(cors({ origin: true, credentials: true }));
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Mount routes: receipts, crm, aiBriefing, googleCalendar, productivity
+app.use('/api/receipt', require('./routes/receipt'));
+app.use('/api/crm', require('./routes/crm'));
+app.use('/api/ai/briefing', require('./routes/aiBriefing'));
+app.use('/api/google-calendar', require('./routes/googleCalendar'));
+app.use('/api/productivity', require('./routes/productivity'));
+
+app.get('/health', (req, res) => res.json({ ok: true, version: process.env.npm_package_version || 'dev' }));
+
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).send('<html><body><h1>Server error</h1><pre>' + String(err.message) + '</pre></body></html>');
+});
+
+app.listen(process.env.PORT || 3000, () => console.log('Server running'));
+
+
+Important: The error middleware returns HTML for unhandled errors. That is likely why the front-end sees <!DOCTYPE — the client was expecting JSON but got HTML. To avoid that:
+
+Ensure API routes always return JSON on error (res.status(500).json({ error: '...' })) rather than letting an HTML error page be returned, or
+
+Ensure front-end checks content-type before parsing (we added safeFetch and client checks).
+
+14) Final checklist you should run after installing code above
+
+Run npm run diagnose and fix any missing env variables and endpoints that return HTML.
+
+Ensure GOOGLE_REDIRECT_URI exactly matches the URI on Google Console.
+
+Ensure AI_API_ENDPOINT and AI_API_KEY set and returning JSON.
+
+Ensure uploads/ directory exists and is writable (for multer/Tesseract temp files).
+
+Test receipt camera from mobile; verify server response includes JSON total.
+
+Test Metamask connect on desktop browsers.
+
+Test CRM edit flows (PUT) with developer console open and watch network for non-JSON responses.
+
+Run npm audit and fix high/critical vulnerabilities.
+
+Re-run diagnostics after each change.
+
+15) UX + Visual polish hints (Coinbase + Metamask style)
+
+Use a left nav bar with icons + text; main content area uses cards and a neutral gray background.
+
+Balance business professionalism (clean white cards, subtle shadows) with playful touches (accent gradient buttons, small mascot or friendly illustrations from your provided pictures).
+
+For images you provided: serve them from a secure CDN or the app public/ and use img with object-fit: cover; border-radius: 12px;.
+
+Deliverables summary (what I gave you)
+
+Replit prompt / commands to run
+
+scripts/diagnose.js diagnostic script
+
+lib/safeFetch.js helper to avoid JSON parse errors
+
+routes/receipt.js (multer + Tesseract) receipt upload/analysis
+
+components/ReceiptCamera.js React camera uploader
+
+components/MetamaskPrompt.js Metamask NFT Vault helper
+
+routes/googleCalendar.js sample Google Calendar OAuth flow
+
+components/RoutineBuilderBlock.jsx to fix editing blocks
+
+routes/aiBriefing.js aggregator to produce combined AI briefings
+
+Checklist + package.json script suggestions + server error handling guidance

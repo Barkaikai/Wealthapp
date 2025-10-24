@@ -122,7 +122,11 @@ export default function DigitalAccountant() {
   const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
+  const [editJournalDialogOpen, setEditJournalDialogOpen] = useState(false);
+  const [journalToEdit, setJournalToEdit] = useState<JournalEntry | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [editInvoiceDialogOpen, setEditInvoiceDialogOpen] = useState(false);
+  const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
   const [selectedAccountCode, setSelectedAccountCode] = useState<string>("");
@@ -209,6 +213,17 @@ export default function DigitalAccountant() {
     },
   });
 
+  const editJournalForm = useForm({
+    resolver: zodResolver(z.object({
+      description: z.string().min(1, "Description is required"),
+      status: z.string(),
+    })),
+    defaultValues: {
+      description: "",
+      status: "posted",
+    },
+  });
+
   const invoiceForm = useForm({
     resolver: zodResolver(insertInvoiceSchema.extend({
       userId: z.string().optional(),
@@ -221,6 +236,22 @@ export default function DigitalAccountant() {
       currency: "USD",
       invoiceNumber: "",
       issuedAt: new Date().toISOString().split('T')[0],
+      dueAt: "",
+      status: "draft",
+    },
+  });
+
+  const editInvoiceForm = useForm({
+    resolver: zodResolver(insertInvoiceSchema.extend({
+      userId: z.string().optional(),
+      total: z.number().positive("Total must be positive"),
+    }).partial()),
+    defaultValues: {
+      customer: "",
+      total: 0,
+      currency: "USD",
+      invoiceNumber: "",
+      issuedAt: "",
       dueAt: "",
       status: "draft",
     },
@@ -314,6 +345,21 @@ export default function DigitalAccountant() {
     },
   });
 
+  const updateJournalMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { description?: string; status?: string } }) => {
+      return await apiRequest("PUT", `/api/accounting/journal-entries/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/journal"] });
+      toast({ title: "Success", description: "Journal entry updated successfully" });
+      setEditJournalDialogOpen(false);
+      setJournalToEdit(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const createInvoiceMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertInvoiceSchema>) => {
       return await apiRequest("POST", "/api/accounting/invoices", data);
@@ -323,6 +369,21 @@ export default function DigitalAccountant() {
       toast({ title: "Success", description: "Invoice created successfully" });
       setInvoiceDialogOpen(false);
       invoiceForm.reset();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateInvoiceMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<z.infer<typeof insertInvoiceSchema>> }) => {
+      return await apiRequest("PUT", `/api/accounting/invoices/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/invoices"] });
+      toast({ title: "Success", description: "Invoice updated successfully" });
+      setEditInvoiceDialogOpen(false);
+      setInvoiceToEdit(null);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -380,6 +441,29 @@ export default function DigitalAccountant() {
     setEditAccountDialogOpen(false);
     setAccountToEdit(null);
     editAccountForm.reset();
+  };
+
+  const handleEditJournal = (entry: JournalEntry) => {
+    setJournalToEdit(entry);
+    editJournalForm.reset({
+      description: entry.description,
+      status: entry.status || "posted",
+    });
+    setEditJournalDialogOpen(true);
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setInvoiceToEdit(invoice);
+    editInvoiceForm.reset({
+      customer: invoice.customer,
+      total: invoice.total,
+      currency: invoice.currency || "USD",
+      invoiceNumber: invoice.invoiceNumber || "",
+      issuedAt: new Date(invoice.issuedAt).toISOString().split('T')[0],
+      dueAt: invoice.dueAt ? new Date(invoice.dueAt).toISOString().split('T')[0] : "",
+      status: invoice.status || "draft",
+    });
+    setEditInvoiceDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
@@ -916,20 +1000,34 @@ export default function DigitalAccountant() {
               journalEntries.map((entry) => (
                 <Card key={entry.id} data-testid={`card-journal-entry-${entry.id}`}>
                   <Collapsible open={expandedEntries.has(entry.id)} onOpenChange={() => toggleEntry(entry.id)}>
-                    <CollapsibleTrigger asChild>
-                      <div className="p-4 flex items-center justify-between cursor-pointer hover-elevate" data-testid={`button-toggle-journal-${entry.id}`}>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold" data-testid={`text-journal-description-${entry.id}`}>{entry.description}</span>
-                            <Badge variant="outline" data-testid={`badge-journal-status-${entry.id}`}>{entry.status}</Badge>
+                    <div className="p-4 flex items-center justify-between">
+                      <CollapsibleTrigger asChild>
+                        <div className="flex-1 flex items-center justify-between cursor-pointer hover-elevate" data-testid={`button-toggle-journal-${entry.id}`}>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold" data-testid={`text-journal-description-${entry.id}`}>{entry.description}</span>
+                              <Badge variant="outline" data-testid={`badge-journal-status-${entry.id}`}>{entry.status}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground" data-testid={`text-journal-date-${entry.id}`}>
+                              {format(new Date(entry.postedAt), 'PPP')}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground" data-testid={`text-journal-date-${entry.id}`}>
-                            {format(new Date(entry.postedAt), 'PPP')}
-                          </p>
+                          {expandedEntries.has(entry.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
-                        {expandedEntries.has(entry.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </div>
-                    </CollapsibleTrigger>
+                      </CollapsibleTrigger>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditJournal(entry);
+                        }}
+                        data-testid={`button-edit-journal-${entry.id}`}
+                        className="h-8 w-8 ml-2"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
                     <CollapsibleContent>
                       <Separator />
                       <div className="p-4">
@@ -1106,6 +1204,7 @@ export default function DigitalAccountant() {
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Journal Entry</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1132,6 +1231,17 @@ export default function DigitalAccountant() {
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => handleEditInvoice(invoice)}
+                            data-testid={`button-edit-invoice-${invoice.id}`}
+                            className="h-8 w-8"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1556,6 +1666,150 @@ export default function DigitalAccountant() {
           </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Journal Entry Dialog */}
+      <Dialog open={editJournalDialogOpen} onOpenChange={setEditJournalDialogOpen}>
+        <DialogContent data-testid="dialog-edit-journal">
+          <DialogHeader>
+            <DialogTitle>Edit Journal Entry</DialogTitle>
+            <DialogDescription>Update journal entry details (lines cannot be modified)</DialogDescription>
+          </DialogHeader>
+          <Form {...editJournalForm}>
+            <form onSubmit={editJournalForm.handleSubmit((data) => {
+              if (journalToEdit) {
+                updateJournalMutation.mutate({ id: journalToEdit.id, data });
+              }
+            })} className="space-y-4">
+              <FormField
+                control={editJournalForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} data-testid="input-edit-journal-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editJournalForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-journal-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="posted">Posted</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditJournalDialogOpen(false)} data-testid="button-cancel-edit-journal">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateJournalMutation.isPending} data-testid="button-submit-edit-journal">
+                  {updateJournalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Entry
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Invoice Dialog */}
+      <Dialog open={editInvoiceDialogOpen} onOpenChange={setEditInvoiceDialogOpen}>
+        <DialogContent data-testid="dialog-edit-invoice">
+          <DialogHeader>
+            <DialogTitle>Edit Invoice</DialogTitle>
+            <DialogDescription>Update invoice details</DialogDescription>
+          </DialogHeader>
+          <Form {...editInvoiceForm}>
+            <form onSubmit={editInvoiceForm.handleSubmit((data) => {
+              if (invoiceToEdit) {
+                updateInvoiceMutation.mutate({ id: invoiceToEdit.id, data });
+              }
+            })} className="space-y-4">
+              <FormField
+                control={editInvoiceForm.control}
+                name="customer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-edit-invoice-customer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editInvoiceForm.control}
+                name="total"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        data-testid="input-edit-invoice-total"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editInvoiceForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-invoice-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="issued">Issued</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditInvoiceDialogOpen(false)} data-testid="button-cancel-edit-invoice">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateInvoiceMutation.isPending} data-testid="button-submit-edit-invoice">
+                  {updateInvoiceMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Invoice
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

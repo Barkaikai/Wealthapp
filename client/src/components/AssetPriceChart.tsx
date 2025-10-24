@@ -149,7 +149,7 @@ export function AssetPriceChart({ assets, title }: AssetPriceChartProps) {
                         <div className="font-semibold">
                           ${asset.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        {hasChange && (
+                        {hasChange && asset.changePercent !== null && asset.changePercent !== undefined && (
                           <div className={`flex items-center justify-end gap-1 text-xs ${
                             isPositive ? "text-green-500" : isNegative ? "text-red-500" : "text-muted-foreground"
                           }`}>
@@ -158,7 +158,7 @@ export function AssetPriceChart({ assets, title }: AssetPriceChartProps) {
                             {!isPositive && !isNegative && <Minus className="h-3 w-3" />}
                             <span>
                               {isPositive ? "+" : ""}
-                              {asset.changePercent!.toFixed(2)}%
+                              {asset.changePercent.toFixed(2)}%
                             </span>
                           </div>
                         )}

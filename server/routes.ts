@@ -384,6 +384,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Web Search endpoint
+  app.post('/api/search/web', aiRateLimiter, isAuthenticated, async (req: any, res) => {
+    try {
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const { searchWeb } = await import('./webSearch');
+      const results = await searchWeb(query);
+      
+      res.json({ results, query });
+    } catch (error: any) {
+      console.error("Web search error:", error);
+      res.status(500).json({ message: error.message || "Failed to perform web search" });
+    }
+  });
+
   // Asset routes
   app.get('/api/assets', isAuthenticated, async (req: any, res) => {
     try {

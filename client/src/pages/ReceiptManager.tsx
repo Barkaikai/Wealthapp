@@ -13,10 +13,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertReceiptSchema, type Receipt } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { safeFetch } from "@/lib/safeFetch";
 import { useToast } from "@/hooks/use-toast";
-import { Receipt as ReceiptIcon, Upload, Trash, Edit, Filter, DollarSign, Calendar, Store } from "lucide-react";
+import { Receipt as ReceiptIcon, Upload, Trash, Edit, Filter, DollarSign, Calendar, Store, Camera } from "lucide-react";
 import { format } from "date-fns";
 import { z } from "zod";
+import ReceiptCamera from "@/components/ReceiptCamera";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/webp'];
@@ -25,6 +27,7 @@ const receiptFormSchema = insertReceiptSchema.omit({ userId: true, rawText: true
 
 export default function ReceiptManager() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -58,18 +61,20 @@ export default function ReceiptManager() {
       const formData = new FormData();
       formData.append("receipt", file);
 
-      const response = await fetch("/api/receipts/upload", {
+      const response = await safeFetch("/api/receipts/upload", {
         method: "POST",
-        credentials: "include",
         body: formData,
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to upload receipt");
+        throw new Error(response.error || "Failed to upload receipt");
       }
 
-      return response.json();
+      if (response.htmlSnippet) {
+        throw new Error("Server returned HTML error page. Please try again.");
+      }
+
+      return response.json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
@@ -212,14 +217,26 @@ export default function ReceiptManager() {
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">Upload and manage your receipts with AI-powered OCR</p>
           </div>
-          <Button 
-            onClick={() => setUploadDialogOpen(true)} 
-            data-testid="button-upload-receipt"
-            className="gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Receipt
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setCameraDialogOpen(true)} 
+              data-testid="button-camera-receipt"
+              variant="default"
+              className="gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              Take Photo
+            </Button>
+            <Button 
+              onClick={() => setUploadDialogOpen(true)} 
+              data-testid="button-upload-receipt"
+              variant="outline"
+              className="gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload File
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -457,6 +474,27 @@ export default function ReceiptManager() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cameraDialogOpen} onOpenChange={setCameraDialogOpen}>
+        <DialogContent className="max-w-2xl" data-testid="dialog-camera-receipt">
+          <DialogHeader>
+            <DialogTitle>Capture Receipt with Camera</DialogTitle>
+          </DialogHeader>
+          <ReceiptCamera 
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+              setCameraDialogOpen(false);
+            }}
+            onError={(error) => {
+              toast({
+                title: "Error",
+                description: error,
+                variant: "destructive",
+              });
+            }}
+          />
         </DialogContent>
       </Dialog>
 

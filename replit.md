@@ -1,6 +1,15 @@
 # WealthForge - Elite Automation Platform
 
 ## Recent Changes
+**October 24, 2025 - Diagnostic Tools & Enhanced Features:**
+- Created comprehensive diagnostic script (scripts/diagnose.cjs) that checks environment variables, package vulnerabilities, and endpoint health
+- Implemented safe fetch wrappers (client & server) to prevent "Unexpected token '<'" JSON parsing errors when servers return HTML
+- Added Receipt Camera component for mobile camera capture with instant AI OCR analysis using OpenAI Vision
+- Built Metamask detection and connection component for NFT Vault with automatic installation guidance
+- Created AI Briefing Aggregator that pulls structured data from productivity, health monitoring, CRM, and financial systems
+- New `/api/briefing/aggregated` endpoint provides comprehensive platform data overview
+- All new components include full accessibility support with data-testid attributes
+
 **October 22, 2025 - System Reliability Enhancements:**
 - Enhanced cryptocurrency data retrieval with exponential backoff retry logic (max 3 retries), timeout handling (8s per request), and comprehensive provider-specific error logging
 - Improved AI data batching system with byte-based limits (1MB max), per-type event counters, and detailed flush metrics

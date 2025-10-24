@@ -1,0 +1,102 @@
+Create a Python financial growth dashboard that:
+1. Imports my file `portfolio_export_2025-10-24.csv`.
+2. Calculates total value, daily growth %, and profit/loss per asset.
+3. Suggests which assets to sell, hold, or buy more of based on 24h % change and volatility.
+4. Tracks progress toward a $100/day profit goal.
+5. Displays this as a live dashboard (using Streamlit) with:
+   - Current portfolio value
+   - Daily target progress bar
+   - Suggested reallocations
+   - AI trade recommendation summary
+6. Saves progress to `daily_report.csv` after each run.
+7. Clean modern style like Coinbase/Metamask (light blue, navy, white, rounded cards).
+🧩 Code for Replit (main.py)
+Paste this entire code into your main.py file:
+
+python
+Copy code
+import pandas as pd
+import streamlit as st
+from datetime import datetime
+import numpy as np
+
+st.set_page_config(page_title="WealthForge $100/day Tracker", layout="wide")
+
+# --- Load Data ---
+uploaded_file = st.file_uploader("📂 Upload your portfolio CSV", type="csv")
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    # Clean columns
+    df.columns = [c.strip().lower() for c in df.columns]
+
+    # --- Basic Metrics ---
+    total_value = df["value"].sum()
+    avg_change = np.mean([float(x.strip("%")) for x in df["24h"] if isinstance(x, str) and "%" in x]) if "24h" in df.columns else 0
+
+    # --- $100/day Goal ---
+    daily_target = 100
+    daily_gain = total_value * (avg_change / 100)
+    progress = min((daily_gain / daily_target) * 100, 100)
+
+    st.title("💰 WealthForge: $100/day Growth Dashboard")
+    st.subheader(f"📊 Portfolio Value: ${total_value:,.2f}")
+    st.progress(progress / 100)
+    st.write(f"**Daily Change:** {avg_change:.2f}% → **Est. Gain:** ${daily_gain:.2f}")
+    st.write(f"🎯 Goal Progress: {progress:.1f}% toward $100/day")
+
+    # --- Suggestions ---
+    st.header("🤖 AI Trade Suggestions")
+
+    buy_signals = df[df["24h"].astype(str).str.contains("-", na=False)]
+    sell_signals = df[df["24h"].astype(str).str.contains("+", na=False)]
+
+    st.markdown("### 🟢 Buy the Dip:")
+    st.dataframe(buy_signals[["asset", "value", "24h"]])
+
+    st.markdown("### 🔴 Take Profit:")
+    st.dataframe(sell_signals[["asset", "value", "24h"]])
+
+    # --- Summary Insight ---
+    st.header("📈 AI Portfolio Insights")
+    st.write(f"- Strong assets: {', '.join(df.nlargest(5, 'value')['asset'])}")
+    st.write(f"- Weak assets: {', '.join(df.nsmallest(5, 'value')['asset'])}")
+    st.write(f"- Recommended reallocation: Move 10–20% from weak → strong performing assets.")
+
+    # --- Save report ---
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    report = pd.DataFrame({
+        "date": [now],
+        "portfolio_value": [total_value],
+        "daily_gain": [daily_gain],
+        "goal_progress": [progress]
+    })
+
+    report.to_csv("daily_report.csv", mode="a", index=False, header=False)
+    st.success("✅ Daily report saved to `daily_report.csv`")
+
+else:
+    st.info("👆 Upload your portfolio CSV to begin analysis.")
+    st.markdown("This tool helps you track progress toward earning **$100/day** from your assets using smart AI-guided adjustments.")
+🎨 Optional (style)
+You can add a custom CSS file named style.css to make it look like Coinbase + Metamask:
+
+css
+Copy code
+/* style.css */
+body {
+  background-color: #f9fbfd;
+  color: #1b2735;
+  font-family: 'Inter', sans-serif;
+}
+h1, h2, h3 {
+  color: #0052ff;
+}
+.stButton>button {
+  background-color: #0052ff;
+  color: white;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: bold;
+}

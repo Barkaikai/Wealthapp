@@ -1,6 +1,26 @@
 # WealthForge - Elite Automation Platform
 
 ## Recent Changes
+**October 24, 2025 - Admin Dashboard & Free Pass System Fully Operational:**
+- **CRITICAL**: Fixed Free Pass Management system - fully operational for admin users
+  - Created `access_passes` database table with proper schema (code, discount_percent, tier, created_by, redeemed_by, timestamps, max_redemptions, notes)
+  - Added 4 proper indexes (code, tier, created_by, redeemed_by) for performance
+  - Fixed `/admin` route 404 - now accessible at both `/admin` and `/admin/passes`
+  - Fixed ESM compatibility: Converted all `require()` calls to ES6 imports in server/routes.ts:
+    - `crypto.randomUUID()` for pass code generation
+    - `qrcode` for QR code generation
+    - `@microsoft/microsoft-graph-client` for MS Graph API
+    - Dynamic imports for `msAuthClient` in MS OAuth routes
+  - E2E verified: Admin can create passes, statistics update correctly, no server errors
+- **VERIFIED WORKING**: All core features tested and confirmed operational:
+  - ✅ Free Pass creation and management (POST /api/admin/passes/create)
+  - ✅ AI Chat/Digital Assistant (WebSocket streaming, real-time responses)
+  - ✅ Journal Entries (balanced double-entry creation, validation)
+  - ✅ Payment recording (invoice selection, journal auto-posting)
+  - ✅ Daily Briefing (real portfolio data, NO false examples removed)
+- **Previous features maintained**: Live asset price chart, Coinbase Blue design, Inter font, mobile camera OCR, web search
+- Architect review: **PASS** - No critical issues, no security concerns, production-ready
+
 **October 24, 2025 - Live Asset Price Chart & Error Resolution:**
 - **MAJOR**: Replaced asset allocation pie chart with live price chart visualization
   - Bar chart showing top 10 holdings by current value (color-coded by 24h performance)
@@ -11,8 +31,6 @@
 - **Fixed**: AssetPriceChart null reference error - Added comprehensive null checks for changePercent before calling .toFixed()
 - **Fixed**: AI briefing false data - Removed example prompts ($15,000 unpaid invoice, CRM lead examples) from server/openai.ts
 - **Fixed**: Free Pass creation 403 error - Granted admin access to user (is_admin='true', has_unlimited_access='true')
-- **Previous features maintained**: Complete design overhaul (Coinbase Blue #0052FF), Inter font, professional styling, receipt upload safeFetch, mobile camera OCR, Metamask prompts, web search endpoint
-- All changes verified by architect review - no blocking defects or security issues
 
 **October 22, 2025 - System Reliability Enhancements:**
 - Enhanced cryptocurrency data retrieval with exponential backoff retry logic (max 3 retries), timeout handling (8s per request), and comprehensive provider-specific error logging

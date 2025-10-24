@@ -105,6 +105,7 @@ function Router() {
             <Route path="/crm" component={CRMPage} />
             <Route path="/revenue" component={RevenueDashboard} />
             <Route path="/subscription" component={Subscription} />
+            <Route path="/admin" component={AdminPasses} />
             <Route path="/admin/passes" component={AdminPasses} />
             <Route path="/guide" component={Guide} />
             <Route path="/settings" component={Settings} />

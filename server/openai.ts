@@ -412,7 +412,7 @@ Generate a comprehensive briefing with three sections. Be specific, quantitative
 2. **risks** (2-4 items): Potential concerns, vulnerabilities, or threats across life ecosystem
    - Identify concentrated positions (>30% in single asset type)
    - Note significant portfolio decliners with specific percentages
-   - Flag unpaid invoices or overdue CRM follow-ups
+   - Flag overdue CRM follow-ups or stalled deals
    - Review account balances for potential cash flow issues or imbalances
    - Note stalled CRM deals or missed follow-up activities
    - Highlight calendar conflicts or upcoming deadlines

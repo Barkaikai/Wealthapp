@@ -44,6 +44,9 @@ import os from "os";
 import { isObjectStorageAvailable, getStorageUnavailableMessage } from "./config";
 import healthRoutes from "./healthRoutes";
 import { doubleCsrf } from "csrf-csrf";
+import { randomUUID } from "crypto";
+import QRCode from "qrcode";
+import { Client as MSGraphClient } from "@microsoft/microsoft-graph-client";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stricter rate limiting for AI endpoints to prevent abuse and cost attacks
@@ -3524,23 +3527,24 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
   });
 
   // Microsoft OAuth Routes
-  app.get('/auth/microsoft', (req, res) => {
-    const { msAuthClient } = require('./msAuthClient');
-    if (!msAuthClient.isConfigured()) {
-      return res.status(503).json({ 
-        message: 'Microsoft authentication not configured. Please set MS_CLIENT_ID, MS_TENANT_ID, MS_CLIENT_SECRET in Replit Secrets.' 
-      });
+  app.get('/auth/microsoft', async (req, res) => {
+    try {
+      const { msAuthClient } = await import('./msAuthClient');
+      if (!msAuthClient.isConfigured()) {
+        return res.status(503).json({ 
+          message: 'Microsoft authentication not configured. Please set MS_CLIENT_ID, MS_TENANT_ID, MS_CLIENT_SECRET in Replit Secrets.' 
+        });
+      }
+      const url = await msAuthClient.getAuthCodeUrl(req.query.state as string);
+      res.redirect(url);
+    } catch (err: any) {
+      console.error('[MS Auth] Error getting auth URL:', err);
+      res.status(500).json({ message: 'Failed to initiate Microsoft login', error: err.message });
     }
-    msAuthClient.getAuthCodeUrl(req.query.state as string)
-      .then((url: string) => res.redirect(url))
-      .catch((err: Error) => {
-        console.error('[MS Auth] Error getting auth URL:', err);
-        res.status(500).json({ message: 'Failed to initiate Microsoft login', error: err.message });
-      });
   });
 
   app.get('/auth/microsoft/callback', async (req, res) => {
-    const { msAuthClient } = require('./msAuthClient');
+    const { msAuthClient } = await import('./msAuthClient');
     const code = req.query.code as string;
     
     if (!code) {
@@ -3579,8 +3583,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
 
     try {
-      const { Client } = require('@microsoft/microsoft-graph-client');
-      const client = Client.init({
+      const client = MSGraphClient.init({
         authProvider: (done: any) => done(null, msTokens.accessToken),
       });
 
@@ -5231,7 +5234,7 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
 
       const created = [];
       for (let i = 0; i < count; i++) {
-        const code = require('crypto').randomUUID();
+        const code = randomUUID();
         const pass = await storage.createAccessPass({
           code,
           createdBy: userId,
@@ -5269,7 +5272,6 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
         return res.status(404).json({ message: 'Pass not found' });
       }
 
-      const QRCode = require('qrcode');
       const dataUrl = await QRCode.toDataURL(code);
       
       res.json({ dataUrl, code, pass });

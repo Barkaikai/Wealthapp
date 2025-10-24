@@ -15,6 +15,7 @@ import { getCanonicalUserId, getCacheStats } from "./helpers/canonicalUser";
 import { appLogger } from "./appLogger";
 import { aiDataForwarder } from "./aiDataForwarder";
 import { rateLimit } from "express-rate-limit";
+import { BriefingAggregator } from "./briefingAggregator";
 
 // Initialize OpenAI client for routes that need it directly
 const openai = new OpenAI({ 
@@ -367,6 +368,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error generating briefing:", error);
       res.status(500).json({ message: error.message || "Failed to generate briefing" });
+    }
+  });
+
+  // Aggregated briefing data (structured data for all systems)
+  app.get('/api/briefing/aggregated', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const aggregator = new BriefingAggregator(storage);
+      const data = await aggregator.aggregateBriefingData(userId);
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error aggregating briefing data:", error);
+      res.status(500).json({ message: error.message || "Failed to aggregate briefing data" });
     }
   });
 

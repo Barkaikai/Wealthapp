@@ -1,19 +1,18 @@
 # WealthForge - Elite Automation Platform
 
 ## Recent Changes
-**October 24, 2025 - Complete Design Overhaul & Critical Bug Fixes:**
-- **MAJOR**: Complete redesign from futuristic sci-fi to professional Coinbase + Metamask business style
-  - Changed primary color from purple (#6C1FFF) to Coinbase Blue (#0052FF)
-  - Replaced futuristic fonts (Orbitron/Rajdhani) with professional Inter font
-  - Removed neon glow effects, animated backgrounds, and mansion overlays
-  - Implemented clean, professional shadows and modern spacing
-  - New color palette: Blue primary, Green (positive), Red (negative), clean neutrals
-- **Fixed**: Receipt upload JSON parsing error - Integrated safeFetch wrapper to prevent "Unexpected token '<'" errors
-- **Added**: ReceiptCamera component with "Take Photo" button for mobile camera capture and instant AI OCR analysis
-- **Added**: MetamaskPrompt integration in NFT Vault for better wallet installation guidance
-- **Added**: `/api/search/web` endpoint for web search functionality using Tavily API
-- **Verified**: AI briefing generation already includes comprehensive data from health monitoring, productivity hub, CRM, and all platform sections
-- All components updated with professional styling and full accessibility support
+**October 24, 2025 - Live Asset Price Chart & Error Resolution:**
+- **MAJOR**: Replaced asset allocation pie chart with live price chart visualization
+  - Bar chart showing top 10 holdings by current value (color-coded by 24h performance)
+  - Green bars = positive 24h change, Red bars = negative change
+  - Scrollable list of ALL assets with live prices, allocation %, price-per-unit
+  - Displays 24h change with trend icons (up/down/neutral)
+  - Shows total portfolio value at top
+- **Fixed**: AssetPriceChart null reference error - Added comprehensive null checks for changePercent before calling .toFixed()
+- **Fixed**: AI briefing false data - Removed example prompts ($15,000 unpaid invoice, CRM lead examples) from server/openai.ts
+- **Fixed**: Free Pass creation 403 error - Granted admin access to user (is_admin='true', has_unlimited_access='true')
+- **Previous features maintained**: Complete design overhaul (Coinbase Blue #0052FF), Inter font, professional styling, receipt upload safeFetch, mobile camera OCR, Metamask prompts, web search endpoint
+- All changes verified by architect review - no blocking defects or security issues
 
 **October 22, 2025 - System Reliability Enhancements:**
 - Enhanced cryptocurrency data retrieval with exponential backoff retry logic (max 3 retries), timeout handling (8s per request), and comprehensive provider-specific error logging
@@ -30,13 +29,13 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend utilizes React 18, TypeScript, Vite, Wouter, and TanStack Query, with UI components built using Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3. It sports a futuristic sci-fi aesthetic characterized by an elite purple (#6C1FFF) and yellow (#FFC43D) color palette, deep space black backgrounds, and luxury villa mansion images layered with futuristic overlays. Typography includes Orbitron for headers and Rajdhani for body text, featuring gradient and neon glow effects. Animated backgrounds with radial gradients and subtle mansion imagery are used. A "Maximum Glassmorphism System" provides advanced transparent effects with specialized utilities, cyber-glow borders, and continuous animations like floating, pulsing, and holographic shimmers. All components use a glass-card base. Accessibility is maintained with `prefers-reduced-motion` safeguards. It includes an elite loading screen and purple neon shadows, is deployed on wealthforge.app with proper CORS and CSP, and ensures mobile responsiveness.
+The frontend utilizes React 18, TypeScript, Vite, Wouter, and TanStack Query, with UI components built using Shadcn/ui (Radix UI, Tailwind CSS) following Material Design 3. It features a **professional business design** inspired by Coinbase and Metamask, with **Coinbase Blue (#0052FF)** as primary color, **Inter font** for clean typography, modern shadows, and a business-friendly palette (Green for positive, Red for negative, clean neutrals). The platform has been redesigned from its original sci-fi aesthetic to provide a more professional, trustworthy appearance suitable for wealth management. Accessibility is maintained with proper contrast ratios and mobile responsiveness. Deployed on wealthforge.app with proper CORS and CSP configuration.
 
 ### Technical Implementations
 The backend is an Express.js with TypeScript REST API. Authentication is handled via Replit Auth (OpenID Connect) and Passport.js, using PostgreSQL-backed sessions with Neon serverless PostgreSQL and Drizzle ORM. The system supports continuous background health monitoring with **automatic garbage collection** (auto-respawn mechanism ensures `--expose-gc` flag is enabled), robust error handling for AI briefing generation, and PWA functionality for offline use. Key features include a Digital Calendar and Terminal Interface. Performance is optimized with AI response caching (LRU, 60-min TTL), an AI request queue manager, WebSocket streaming for real-time AI responses, canonical user ID caching, structured JSON logging, AI data forwarding, and Gzip compression with lazy-loaded components. Client-side caching uses IndexedDB for offline resilience. Startup optimizations ensure quick server readiness with delayed background services and graceful shutdown. **Auto-respawn system** detects if Node.js garbage collection is unavailable and automatically restarts the server with proper flags enabled. Deployment is optimized with `.dockerignore` for small image sizes, efficient `.replit` configuration, and real-time connection monitoring. A multi-source crypto price aggregator provides real-time data with failover, rate limiting, caching, and circuit breaker patterns.
 
 ### Feature Specifications
-The platform provides a Daily Briefing & Wealth Dashboard with AI-powered reports and portfolio overview. It includes a Digital Accountant for double-entry bookkeeping, a Personal Wallet (Fiat and Web3), and an NFT Vault for multi-chain management. A Discord AI Manager offers AI-powered bot functionalities. The Productivity Hub consolidates Notes (with AI analysis), a Receipt Manager (OCR, CRM, AI reports), Email Manager (AI categorization, drafts), Routine Builder (AI daily reports), Calendar, Tasks, AI Task Generation, and AI Calendar Recommendations. AI Intelligence offers Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration. Health Monitoring tracks various metrics with AI Sync. A CRM manages organizations, contacts, leads, and activities. Microsoft Integration uses OAuth for Office 365, Outlook, OneDrive, and Calendar via Graph API. Header Tools include live time/date, online/offline status, calculator, web search, and ChatGPT assistant. A subscription system offers freemium/premium tiers with Stripe integration. A Wealth Forge Token Economy uses a Solana-based mining coin system.
+The platform provides a Daily Briefing & Wealth Dashboard with AI-powered reports and **live asset price visualization** (bar chart of holdings with 24h performance, scrollable list with price-per-unit and allocations). It includes a Digital Accountant for double-entry bookkeeping, a Personal Wallet (Fiat and Web3), and an NFT Vault for multi-chain management. A Discord AI Manager offers AI-powered bot functionalities. The Productivity Hub consolidates Notes (with AI analysis), a Receipt Manager (OCR, CRM, AI reports, **mobile camera capture**), Email Manager (AI categorization, drafts), Routine Builder (AI daily reports), Calendar, Tasks, AI Task Generation, and AI Calendar Recommendations. AI Intelligence offers Portfolio Reports, Trading Recommendations, Tax Event Tracking, Portfolio Rebalancing, Anomaly Detection, Terminal access, personalized AI Videos, and Multi-Agent AI orchestration. Health Monitoring tracks various metrics with AI Sync. A CRM manages organizations, contacts, leads, and activities. Microsoft Integration uses OAuth for Office 365, Outlook, OneDrive, and Calendar via Graph API. Header Tools include live time/date, online/offline status, calculator, **web search (Tavily)**, and ChatGPT assistant. A subscription system offers freemium/premium tiers with Stripe integration and **Free Pass management** for admin users. A Wealth Forge Token Economy uses a Solana-based mining coin system.
 
 ### System Design Choices
 The system prioritizes scalability and security, implementing Helmet.js, rate limiting, secure cookie parsing, and CSRF protection. Database schemas are optimized for user-centric data with appropriate indexing. AI integration is central for personalization, insights, recommendations, and automation across financial, lifestyle, and health domains. The Routine Builder and Digital Accountant leverage AI and validation for accurate and personalized functionalities. The CRM integrates with accounting and receipt management. Data integrity is maintained through canonical user ID resolution, comprehensive logging, AI data forwarding, and log rotation.

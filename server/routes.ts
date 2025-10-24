@@ -2983,6 +2983,19 @@ ${processedText}`;
     }
   });
 
+  app.put('/api/accounting/journal-entries/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      const { description, status } = req.body;
+      const entry = await storage.updateJournalEntry(id, userId, { description, status });
+      res.json(entry);
+    } catch (error: any) {
+      console.error("Error updating journal entry:", error);
+      res.status(400).json({ message: error.message || "Failed to update journal entry" });
+    }
+  });
+
   app.get('/api/accounting/invoices', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -3003,6 +3016,19 @@ ${processedText}`;
     } catch (error: any) {
       console.error("Error creating invoice:", error);
       res.status(400).json({ message: error.message || "Failed to create invoice" });
+    }
+  });
+
+  app.put('/api/accounting/invoices/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      const invoiceData = insertInvoiceSchema.partial().parse(req.body);
+      const invoice = await storage.updateInvoice(id, userId, invoiceData);
+      res.json(invoice);
+    } catch (error: any) {
+      console.error("Error updating invoice:", error);
+      res.status(400).json({ message: error.message || "Failed to update invoice" });
     }
   });
 

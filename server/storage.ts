@@ -2235,6 +2235,78 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
+  async deleteCrmContact(id: number, userId: string): Promise<void> {
+    const result = await db.delete(crmContacts)
+      .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Contact not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'delete_contact',
+      entityType: 'contact',
+      entityId: id,
+      details: { deleted: true }
+    });
+  }
+
+  async deleteCrmLead(id: number, userId: string): Promise<void> {
+    const result = await db.delete(crmLeads)
+      .where(and(eq(crmLeads.id, id), eq(crmLeads.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Lead not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'delete_lead',
+      entityType: 'lead',
+      entityId: id,
+      details: { deleted: true }
+    });
+  }
+
+  async deleteCrmDeal(id: number, userId: string): Promise<void> {
+    const result = await db.delete(crmDeals)
+      .where(and(eq(crmDeals.id, id), eq(crmDeals.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Deal not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'delete_deal',
+      entityType: 'deal',
+      entityId: id,
+      details: { deleted: true }
+    });
+  }
+
+  async deleteCrmActivity(id: number, userId: string): Promise<void> {
+    const result = await db.delete(crmActivities)
+      .where(and(eq(crmActivities.id, id), eq(crmActivities.userId, userId)))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Activity not found');
+    }
+    
+    await this.createCrmAuditLog({
+      userId: userId,
+      action: 'delete_activity',
+      entityType: 'activity',
+      entityId: id,
+      details: { deleted: true }
+    });
+  }
+
   async createCrmAuditLog(log: InsertCrmAuditLog): Promise<CrmAuditLog> {
     const [auditLog] = await db.insert(crmAuditLogs).values(log).returning();
     return auditLog;

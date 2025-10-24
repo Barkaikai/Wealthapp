@@ -3448,6 +3448,66 @@ Account Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(
     }
   });
 
+  app.delete('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteCrmContact(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting CRM contact:", error);
+      if (error.message === 'Contact not found' || error.message?.toLowerCase().includes('invalid id')) {
+        return res.status(404).json({ message: error.message || "Contact not found" });
+      }
+      res.status(500).json({ message: error.message || "Failed to delete contact" });
+    }
+  });
+
+  app.delete('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteCrmLead(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting CRM lead:", error);
+      if (error.message === 'Lead not found' || error.message?.toLowerCase().includes('invalid id')) {
+        return res.status(404).json({ message: error.message || "Lead not found" });
+      }
+      res.status(500).json({ message: error.message || "Failed to delete lead" });
+    }
+  });
+
+  app.delete('/api/crm/deals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteCrmDeal(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting CRM deal:", error);
+      if (error.message === 'Deal not found' || error.message?.toLowerCase().includes('invalid id')) {
+        return res.status(404).json({ message: error.message || "Deal not found" });
+      }
+      res.status(500).json({ message: error.message || "Failed to delete deal" });
+    }
+  });
+
+  app.delete('/api/crm/activities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseIntId(req.params.id);
+      await storage.deleteCrmActivity(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting CRM activity:", error);
+      if (error.message === 'Activity not found' || error.message?.toLowerCase().includes('invalid id')) {
+        return res.status(404).json({ message: error.message || "Activity not found" });
+      }
+      res.status(500).json({ message: error.message || "Failed to delete activity" });
+    }
+  });
+
 
   // AI Task Generation
   app.post('/api/ai/generate-tasks', aiRateLimiter, isAuthenticated, requireFeature('aiInsights'), async (req: any, res) => {

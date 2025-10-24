@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Users, UserPlus, Briefcase, TrendingUp, Building, Phone, Mail, Calendar, DollarSign } from "lucide-react";
+import { Users, UserPlus, Briefcase, TrendingUp, Building, Phone, Mail, Calendar, DollarSign, Trash2 } from "lucide-react";
 import type { CrmContact, CrmLead, CrmDeal, CrmActivity, CrmOrganization } from "@shared/schema";
 import { PrintButton } from "@/components/PrintButton";
 
@@ -38,6 +38,58 @@ export default function CRMPage() {
 
   const { data: activities = [], isLoading: activitiesLoading } = useQuery<CrmActivity[]>({
     queryKey: ['/api/crm/activities'],
+  });
+
+  const deleteContactMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/crm/contacts/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/contacts'] });
+      toast({ title: "Contact deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete contact", variant: "destructive" });
+    }
+  });
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/crm/leads/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      toast({ title: "Lead deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete lead", variant: "destructive" });
+    }
+  });
+
+  const deleteDealMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/crm/deals/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/deals'] });
+      toast({ title: "Deal deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete deal", variant: "destructive" });
+    }
+  });
+
+  const deleteActivityMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/crm/activities/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/activities'] });
+      toast({ title: "Activity deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete activity", variant: "destructive" });
+    }
   });
 
   return (
@@ -95,7 +147,7 @@ export default function CRMPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {contacts.map((contact) => (
-                <ContactCard key={contact.id} contact={contact} organizations={organizations} />
+                <ContactCard key={contact.id} contact={contact} organizations={organizations} onDelete={deleteContactMutation.mutate} />
               ))}
             </div>
           )}
@@ -117,7 +169,7 @@ export default function CRMPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {leads.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} contacts={contacts} organizations={organizations} />
+                <LeadCard key={lead.id} lead={lead} contacts={contacts} organizations={organizations} onDelete={deleteLeadMutation.mutate} />
               ))}
             </div>
           )}
@@ -139,7 +191,7 @@ export default function CRMPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {deals.map((deal) => (
-                <DealCard key={deal.id} deal={deal} contacts={contacts} organizations={organizations} />
+                <DealCard key={deal.id} deal={deal} contacts={contacts} organizations={organizations} onDelete={deleteDealMutation.mutate} />
               ))}
             </div>
           )}
@@ -161,7 +213,7 @@ export default function CRMPage() {
           ) : (
             <div className="space-y-3">
               {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} contacts={contacts} deals={deals} />
+                <ActivityCard key={activity.id} activity={activity} contacts={contacts} deals={deals} onDelete={deleteActivityMutation.mutate} />
               ))}
             </div>
           )}
@@ -171,7 +223,7 @@ export default function CRMPage() {
   );
 }
 
-function ContactCard({ contact, organizations }: { contact: CrmContact; organizations: CrmOrganization[] }) {
+function ContactCard({ contact, organizations, onDelete }: { contact: CrmContact; organizations: CrmOrganization[]; onDelete: (id: number) => void }) {
   const org = organizations.find(o => o.id === contact.organizationId);
   
   return (
@@ -179,9 +231,20 @@ function ContactCard({ contact, organizations }: { contact: CrmContact; organiza
       <CardHeader className="pb-3">
         <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{contact.firstName} {contact.lastName}</span>
-          <Badge variant={contact.status === 'active' ? 'default' : 'secondary'}>
-            {contact.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={contact.status === 'active' ? 'default' : 'secondary'}>
+              {contact.status}
+            </Badge>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => onDelete(contact.id)}
+              data-testid={`button-delete-contact-${contact.id}`}
+              className="h-8 w-8"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -209,7 +272,7 @@ function ContactCard({ contact, organizations }: { contact: CrmContact; organiza
   );
 }
 
-function LeadCard({ lead, contacts, organizations }: { lead: CrmLead; contacts: CrmContact[]; organizations: CrmOrganization[] }) {
+function LeadCard({ lead, contacts, organizations, onDelete }: { lead: CrmLead; contacts: CrmContact[]; organizations: CrmOrganization[]; onDelete: (id: number) => void }) {
   const contact = contacts.find(c => c.id === lead.contactId);
   const org = organizations.find(o => o.id === lead.organizationId);
 
@@ -218,9 +281,20 @@ function LeadCard({ lead, contacts, organizations }: { lead: CrmLead; contacts: 
       <CardHeader className="pb-3">
         <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{lead.source}</span>
-          <Badge variant={lead.status === 'qualified' ? 'default' : lead.status === 'new' ? 'secondary' : 'outline'}>
-            {lead.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={lead.status === 'qualified' ? 'default' : lead.status === 'new' ? 'secondary' : 'outline'}>
+              {lead.status}
+            </Badge>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => onDelete(lead.id)}
+              data-testid={`button-delete-lead-${lead.id}`}
+              className="h-8 w-8"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -250,7 +324,7 @@ function LeadCard({ lead, contacts, organizations }: { lead: CrmLead; contacts: 
   );
 }
 
-function DealCard({ deal, contacts, organizations }: { deal: CrmDeal; contacts: CrmContact[]; organizations: CrmOrganization[] }) {
+function DealCard({ deal, contacts, organizations, onDelete }: { deal: CrmDeal; contacts: CrmContact[]; organizations: CrmOrganization[]; onDelete: (id: number) => void }) {
   const contact = contacts.find(c => c.id === deal.contactId);
   const org = organizations.find(o => o.id === deal.organizationId);
 
@@ -268,9 +342,20 @@ function DealCard({ deal, contacts, organizations }: { deal: CrmDeal; contacts: 
       <CardHeader className="pb-3">
         <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{deal.title}</span>
-          <Badge variant={stageColors[deal.stage as keyof typeof stageColors] || 'secondary'}>
-            {deal.stage}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={stageColors[deal.stage as keyof typeof stageColors] || 'secondary'}>
+              {deal.stage}
+            </Badge>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => onDelete(deal.id)}
+              data-testid={`button-delete-deal-${deal.id}`}
+              className="h-8 w-8"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -300,7 +385,7 @@ function DealCard({ deal, contacts, organizations }: { deal: CrmDeal; contacts: 
   );
 }
 
-function ActivityCard({ activity, contacts, deals }: { activity: CrmActivity; contacts: CrmContact[]; deals: CrmDeal[] }) {
+function ActivityCard({ activity, contacts, deals, onDelete }: { activity: CrmActivity; contacts: CrmContact[]; deals: CrmDeal[]; onDelete: (id: number) => void }) {
   const contact = contacts.find(c => c.id === activity.contactId);
   const deal = deals.find(d => d.id === activity.dealId);
 
@@ -317,9 +402,20 @@ function ActivityCard({ activity, contacts, deals }: { activity: CrmActivity; co
       <CardHeader className="pb-3">
         <CardTitle className="text-sm sm:text-base flex items-center justify-between">
           <span>{activity.subject}</span>
-          <Badge variant={typeColors[activity.type as keyof typeof typeColors] || 'secondary'}>
-            {activity.type}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={typeColors[activity.type as keyof typeof typeColors] || 'secondary'}>
+              {activity.type}
+            </Badge>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => onDelete(activity.id)}
+              data-testid={`button-delete-activity-${activity.id}`}
+              className="h-8 w-8"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">

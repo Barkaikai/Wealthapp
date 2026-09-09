@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { storage } from "./storage";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY ?? "sk-local-dev-placeholder",
 });
 
 interface HealthData {

@@ -171,6 +171,27 @@ export const insertBriefingSchema = createInsertSchema(briefings).omit({
 export type InsertBriefing = z.infer<typeof insertBriefingSchema>;
 export type Briefing = typeof briefings.$inferSelect;
 
+// Persistent AI memory for ongoing work and user preferences
+export const memories = pgTable("memories", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text("kind").notNull(), // preference, project, decision, reminder
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  tags: text("tags").array().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [index("idx_memories_user_id").on(table.userId)]);
+
+export const insertMemorySchema = createInsertSchema(memories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMemory = z.infer<typeof insertMemorySchema>;
+export type Memory = typeof memories.$inferSelect;
+
 // Email templates for automated replies
 export const emailTemplates = pgTable("email_templates", {
   id: text("id").primaryKey(), // e.g., "INVESTMENTS_REPLY"

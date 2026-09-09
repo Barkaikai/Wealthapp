@@ -2,13 +2,20 @@ import { useEffect, useState } from 'react';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useToast } from './use-toast';
 
-export function useOfflineSync() {
+interface OfflineSyncOptions {
+  enabled?: boolean;
+}
+
+export function useOfflineSync(options: OfflineSyncOptions = {}) {
+  const enabled = options.enabled ?? true;
   const [isSyncing, setIsSyncing] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const { toast } = useToast();
 
   // Check queue size periodically
   useEffect(() => {
+    if (!enabled) return;
+
     const checkQueueSize = async () => {
       try {
         const mutations = await offlineQueue.getAll();
@@ -19,13 +26,15 @@ export function useOfflineSync() {
     };
 
     checkQueueSize();
-    const interval = setInterval(checkQueueSize, 10000); // Check every 10 seconds
+    const interval = window.setInterval(checkQueueSize, 10000); // Check every 10 seconds
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => window.clearInterval(interval);
+  }, [enabled]);
 
   // Sync when coming back online
   useEffect(() => {
+    if (!enabled) return;
+
     const handleOnline = async () => {
       console.log('[useOfflineSync] Connection restored, syncing offline queue...');
       
@@ -82,16 +91,18 @@ export function useOfflineSync() {
     
     // If already online, try to sync on mount
     if (navigator.onLine) {
-      handleOnline();
+      void handleOnline();
     }
 
     return () => {
       window.removeEventListener('online', handleOnline);
     };
-  }, [toast]);
+  }, [enabled, toast]);
 
   // Listen for service worker sync messages
   useEffect(() => {
+    if (!enabled) return;
+
     const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'SYNC_COMPLETE') {
         console.log('[useOfflineSync] Service worker sync complete');
@@ -105,9 +116,13 @@ export function useOfflineSync() {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [enabled]);
 
   const manualSync = async () => {
+    if (!enabled) {
+      return;
+    }
+
     if (!navigator.onLine) {
       toast({
         title: 'Offline',

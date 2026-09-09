@@ -1,58 +1,10 @@
 import 'dotenv/config';
-import { spawn } from 'child_process';
 
-// Self-respawn with --expose-gc if GC not available
-// Check if we've already attempted a respawn to avoid infinite loops
-const RESPAWN_MARKER = '__GC_RESPAWNED__';
-
-if (typeof global.gc !== 'function' && !process.env[RESPAWN_MARKER]) {
-  console.log('🔄 Garbage collection not available. Restarting with --expose-gc...');
-  
-  // Set NODE_OPTIONS for the respawned process
-  const currentNodeOptions = process.env.NODE_OPTIONS || '';
-  const newNodeOptions = currentNodeOptions.includes('--expose-gc') 
-    ? currentNodeOptions 
-    : `${currentNodeOptions} --expose-gc`.trim();
-  
-  const env = {
-    ...process.env,
-    NODE_OPTIONS: newNodeOptions,
-    [RESPAWN_MARKER]: '1' // Marker to prevent infinite respawn loop
-  };
-  
-  // Respawn using tsx (TypeScript executor)
-  const child = spawn('npx', ['tsx', 'server/index.ts'], {
-    env,
-    stdio: 'inherit',
-    detached: false,
-    shell: true
-  });
-  
-  // Forward signals to child
-  process.on('SIGINT', () => {
-    child.kill('SIGINT');
-  });
-  
-  process.on('SIGTERM', () => {
-    child.kill('SIGTERM');
-  });
-  
-  // Exit with child's exit code
-  child.on('exit', (code) => {
-    process.exit(code || 0);
-  });
-  
-  // Keep parent alive to maintain child process
-  // Block forever to prevent this process from continuing to initialize the server
-  // Use an infinite loop that blocks execution rather than async setInterval
-  while (true) {
-    // Sleep indefinitely - this process only exists to manage the child
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
-  }
+if (typeof global.gc !== 'function') {
+  console.warn('⚠️  Garbage collection is not available; continuing without --expose-gc');
+} else {
+  console.log('✅ Garbage collection is available and enabled');
 }
-
-// If we reach here, either GC is available or we're the respawned child
-console.log('✅ Garbage collection is available and enabled');
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -183,19 +135,17 @@ app.use(compression({
 // Security: Cookie parser
 app.use(cookieParser());
 
-// Security: Rate limiting (1000 requests per 15 minutes per IP)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 1000, // Increased for modern SPA with multiple API calls
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { message: "Too many requests, please try again later." }
-});
-app.use(limiter);
+// Global rate limiting removed; AI routes enforce their own limits in routes.ts
 
 // Health check endpoint for Replit monitoring (must respond quickly)
-// This MUST be before any other middleware to ensure fastest response
-app.get("/health", (_req, res) => {
+// This MUST be before any other middleware to ensure fastest response.
+// Only respond with JSON for API/monitoring requests; let the SPA route
+// through for browser navigation to /health (Health Monitoring page).
+app.get("/health", (req, res, next) => {
+  const accept = req.headers['accept'] || '';
+  if (accept.includes('text/html')) {
+    return next(); // Let the SPA handle /health for the Health Monitoring page
+  }
   res.status(200).json({ status: "ok", timestamp: Date.now() });
 });
 
@@ -330,40 +280,52 @@ let httpServer: ReturnType<typeof app.listen> | null = null;
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
     
-    // Start listening FIRST so Replit detects the port immediately
+    const fastStartup = process.env.FAST_STARTUP === '1';
+
+    // Start listening FIRST so the app becomes reachable as early as possible.
     server.listen(port, "0.0.0.0", async () => {
       log(`serving on port ${port}`);
       log(`✓ Server is ready and accepting connections`);
-      
-      // Setup Vite or static serving AFTER port is open
+
+      // Keep startup light: in fast-start mode, serve the built static app
+      // immediately instead of mounting the Vite dev server on every launch.
       try {
-        if (app.get("env") === "development") {
-          await setupVite(app, server);
-          log("✓ Vite development server ready");
-        } else {
+        const useStaticServe = fastStartup || app.get("env") !== "development";
+        if (useStaticServe) {
           serveStatic(app);
-          log("✓ Static file serving enabled");
+          log(fastStartup ? "✓ Fast static serving enabled" : "✓ Static file serving enabled");
+        } else {
+          void setupVite(app, server)
+            .then(() => log("✓ Vite development server ready"))
+            .catch((error) => console.error("Error setting up Vite:", error));
         }
       } catch (error) {
-        console.error("Error setting up Vite:", error);
+        console.error("Error setting up web serving:", error);
       }
-      
-      // Initialize background services AFTER Vite is ready
-      // Delay background services to ensure port is fully open and detected
-      log("Initializing background services...");
-      
+
+      // Background services are useful but not startup-critical. Start them
+      // after a short delay so the UI is responsive immediately.
+      const backgroundDelayMs = fastStartup ? 4000 : 1000;
       setTimeout(() => {
-        // Start health monitor
-        healthMonitor.start();
-        log("✓ Health monitor started");
-        
-        // Initialize and start automation scheduler
-        automationScheduler.setStorage(storage);
-        automationScheduler.start();
-        log("✓ Automation scheduler started (email sync & routine reports)");
-      }, 2000); // 2 second delay to ensure port detection
-      
-      log("✓ Background services scheduled to start in 2s");
+        void (async () => {
+          try {
+            if (!fastStartup) {
+              healthMonitor.start();
+              log("✓ Health monitor started");
+            } else {
+              log("✓ Health monitor skipped in fast startup mode");
+            }
+
+            automationScheduler.setStorage(storage);
+            await automationScheduler.start();
+            log("✓ Automation scheduler started (email sync & routine reports)");
+          } catch (error) {
+            console.error("[Startup] Background service initialization failed:", error);
+          }
+        })();
+      }, backgroundDelayMs);
+
+      log(`✓ Background services scheduled to start in ${backgroundDelayMs / 1000}s`);
     });
   } catch (error) {
     console.error("Fatal error during server startup:", error);

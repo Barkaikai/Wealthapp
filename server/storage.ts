@@ -6,6 +6,7 @@ import {
   routineReports,
   emails,
   briefings,
+  memories,
   aiContent,
   transactions,
   wealthAlerts,
@@ -56,6 +57,8 @@ import {
   type Email,
   type InsertEmail,
   type Briefing,
+  type Memory,
+  type InsertMemory,
   type InsertBriefing,
   type AIContent,
   type InsertAIContent,
@@ -727,6 +730,31 @@ export class DatabaseStorage implements IStorage {
     return newBriefing;
   }
 
+  // Memory operations
+  async getMemories(userId: string, limit: number = 50): Promise<Memory[]> {
+    return await db
+      .select()
+      .from(memories)
+      .where(eq(memories.userId, userId))
+      .orderBy(desc(memories.updatedAt))
+      .limit(limit);
+  }
+
+  async createMemory(memory: InsertMemory): Promise<Memory> {
+    const [created] = await db.insert(memories).values(memory).returning();
+    return created;
+  }
+
+  async searchMemories(userId: string, query: string, limit: number = 20): Promise<Memory[]> {
+    const q = `%${query.toLowerCase()}%`;
+    return await db
+      .select()
+      .from(memories)
+      .where(and(eq(memories.userId, userId), sql`(lower(${memories.title}) LIKE ${q} OR lower(${memories.content}) LIKE ${q} OR lower(array_to_string(${memories.tags}, ' ')) LIKE ${q})`))
+      .orderBy(desc(memories.updatedAt))
+      .limit(limit);
+  }
+
   // AI Content operations
   async getContentBySlug(slug: string): Promise<AIContent | undefined> {
     const [content] = await db
@@ -844,6 +872,35 @@ export class DatabaseStorage implements IStorage {
   async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
     const [newEvent] = await db.insert(calendarEvents).values(event).returning();
     return newEvent;
+  }
+
+  async findCalendarEventByGoogleId(userId: string, googleEventId: string): Promise<CalendarEvent | undefined> {
+    const [event] = await db
+      .select()
+      .from(calendarEvents)
+      .where(and(eq(calendarEvents.userId, userId), eq(calendarEvents.googleEventId, googleEventId)))
+      .limit(1);
+    return event;
+  }
+
+  async upsertGoogleCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const [existing] = await db
+      .select()
+      .from(calendarEvents)
+      .where(and(eq(calendarEvents.userId, event.userId), eq(calendarEvents.googleEventId, event.googleEventId ?? '')))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db
+        .update(calendarEvents)
+        .set({ ...event, updatedAt: new Date() })
+        .where(eq(calendarEvents.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(calendarEvents).values(event).returning();
+    return created;
   }
 
   async updateCalendarEvent(id: number, userId: string, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {

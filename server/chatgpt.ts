@@ -6,19 +6,53 @@ interface ChatMessage {
   content: string;
 }
 
-export async function getChatCompletion(messages: ChatMessage[]): Promise<string> {
-  const apiKey = config.openaiApiKey;
+const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+const LOCAL_MODEL = process.env.LOCAL_AI_MODEL || 'llama3.1:8b';
 
-  if (!apiKey) {
-    console.error('OpenAI API key not configured - check OPENAI_API_KEY environment variable');
-    throw new Error('Chat service not configured');
+async function ollamaChat(messages: ChatMessage[]): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+
+  try {
+    const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: LOCAL_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful AI assistant for a wealth automation platform. Provide concise, accurate, and helpful responses. Be professional yet friendly.',
+          },
+          ...messages,
+        ],
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama HTTP ${response.status}`);
+    }
+
+    const data = await response.json() as { message?: { content?: string } };
+    const responseText = data.message?.content?.trim() || '';
+
+    if (!responseText) {
+      throw new Error('No response generated');
+    }
+
+    return responseText;
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
+function validateMessages(messages: ChatMessage[]) {
   if (!messages || messages.length === 0) {
     throw new Error('Messages array cannot be empty');
   }
 
-  // Validate message structure
   for (const msg of messages) {
     if (!msg.role || !msg.content) {
       throw new Error('Invalid message format');
@@ -27,10 +61,21 @@ export async function getChatCompletion(messages: ChatMessage[]): Promise<string
       throw new Error('Invalid message role');
     }
   }
+}
+
+export async function getChatCompletion(messages: ChatMessage[]): Promise<string> {
+  validateMessages(messages);
+
+  if (!config.openaiApiKey) {
+    console.log('[Chat] Using local Ollama model for chat');
+    return ollamaChat(messages);
+  }
 
   try {
     const openai = new OpenAI({
-      apiKey,
+      apiKey: config.openaiApiKey,
+      timeout: 45000,
+      maxRetries: 0,
     });
 
     const completion = await openai.chat.completions.create({
@@ -46,27 +91,29 @@ export async function getChatCompletion(messages: ChatMessage[]): Promise<string
       max_tokens: 1000,
     });
 
-    const response = completion.choices[0]?.message?.content;
-    
+    const response = completion.choices[0]?.message?.content?.trim();
     if (!response) {
-      console.error('OpenAI returned empty response');
       throw new Error('No response generated');
     }
 
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('ChatGPT error:', error.message);
-      
-      if (error.message.includes('API key')) {
-        throw new Error('Invalid OpenAI API key');
-      } else if (error.message.includes('rate limit')) {
-        throw new Error('Chat rate limit exceeded. Please try again later.');
-      }
-      
-      throw error;
+    const message = String((error as Error)?.message || error);
+    console.warn('[Chat] OpenAI chat failed, falling back to Ollama:', message);
+
+    if (message.includes('rate limit') || message.includes('API key')) {
+      // Fall through to local Ollama instead of hard-failing.
+      return ollamaChat(messages);
     }
-    console.error('Unknown ChatGPT error:', error);
-    throw new Error('Failed to get AI response');
+
+    try {
+      return ollamaChat(messages);
+    } catch (ollamaError) {
+      const ollamaMessage = String((ollamaError as Error)?.message || ollamaError);
+      if (ollamaMessage.includes('fetch') || ollamaMessage.includes('Ollama HTTP')) {
+        throw new Error('Local AI service is unavailable. Make sure Ollama is running.');
+      }
+      throw new Error(ollamaMessage);
+    }
   }
 }

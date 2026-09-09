@@ -84,16 +84,15 @@ export function logEnvironmentStatus(env: Env): void {
   const configured = Object.entries(optionalServices)
     .filter(([key]) => env[key as keyof Env])
     .map(([key]) => key);
-    
+
   const missing = Object.entries(optionalServices)
     .filter(([key]) => !env[key as keyof Env])
-    .map(([key, desc]) => ({ key, desc }));
+    .map(([key]) => key);
 
-  if (missing.length > 0) {
-    console.log('⚠️  Optional services disabled due to missing environment variables:');
-    missing.forEach(({ key, desc }) => {
-      console.log(`   - ${key}: ${desc}`);
-    });
+  const quietStartup = process.env.QUIET_STARTUP === '1' || process.env.LOCAL_DEV_AUTH === '1';
+
+  if (missing.length > 0 && !quietStartup) {
+    console.log(`⚠️  Optional services disabled (${missing.length} missing)`);
   }
 
   if (configured.length > 0) {

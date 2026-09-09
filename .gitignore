@@ -3,4 +3,14 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
+*.tar.gz.env
+wf_server.log
+.wf_watchdog.lock
+node_modules
+dist
+.DS_Store
 *.tar.gz
+logs/
+pglite*
+.config/
+.local/

@@ -69,10 +69,10 @@ function Router() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-background/95">
+        <div className="text-center space-y-2">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading WealthForge…</p>
         </div>
       </div>
     );
@@ -135,10 +135,18 @@ function MobileSidebarHandler() {
 function AuthenticatedApp() {
   const { user } = useAuth() as { user: User };
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [offlineSyncEnabled, setOfflineSyncEnabled] = useState(false);
   
-  // Initialize offline sync
-  useOfflineSync();
-  
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setOfflineSyncEnabled(true);
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useOfflineSync({ enabled: offlineSyncEnabled });
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -212,10 +220,10 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-background/95">
+        <div className="text-center space-y-2">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading WealthForge…</p>
         </div>
       </div>
     );

@@ -14,34 +14,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-      /* INSTANT FUTURISTIC LOADING SCREEN */
+      /* Minimal startup overlay to reduce perceived loading friction */
       #loading-screen {
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, #0A001E 0%, #1E0A3C 50%, #0A001E 100%);
+        inset: 0;
+        background: radial-gradient(circle at center, rgba(108, 31, 255, 0.08), rgba(10, 0, 30, 0.92));
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        font-family: 'Orbitron', sans-serif;
+        font-family: 'Rajdhani', sans-serif;
+        transition: opacity 180ms ease;
       }
       #loading-screen h1 {
-        font-size: 4rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #6C1FFF 0%, #FFC43D 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        animation: pulse 2s ease-in-out infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.8; transform: scale(1.05); }
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #f7f2ff;
+        opacity: 0.9;
       }
     </style>
   </head>
@@ -60,11 +50,10 @@
         setTimeout(() => {
           const loadingScreen = document.getElementById('loading-screen');
           if (loadingScreen) {
-            loadingScreen.style.transition = 'opacity 0.5s ease';
             loadingScreen.style.opacity = '0';
-            setTimeout(() => loadingScreen.remove(), 500);
+            setTimeout(() => loadingScreen.remove(), 180);
           }
-        }, 800);
+        }, 200);
       });
     </script>
   </body>

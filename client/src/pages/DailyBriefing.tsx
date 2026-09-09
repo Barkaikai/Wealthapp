@@ -13,6 +13,16 @@ import { Link } from "wouter";
 import type { Asset, Briefing } from "@shared/schema";
 import { PrintButton } from "@/components/PrintButton";
 
+type CalendarEvent = {
+  id: number;
+  title: string;
+  startTime: string;
+  endTime: string;
+  source?: string;
+  googleEventId?: string | null;
+  isAllDay?: string;
+};
+
 const quickAccessItems = [
   {
     title: "Wealth Dashboard",
@@ -69,6 +79,17 @@ export default function DailyBriefing() {
 
   const { data: briefing, isLoading: briefingLoading } = useQuery<Briefing>({
     queryKey: ["/api/briefing/latest"],
+  });
+
+  const { data: calendarEvents = [] } = useQuery<CalendarEvent[]>({
+    queryKey: ["/api/calendar/events"],
+  });
+
+  const syncedGoogleCalendarEvents = calendarEvents.filter((event) => event.source === 'google' || Boolean(event.googleEventId));
+  const nextWeek = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const upcomingSyncedGoogleEvents = syncedGoogleCalendarEvents.filter((event) => {
+    const start = new Date(event.startTime).getTime();
+    return !Number.isNaN(start) && start >= Date.now() && start <= nextWeek;
   });
 
   const generateBriefing = useMutation({
@@ -203,6 +224,17 @@ export default function DailyBriefing() {
           ))}
         </div>
       </div>
+
+      <Card className="border-dashed bg-muted/30">
+        <CardHeader className="py-3 space-y-1">
+          <CardTitle className="text-sm font-medium">Calendar sync</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Calendar is synced from Google Calendar in read-only mode{upcomingSyncedGoogleEvents.length > 0
+              ? ` and ${upcomingSyncedGoogleEvents.length} synced event${upcomingSyncedGoogleEvents.length === 1 ? '' : 's'} are included in this briefing.`
+              : '. Synced events are included in your briefing context when available.'}
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       {briefingLoading ? (
         <div className="text-center py-8">

@@ -132,6 +132,27 @@ export default function ProductivityHubConsolidated() {
     queryKey: ['/api/calendar/events'],
   });
 
+  const syncGoogleCalendarMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/calendar/google/sync', { days: 90 });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
+      toast({
+        title: 'Google Calendar synced',
+        description: data?.message || `Synced ${data?.scanned ?? 0} events from Google Calendar`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'Failed to sync Google Calendar',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
@@ -2014,6 +2035,16 @@ export default function ProductivityHubConsolidated() {
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 {generateCalendarRecommendationsMutation.isPending ? "Generating..." : "AI Recommendations"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => syncGoogleCalendarMutation.mutate()}
+                disabled={syncGoogleCalendarMutation.isPending}
+                data-testid="button-sync-google-calendar"
+                title="Pull the latest events from Google Calendar"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncGoogleCalendarMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncGoogleCalendarMutation.isPending ? 'Syncing...' : 'Sync Google Calendar'}
               </Button>
               <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
               <DialogTrigger asChild>

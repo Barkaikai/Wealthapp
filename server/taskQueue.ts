@@ -1,7 +1,7 @@
 import { db } from './db';
 import { scheduledTasks, type InsertScheduledTask } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import cronParser from 'cron-parser';
+import { CronExpressionParser } from 'cron-parser';
 
 /**
  * TaskQueue - Database-backed task tracking system
@@ -214,7 +214,7 @@ export class TaskQueue {
    */
   private getNextRunTime(cronExpression: string, from?: Date): Date {
     try {
-      const interval = cronParser.parseExpression(cronExpression, {
+      const interval = CronExpressionParser.parse(cronExpression, {
         currentDate: from || new Date(),
       });
       return interval.next().toDate();

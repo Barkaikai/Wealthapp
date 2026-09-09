@@ -171,8 +171,8 @@ class DiscordBotService {
           try {
             const now = new Date();
             // Calculate next run time based on cron expression
-            const parser = await import('cron-parser');
-            const interval = parser.parseExpression(cronTime);
+            const { CronExpressionParser } = await import('cron-parser');
+            const interval = CronExpressionParser.parse(cronTime);
             const nextRunAt = interval.next().toDate();
             
             await this.storage.updateDiscordScheduledMessage(scheduleId, userId, {

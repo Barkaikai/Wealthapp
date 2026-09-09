@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { storage } from './storage';
 import { healthSync } from './healthSync';
+import { isAuthenticated } from './replitAuth';
 import {
   insertStepRecordSchema,
   insertExerciseRecordSchema,
@@ -11,14 +12,6 @@ import {
 } from '@shared/schema';
 
 const router = express.Router();
-
-// Middleware to check authentication
-function isAuthenticated(req: any, res: Response, next: Function) {
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Unauthorized" });
-}
 
 // === STEP RECORDS ===
 router.get('/health/steps', isAuthenticated, async (req: any, res) => {

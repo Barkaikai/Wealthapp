@@ -21,7 +21,7 @@ interface FixAttempt {
 class HealthMonitor {
   private config: HealthMonitorConfig = {
     enabled: process.env.HEALTH_MONITOR_ENABLED !== 'false', // Enabled by default
-    autoFixEnabled: process.env.AUTO_FIX_ENABLED !== 'false', // Enabled by default
+    autoFixEnabled: process.env.FAST_STARTUP === '1' ? false : process.env.AUTO_FIX_ENABLED !== 'false', // Disable invasive fixes during fast startup
     intervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS || '600000'), // 10 minutes default
     maxHistorySize: 200,
   };

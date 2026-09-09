@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, RefreshCw } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { format, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, startOfWeek, endOfWeek } from "date-fns";
 
 interface Event {
@@ -26,12 +28,34 @@ interface DigitalCalendarProps {
 }
 
 export function DigitalCalendar({ open, onOpenChange }: DigitalCalendarProps) {
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "week" | "day">("month");
 
   const { data: events = [] } = useQuery<Event[]>({
-    queryKey: ['/api/calendar-events'],
+    queryKey: ['/api/calendar/events'],
     enabled: open,
+  });
+
+  const syncGoogleCalendarMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/calendar/google/sync', { days: 90 });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
+      toast({
+        title: 'Google Calendar synced',
+        description: data?.message || `Synced ${data?.scanned ?? 0} events from Google Calendar`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'Failed to sync Google Calendar',
+        variant: 'destructive',
+      });
+    },
   });
 
   const goToPrevious = () => {
@@ -214,6 +238,9 @@ export function DigitalCalendar({ open, onOpenChange }: DigitalCalendarProps) {
               <span>Digital Calendar</span>
             </div>
           </DialogTitle>
+          <DialogDescription>
+            Read-only view of your calendar. Sync pulls the latest events from Google Calendar.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -242,6 +269,16 @@ export function DigitalCalendar({ open, onOpenChange }: DigitalCalendarProps) {
                 data-testid="button-calendar-today"
               >
                 Today
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => syncGoogleCalendarMutation.mutate()}
+                disabled={syncGoogleCalendarMutation.isPending}
+                data-testid="button-sync-google-calendar"
+                title="Pull the latest events from Google Calendar"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncGoogleCalendarMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncGoogleCalendarMutation.isPending ? 'Syncing...' : 'Sync Google Calendar'}
               </Button>
             </div>
 

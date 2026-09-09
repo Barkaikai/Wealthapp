@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 const openai = process.env.OPENAI_API_KEY 
   ? new OpenAI({ 
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY ?? "sk-local-dev-placeholder",
       timeout: 60000,
       maxRetries: 0,
     })

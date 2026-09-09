@@ -32,6 +32,11 @@ async function throwIfResNotOk(res: Response) {
 let csrfTokenCache: string | null = null;
 
 async function getCsrfToken(forceRefresh = false): Promise<string | null> {
+  // Local dev auth should not need CSRF tokens
+  if (import.meta.env.DEV || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+    return null;
+  }
+
   // Return cached token if available and not forcing refresh
   if (csrfTokenCache && !forceRefresh) {
     return csrfTokenCache;

@@ -80,6 +80,18 @@ def start_wf():
         "PGLITE_DATA_DIR": r"C:\Users\Barkai Brinson\AppData\Local\WealthForge\pglite-fast",
         "DATABASE_URL": "",
     })
+    # Ensure schema exists — if the DB dir was recreated after corruption,
+    # the server boots with zero tables and every API call 500s.
+    try:
+        import shutil
+        npx = shutil.which("npx") or "npx.cmd"
+        r = subprocess.run(
+            [npx, "drizzle-kit", "push", "--force"],
+            cwd=str(WF), env=env, capture_output=True, timeout=240,
+        )
+        log(f"schema push rc={r.returncode}")
+    except Exception as e:
+        log(f"schema push failed: {e}")
     try:
         subprocess.Popen(
             [NODE, "dist/index.js"], cwd=str(WF), env=env,

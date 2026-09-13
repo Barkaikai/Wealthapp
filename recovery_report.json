@@ -1,0 +1,26 @@
+{
+  "pglite-fast.corrupt-20260912a": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast.bad-manual-20260911": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast.corrupt-20260911b": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast.corrupt-20260910a": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast.corrupt-20260909": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast.fresh1-100736": {
+    "error": "relation \"contacts\" does not exist"
+  },
+  "pglite-fast.bad-20260828123853": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  },
+  "pglite-fast": {
+    "error": "Aborted(). Build with -sASSERTIONS for more info."
+  }
+}

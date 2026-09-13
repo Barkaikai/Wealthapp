@@ -82,15 +82,14 @@ export default function WealthDashboard() {
 
   const syncPrices = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/financial/sync", {});
+      const response = await apiRequest("POST", "/api/assets/refresh", {});
       return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
-      const totalSynced = (data.stocks?.synced || 0) + (data.crypto?.synced || 0);
       toast({
         title: "Sync Complete",
-        description: `Successfully synced ${totalSynced} assets`,
+        description: `Live prices updated for ${data.updated || 0} of ${data.total || 0} assets`,
       });
     },
     onError: (error: Error) => {

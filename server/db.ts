@@ -5,7 +5,9 @@ import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import pg from 'pg';
 import * as schema from '@shared/schema';
 
-const useEmbeddedDb = process.env.USE_PGLITE === '1' || process.env.LOCAL_DEV_AUTH === '1';
+// PGlite is only used when explicitly requested. It corrupts under
+// long-running load; the default is real Postgres via DATABASE_URL.
+const useEmbeddedDb = process.env.USE_PGLITE === '1';
 const fastStartup = process.env.FAST_STARTUP === '1';
 const pgliteBaseDir = (() => {
   const baseDir = process.env.LOCALAPPDATA || process.cwd();

@@ -1,6 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 
-const useEmbeddedDb = process.env.USE_PGLITE === '1' || process.env.LOCAL_DEV_AUTH === '1';
+const useEmbeddedDb = process.env.USE_PGLITE === '1';
 
 if (!useEmbeddedDb && !process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");

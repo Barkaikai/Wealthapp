@@ -75,10 +75,9 @@ def start_wf():
     log("WealthForge down — restarting")
     env = dict(os.environ)
     env.update({
-        "USE_PGLITE": "1", "NODE_ENV": "development", "LOCAL_DEV_AUTH": "1",
+        "NODE_ENV": "development", "LOCAL_DEV_AUTH": "1",
         "QUIET_STARTUP": "1", "FAST_STARTUP": "1", "PORT": "5000",
-        "PGLITE_DATA_DIR": r"C:\Users\Barkai Brinson\AppData\Local\WealthForge\pglite-fast",
-        "DATABASE_URL": "",
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/wealth_automation",
     })
     # Ensure schema exists — if the DB dir was recreated after corruption,
     # the server boots with zero tables and every API call 500s.

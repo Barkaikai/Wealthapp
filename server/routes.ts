@@ -944,6 +944,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // Live price refresh for all assets (stocks + crypto, multi-provider fallback)
+  app.post('/api/assets/refresh', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const assets = await storage.getAssets(userId);
+      const { getCryptoPriceWithFallback, getStockPriceWithFallback } = await import("./marketData");
+      const prevValues: Record<string, number> = {};
+      const assetsBefore = new Map(assets.map((a: any) => [a.id, a.value]));
+      let updated = 0;
+      for (const a of assets) {
+        let point: any = null;
+        try {
+          if (a.assetType === 'crypto') {
+            point = await getCryptoPriceWithFallback(a.symbol);
+          } else if (a.assetType === 'stocks' || a.assetType === 'etf' || a.assetType === 'bond') {
+            point = await getStockPriceWithFallback(a.symbol);
+          }
+        } catch { /* per-asset failure shouldn't abort the batch */ }
+        if (point && point.price > 0) {
+          const oldVal = a.value;
+          const newVal = point.price * (a.quantity || 1);
+          await storage.updateAsset(a.id, userId, {
+            value: newVal,
+            change24h: point.change24h ? point.change24h * (a.quantity || 1) : null,
+            changePercent: point.changePercent ?? null,
+            lastSynced: new Date(),
+          });
+          prevValues[String(a.id)] = oldVal;
+          updated++;
+        }
+      }
+      const refreshed = await storage.getAssets(userId);
+      res.json({ ok: true, updated, total: assets.length, assets: refreshed, prevValues });
+    } catch (error: any) {
+      console.error("Error refreshing assets:", error);
+      res.status(500).json({ message: error.message || "Failed to refresh assets" });
+    }
+  });
+
+
+
   app.patch('/api/assets/:id', isAuthenticated, async (req: any, res) => {
 
     try {

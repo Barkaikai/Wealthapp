@@ -327,25 +327,26 @@ export async function getCryptoPriceWithFallback(symbol: string): Promise<Market
 // ==================== ENHANCED STOCK PRICE FETCH WITH FALLBACKS ====================
 
 export async function getStockPriceWithFallback(symbol: string): Promise<MarketDataPoint | null> {
-  // Try Yahoo Finance (most reliable)
+  // Yahoo v7 quote API now returns 401 — use the v8 chart endpoint (still open)
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
     const data = await fetchJson(url);
-    
-    if (data?.quoteResponse?.result?.[0]) {
-      const item = data.quoteResponse.result[0];
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (meta?.regularMarketPrice) {
+      const price = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? price;
       return {
-        symbol: item.symbol || symbol,
-        name: item.longName || item.shortName || symbol,
-        price: item.regularMarketPrice || 0,
-        change24h: item.regularMarketChange || 0,
-        changePercent: item.regularMarketChangePercent || 0,
-        marketCap: item.marketCap || 0,
-        source: 'yahoo',
+        symbol: meta.symbol || symbol,
+        name: meta.longName || meta.shortName || symbol,
+        price,
+        change24h: price - prev,
+        changePercent: prev ? ((price - prev) / prev) * 100 : 0,
+        marketCap: 0,
+        source: 'yahoo-chart',
       };
     }
   } catch (error) {
-    console.error(`Yahoo Finance failed for ${symbol}:`, error);
+    console.error(`Yahoo Finance chart failed for ${symbol}:`, error);
   }
 
   return null;

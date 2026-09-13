@@ -55,20 +55,20 @@ def acquire_lock():
 
 
 def wf_alive():
+    # Probe a DB-backed endpoint: a wedged PGlite returns 500 on /api/tasks,
+    # which must NOT count as alive (a plain TCP/404 check once masked
+    # corruption for hours).
     try:
-        urllib.request.urlopen(URL, timeout=3)
+        import http.cookiejar
+        cj = http.cookiejar.CookieJar()
+        op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+        op.open("http://localhost:5000/api/login", timeout=5)
+        op.open("http://localhost:5000/api/tasks", timeout=5)
         return True
-    except urllib.error.HTTPError:
-        return True  # 401/404 still means the server is up
+    except urllib.error.HTTPError as e:
+        return False  # 4xx/5xx from a DB-backed route = not healthy
     except Exception:
-        # fall back to root
-        try:
-            urllib.request.urlopen("http://localhost:5000/", timeout=3)
-            return True
-        except urllib.error.HTTPError:
-            return True
-        except Exception:
-            return False
+        return False
 
 
 def start_wf():

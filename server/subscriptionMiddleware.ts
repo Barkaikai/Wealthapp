@@ -119,6 +119,10 @@ export function requireTier(minTier: 'free' | 'premium' | 'enterprise') {
   };
 
   return (req: Request, res: Response, next: NextFunction) => {
+    // Local dev instance: no tier gating (you are the only user)
+    if (process.env.LOCAL_DEV_AUTH === '1') {
+      return next();
+    }
     const currentTier = req.subscription?.tier || 'free';
     const currentLevel = tierHierarchy[currentTier as keyof typeof tierHierarchy] || 0;
     const requiredLevel = tierHierarchy[minTier];

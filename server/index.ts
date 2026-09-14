@@ -275,15 +275,14 @@ let httpServer: ReturnType<typeof app.listen> | null = null;
     });
 
     // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
+    // Local-only: bind loopback so the app is never reachable from the network.
     // this serves both the API and the client.
-    // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
     
     const fastStartup = process.env.FAST_STARTUP === '1';
 
     // Start listening FIRST so the app becomes reachable as early as possible.
-    server.listen(port, "0.0.0.0", async () => {
+    server.listen(port, "127.0.0.1", async () => {
       log(`serving on port ${port}`);
       log(`✓ Server is ready and accepting connections`);
 

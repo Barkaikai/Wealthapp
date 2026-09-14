@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `wealth-automation-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `wealth-automation-runtime-${CACHE_VERSION}`;
 const API_CACHE = `wealth-automation-api-${CACHE_VERSION}`;
@@ -214,7 +214,10 @@ function isImageRequest(pathname) {
 
 // Helper: Check if request is for a static asset
 function isStaticAsset(pathname) {
-  return /\.(css|js|woff|woff2|ttf|eot)$/i.test(pathname) || pathname === '/' || pathname === '/index.html';
+  // NOTE: '/' and '/index.html' are deliberately NOT treated as static assets:
+  // cached-forever HTML pins clients to stale builds that reference deleted
+  // asset hashes. HTML must always go through the network-first path.
+  return /\.(css|js|woff|woff2|ttf|eot)$/i.test(pathname);
 }
 
 // Helper: Create offline response

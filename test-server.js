@@ -8,7 +8,7 @@ const server = http.createServer((req, res) => {
   res.end('OK\n');
 });
 
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, '127.0.0.1', () => {
   console.log(`Test server listening on port ${port}`);
   console.log(`Server address: ${JSON.stringify(server.address())}`);
 });

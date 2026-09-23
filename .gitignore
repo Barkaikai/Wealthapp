@@ -18,3 +18,5 @@ pglite*
 # secrets
 .env
 _start_wf.bat
+fix-wealthforge.ps1
+wf_watchdog.py
